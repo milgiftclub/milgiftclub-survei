@@ -1,0 +1,26 @@
+# Setiap push ke main yang mengubah site/ -> website di-upload ke Netlify (survei-milgiftclub.netlify.app).
+name: Deploy Website (Netlify)
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/deploy-netlify.yml']
+  workflow_dispatch:
+
+concurrency: { group: netlify, cancel-in-progress: true }
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_SITE_ID: 8e632396-776b-4e8c-86e5-a60703ae0e28   # project survei-milgiftclub
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Cek token
+        run: |
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then echo "::error::Secret NETLIFY_AUTH_TOKEN belum diisi. Lihat README bagian Setup."; exit 1; fi
+      - name: Upload ke Netlify
+        run: npx --yes netlify-cli@17.38.1 deploy --dir=site --prod --site="$NETLIFY_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --message "github ${GITHUB_SHA::7}"

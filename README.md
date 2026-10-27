@@ -13,7 +13,7 @@ Platform survei **Indonesia Online Shopper Journey 2026** dan survei-survei baru
 
 | Yang berubah | Yang terjadi setelah push ke `main` |
 |---|---|
-| `site/` | Netlify otomatis menayangkan versi baru (±1 menit) |
+| `site/` | GitHub Actions meng-upload website ke Netlify (±1 menit), link tetap sama |
 | `apps-script/` | GitHub Actions memasang kode ke Apps Script dan meng-update deployment **yang sama** (link tidak berubah) |
 
 Tidak perlu lagi copy-paste kode atau klik *New version*.
@@ -59,7 +59,7 @@ npm run test:builder
 
 ## Setup (sekali saja)
 
-1. **Netlify**: buka project *survei-milgiftclub* → Site configuration → Build & deploy → Link repository → GitHub → pilih repo ini. Isi *Publish directory* `site`, dan kosongkan *Build command*.
+1. **Netlify**: buat token di https://app.netlify.com/user/applications#personal-access-tokens (klik *New access token*, beri nama `github`, pilih masa berlaku terpanjang). Simpan token itu sebagai secret `NETLIFY_AUTH_TOKEN` di Settings → Secrets and variables → Actions repo ini.
 2. **Google**: login dengan akun @mildigital.id pemilik proyek Apps Script survei, lalu aktifkan *Google Apps Script API* di https://script.google.com/home/usersettings.
 3. **Codespaces**: di GitHub klik Code → Codespaces → Create codespace on main, lalu jalankan:
    ```
@@ -72,5 +72,5 @@ npm run test:builder
    - menampilkan teks untuk secret `CLASPRC_JSON`;
    - menampilkan link Dashboard baru.
 4. Tambahkan secret `CLASPRC_JSON` di Settings → Secrets and variables → Actions.
-5. Buka Actions → *Deploy Apps Script* → **Run workflow**.
+5. Buka Actions, lalu klik **Run workflow** untuk *Deploy Website (Netlify)* dan untuk *Deploy Apps Script*.
 6. Kalau web app menampilkan "Authorization is required", buka proyeknya di script.google.com, pilih fungsi `izinkanAkses`, lalu klik Run → Allow.
