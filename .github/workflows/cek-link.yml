@@ -4,14 +4,11 @@ jobs:
   cek:
     runs-on: ubuntu-latest
     steps:
-      - name: Buka link seperti responden (tanpa akun Google)
-        run: |
-          U="https://script.google.com/macros/s/AKfycbzfKRzS_qZhPjaH9CrXr-l-afFfX-7QCerSDxc5aIDemYNpuHWA5xWVmaMwxGQUZ9IaoQ/exec?survei=v1"
-          for ua in "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"; do
-            curl -sL -A "$ua" -o page.html -w "%{http_code} %{url_effective}\n" "$U" > res.txt
-            R=$(cat res.txt); T=$(grep -o '<title>[^<]*' page.html | head -1); S=$(stat -c %s page.html)
-            H=$(grep -c "Tahun berapa\|__SEARCH\|webApi" page.html || true)
-            echo "::warning::HASIL ${ua:13:20} | $R | $T | size=$S | survei=$H"
-            grep -o 'accounts.google.com[^"]\{0,80\}' page.html | head -2 | sed 's/^/::warning::LOGIN /'
-            grep -io 'Sorry[^<]\{0,120\}\|Maaf[^<]\{0,120\}\|tidak dapat[^<]\{0,120\}\|unable[^<]\{0,120\}' page.html | head -3 | sed 's/^/::warning::PESAN /'
-          done
+      - uses: actions/checkout@v4
+      - name: Siapkan browser
+        run: npm i playwright@1.47.2 && npx playwright install --with-deps chromium webkit >/dev/null
+      - name: Buka link seperti responden di HP (tanpa akun Google)
+        run: node scripts/cek-link.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: tangkapan-layar, path: "*.png" }
