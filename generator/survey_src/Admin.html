@@ -997,13 +997,13 @@ function pmDraw() {
   ready.then(function () { paintPoster(c, W, H, story); }, function () { paintPoster(c, W, H, story); });
 }
 // ---- gaya poster MIL Gift Club (mengikuti poster giveaway resmi) ----
-var ASSET_BASE = 'https://survei-milgiftclub.netlify.app/assets/promo/', ASSET = {}, IMGCACHE = {};
+var ASSET_DATA = __PROMO_ASSETS__, ASSET = {}, IMGCACHE = {};   // gambar poster tertanam (tidak bergantung pada Netlify)
 var PP = { cream: '#FCF6E5', yellow: '#FDD23A', yellowL: '#FFE27A', blue: '#4FC0FC', blueD: '#2FA8EE', brown: '#4A2412', white: '#FFFFFF', red: '#E8343B' };
 function loadAssets() {
   var names = ['logo', 'giveaway', 'airpods', 'crown', 'map', 'calendar'];
   return Promise.all(names.map(function (n) {
     if (ASSET[n]) return ASSET[n];
-    return new Promise(function (ok) { var im = new Image(); im.crossOrigin = 'anonymous'; im.onload = function () { ASSET[n] = im; ok(im); }; im.onerror = function () { ok(null); }; im.src = ASSET_BASE + n + '.png'; });
+    return new Promise(function (ok) { var im = new Image(); im.crossOrigin = 'anonymous'; im.onload = function () { ASSET[n] = im; ok(im); }; im.onerror = function () { ok(null); }; im.src = ASSET_DATA[n] || ''; if (!ASSET_DATA[n]) ok(null); });
   }));
 }
 function loadPrizeImgs(ids) {

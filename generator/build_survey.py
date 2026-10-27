@@ -81,4 +81,6 @@ gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cat
 open('survey_out/Code.gs','w').write(gs)
 print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 
-import shutil; shutil.copy('survey_src/Admin.html','survey_out/Admin.html')
+import base64, glob
+_assets = {os.path.basename(f)[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('assets/promo/*.webp'))}
+open('survey_out/Admin.html', 'w').write(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)))

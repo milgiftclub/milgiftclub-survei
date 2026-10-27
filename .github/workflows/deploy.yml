@@ -31,7 +31,13 @@ jobs:
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site apps-script generator/hosted_config.js
           git diff --cached --quiet || { git commit -m "Build otomatis [skip ci]"; git push; }
+      - name: Cek apakah website berubah
+        id: web
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || ! git diff --quiet "${{ github.event.before }}" HEAD -- site/ 2>/dev/null; then echo "deploy=yes" >> "$GITHUB_OUTPUT"; else echo "deploy=no" >> "$GITHUB_OUTPUT"; echo "Website tidak berubah: upload Netlify dilewati (hemat kredit Netlify)."; fi
       - name: Upload website ke Netlify
+        if: steps.web.outputs.deploy == 'yes'
+        continue-on-error: true
         run: |
           set -o pipefail
           if ! npx --yes netlify-cli@17.38.1 deploy --dir=site --prod --site="$NETLIFY_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --message "github ${GITHUB_SHA::7}" 2>&1 | tee /tmp/netlify.log; then

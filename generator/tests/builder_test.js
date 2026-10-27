@@ -46,7 +46,7 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
   await p.route('https://fonts.googleapis.com/**', r => { let css = ''; try { const ff = (pkg, fam, w) => '@font-face{font-family:"' + fam + '";font-weight:' + w + ';src:url(https://fonts.gstatic.test/' + pkg + '/' + w + ')}'; css = [ff('fredoka', 'Fredoka', 600), ff('fredoka', 'Fredoka', 700), ff('nunito', 'Nunito', 700), ff('nunito', 'Nunito', 800), ff('kalam', 'Kalam', 700)].join(''); } catch (e) {} r.fulfill({ body: css, contentType: 'text/css' }); });
   await p.route('https://fonts.gstatic.test/**', r => { try { const [, pkg, w] = new URL(r.request().url()).pathname.split('/'); const dir = path.join(path.dirname(require.resolve('@fontsource/' + pkg + '/package.json')), 'files'); r.fulfill({ body: fs.readFileSync(path.join(dir, pkg + '-latin-' + w + '-normal.woff2')), contentType: 'font/woff2' }); } catch (e) { r.abort(); } });
-  await p.route('https://survei-milgiftclub.netlify.app/assets/**', r => { const f = path.join(ROOT, new URL(r.request().url()).pathname); r.fulfill({ body: fs.readFileSync(f), contentType: 'image/png', headers: { 'access-control-allow-origin': '*' } }); });
+
   await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(1500);
   await p.click('nav.side .sv-new'); await p.waitForTimeout(500);
   await p.screenshot({ path: SP + 'bld_0_kosong.png' });
