@@ -1,5 +1,5 @@
 # SATU alur untuk semua perubahan:
-#   edit di generator/ (atau site/config.js) -> build otomatis -> website ke Netlify -> kode ke Apps Script (survei & dashboard)
+#   edit di generator/ (atau site/config.js) -> build otomatis -> website ke GitHub Pages -> kode ke Apps Script (survei & dashboard)
 name: Build & Deploy
 
 on:
@@ -15,8 +15,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      NETLIFY_SITE_ID: 8e632396-776b-4e8c-86e5-a60703ae0e28   # project survei-milgiftclub
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
       CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
     steps:
       - uses: actions/checkout@v4
@@ -31,18 +29,6 @@ jobs:
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site apps-script generator/hosted_config.js
           git diff --cached --quiet || { git commit -m "Build otomatis [skip ci]"; git push; }
-      - name: Cek apakah website berubah
-        id: web
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || ! git diff --quiet "${{ github.event.before }}" HEAD -- site/ 2>/dev/null; then echo "deploy=yes" >> "$GITHUB_OUTPUT"; else echo "deploy=no" >> "$GITHUB_OUTPUT"; echo "Website tidak berubah: upload Netlify dilewati (hemat kredit Netlify)."; fi
-      - name: Upload website ke Netlify
-        if: steps.web.outputs.deploy == 'yes'
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          if ! npx --yes netlify-cli@17.38.1 deploy --dir=site --prod --site="$NETLIFY_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --message "github ${GITHUB_SHA::7}" 2>&1 | tee /tmp/netlify.log; then
-            echo "::error::Netlify gagal: $(tail -c 600 /tmp/netlify.log | tr '\n' ' ')"; exit 1
-          fi
       - run: npm install -g @google/clasp@2.4.2
       - name: Login Google
         env: { KUNCI: '${{ secrets.NETLIFY_AUTH_TOKEN }}' }
@@ -60,3 +46,17 @@ jobs:
         run: |
           clasp push --force
           clasp deploy --deploymentId "$(jq -r .dashboard ../deployments.json)" --description "auto ${GITHUB_SHA::7}"
+
+  # Website survei (folder site/) -> GitHub Pages: https://milgiftclub.github.io/milgiftclub-survei/
+  pages:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions: { pages: write, id-token: write, contents: read }
+    environment: { name: github-pages, url: '${{ steps.dep.outputs.page_url }}' }
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - id: dep
+        uses: actions/deploy-pages@v4

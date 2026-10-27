@@ -1,6 +1,6 @@
 // Membuka link survei seperti responden di HP (tanpa login Google) lalu melaporkan apa yang tampil.
 const pw = require('playwright');
-const U = process.env.LINK || 'https://script.google.com/macros/s/AKfycbzfKRzS_qZhPjaH9CrXr-l-afFfX-7QCerSDxc5aIDemYNpuHWA5xWVmaMwxGQUZ9IaoQ/exec?survei=v1';
+const U = process.env.LINK || 'https://milgiftclub.github.io/milgiftclub-survei/';
 const note = (m) => console.log('::warning::' + String(m).replace(/\n/g, ' ').slice(0, 900));
 (async () => {
   for (const [nm, eng, dev] of [['android', 'chromium', 'Pixel 7'], ['iphone', 'webkit', 'iPhone 13']]) {

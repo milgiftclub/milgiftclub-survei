@@ -74,6 +74,8 @@ var META = ['timestamp', 'survei', 'varian', 'versi_kuesioner', 'session_id', 's
 
 // Link survei publik (deployment Apps Script proyek survei; dari apps-script/deployments.json)
 var SURVEY_URL = 'https://script.google.com/macros/s/__SURVEY_DEPLOY__/exec';
+// Website survei (GitHub Pages, folder site/) -> link yang dibagikan ke responden. Link Apps Script di atas tetap berfungsi sebagai cadangan.
+var WEB_URL = 'https://milgiftclub.github.io/milgiftclub-survei/';
 
 // ====== PENGATURAN (tab "Pengaturan", diubah dari Dashboard) ======
 var SET_DEFAULTS = [
@@ -87,10 +89,10 @@ var SET_DEFAULTS = [
   ['EMAIL_BUKA_AKSES', 'milgiftclub@gmail.com', 'Email permohonan buka akses (ditampilkan ke peserta yang diblokir)'],
   ['ADMIN_DOMAIN', 'mildigital.id', 'Domain email yang boleh membuka Dashboard'],
   ['ADMIN_EMAIL_TAMBAHAN', '', 'Email lain yang boleh membuka Dashboard (pisahkan dengan koma)'],
-  ['LINK_V1', SURVEY_URL + '?survei=v1', 'Link survei Semua Kategori'],
-  ['LINK_V2', SURVEY_URL + '?survei=v2', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
+  ['LINK_V1', WEB_URL, 'Link survei Semua Kategori'],
+  ['LINK_V2', WEB_URL + 'fokus/', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
   ['API_KEY', '', 'Kunci API untuk ATLAS (buat dari Dashboard > API)'],
-  ['LINK_SURVEI_BARU', SURVEY_URL + '?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
+  ['LINK_SURVEI_BARU', WEB_URL + 's/?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
   ['ANTHROPIC_API_KEY', '', 'Kunci API Claude (console.anthropic.com) untuk fitur "Minta AI" di Buat Survei. Kosong = fitur AI mati'],
   ['AI_MODEL', 'claude-sonnet-5-5', 'Model Claude yang dipakai untuk menyusun survei'],
   ['TUTUP_V1', '2026-12-31T23:59', 'Survei Semua Kategori tutup otomatis pada tanggal & jam ini (WIB). Kosong = tanpa batas waktu'],
@@ -144,8 +146,8 @@ function settings_() {
 }
 function set_(k) {
   var v = settings_()[k];
-  // link lama Netlify (kredit habis) -> otomatis diarahkan ke link Apps Script
-  if (/^LINK_(V1|V2|SURVEI_BARU)$/.test(k) && /netlify\.app/.test(String(v || ''))) v = SET_DEFAULTS.filter(function (d) { return d[0] === k; })[0][1];
+  // link lama (Netlify / Apps Script) -> otomatis diarahkan ke website GitHub Pages
+  if (/^LINK_(V1|V2|SURVEI_BARU)$/.test(k) && /netlify\.app|script\.google\.com\/macros/.test(String(v || ''))) v = SET_DEFAULTS.filter(function (d) { return d[0] === k; })[0][1];
   return v;
 }
 function num_(k) { return Number(set_(k)) || 0; }
