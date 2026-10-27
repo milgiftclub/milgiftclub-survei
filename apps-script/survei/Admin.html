@@ -112,7 +112,11 @@ code.k{background:var(--navy-l);color:var(--navy);padding:4px 8px;border-radius:
 @media(max-width:960px){.app{flex-direction:column}nav.side{width:auto;height:auto;position:static;flex:none}.datecard{display:none}.content{padding:20px}.kv{grid-template-columns:1fr}.hero h1{font-size:30px}}
 .grp .cnt{background:var(--navy-l);color:var(--navy);border-radius:10px;padding:2px 8px;font-size:11px;letter-spacing:0}
 nav.side button.sv{align-items:flex-start;padding:10px 14px}
-nav.side button.sv .dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px;margin-top:5px}
+nav.side button.sv .dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px;margin-top:5px;background:#C2C6D3}
+nav.side button.sv .dot.live{background:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,.18),0 0 8px rgba(34,197,94,.6)}
+nav.side button.sv .dot.draft{background:#F2C94C}
+nav.side button.sv.on .dot{box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+nav.side button.sv.on .dot.live{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 10px rgba(34,197,94,.9)}
 nav.side button.sv .t{display:block;font-weight:600;font-size:14px;line-height:1.35}
 nav.side button.sv .s{display:block;font-size:12px;color:var(--ink2);margin-top:2px}
 nav.side button.sv.on .s{color:rgba(255,255,255,.8)}
@@ -393,8 +397,9 @@ function svColor(v) { if (SV_COLOR[v]) return SV_COLOR[v]; var i = SUM.surveys.m
 function drawSurveyNav() {
   $('sv-cnt').textContent = SUM.surveys.length;
   $('sv-list').innerHTML = SUM.surveys.map(function (s) {
-    return '<button data-p="survey" data-v="' + s.v + '" class="sv' + (SV === s.v && $('p-survey').classList.contains('on') ? ' on' : '') + '"><i class="dot" style="background:' + (s.open ? svColor(s.v) : '#C2C6D3') + '"></i><span><span class="t">' + esc(s.name) + '</span>' +
-      '<span class="s">' + esc(s.status || (s.open ? 'Dibuka' : 'Ditutup')) + ' · ' + fmt(s.valid) + ' / ' + fmt(s.target) + ' valid</span></span></button>';
+    var st = s.open ? 'live' : s.status === 'Draf' ? 'draft' : '';
+    return '<button data-p="survey" data-v="' + s.v + '" class="sv' + (SV === s.v && $('p-survey').classList.contains('on') ? ' on' : '') + '" title="' + (s.open ? 'Dibuka' : s.status === 'Draf' ? 'Draf (belum dipublish)' : 'Ditutup') + '"><i class="dot ' + st + '"></i><span><span class="t">' + esc(s.name) + '</span>' +
+      '<span class="s">' + (s.status === 'Draf' ? 'Draf · ' : '') + fmt(s.valid) + ' / ' + fmt(s.target) + ' valid</span></span></button>';
   }).join('');
   [].forEach.call($('sv-list').children, bindNav);
   var opt = function (sel, all) { var e = $(sel), cur = e.value; e.innerHTML = (all ? '<option value="all">Gabungan semua survei</option>' : '') + SUM.surveys.map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + (s.status === 'Draf' ? ' (draf)' : '') + '</option>'; }).join(''); if (cur && [].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur; };
