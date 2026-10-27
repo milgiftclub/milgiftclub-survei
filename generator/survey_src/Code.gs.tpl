@@ -1,0 +1,1274 @@
+/**
+ * MIL Gift Club — Survei Kebiasaan Belanja Online
+ * Backend Google Apps Script (container-bound ke Google Sheet).
+ *
+ * Langkah awal: jalankan menu "MIL Survey > 1. Setup awal" sekali dari Google Sheet.
+ * Lihat Panduan Deploy untuk detail.
+ */
+
+// ====== KONFIGURASI (boleh diubah) ======
+var CONFIG = {
+  TARGET_PER_CAT: 300,          // target respons valid per kategori High
+  MIN_PER_CAT: 200,             // batas minimum per kategori
+  ANNOUNCE_DATE: '4 Januari 2027',  // tanggal pengumuman pemenang
+  PERIODE_LABEL: 'Survei MIL Gift Club · Periode 1 2026', // label di halaman pertama
+  PERIODE_GIVEAWAY: 'Hingga 31 Desember 2026',  // tampil sebagai "Periode Giveaway" (kosong = tidak ditampilkan)
+  HADIAH_UTAMA: 'Apple AirPods 4',            // hadiah utama di halaman pertama
+  HADIAH: [                                   // hadiah lainnya (satu baris per hadiah)
+    'Voucher MAP Rp500.000 untuk 3 pemenang',
+    'Saldo GoPay Rp50.000 untuk 5 pemenang'
+  ],
+  PESAN_PENUTUP: 'Isi survei lainnya (link di bio) untuk memperbesar kesempatan kamu menang!', // kotak kuning di halaman terima kasih
+  IG_HANDLE: '@milgiftclub',                  // akun Instagram giveaway (dipakai di semua teks survei)
+  LANGKAH_PENUTUP: [                          // petunjuk di halaman terima kasih (langkah 1 = isi survei, otomatis)
+    'Follow Instagram @milgiftclub',
+    '❤️ Like postingan giveaway ini',
+    'Tag 3 teman kamu di kolom komentar',
+    'Share postingan ini ke Instagram Story kamu dan tag @milgiftclub',
+    'Nantikan pengumuman pemenangnya!'
+  ],  PRIVACY_URL: '',              // tautan Kebijakan Privasi (wajib diisi sebelum survei dibuka)
+  TNC_URL: '',                  // tautan Syarat & Ketentuan giveaway
+  TARGET_V1: 1200,              // target respons valid survei v1 (semua kategori)
+  TARGET_V2: 600,               // target respons valid survei v2 (Fashion Wanita, Tas & Aksesori, Hijab)
+  SURVEY_OPEN: true,            // ubah ke false untuk menutup survei
+  EMAIL_BUKA_AKSES: 'milgiftclub@gmail.com', // email untuk permohonan buka akses (ditampilkan ke peserta yang diblokir)
+  BATAS_PELANGGARAN: 2,         // pelanggaran ke-N (setelah dibuka) -> suspend
+  SUSPEND_BULAN: 6,             // lama suspend (bulan)
+  FUNNEL_ALL_CATEGORIES: true,  // true: semua responden menjawab modul funnel untuk kategori belanja terakhirnya; false: hanya kategori High
+  SURVEY_NAME: 'Online Shopper Journey 2026' // nama survei ini, dicatat di riwayat panel
+};
+
+// ====== DATA (dihasilkan dari draft kuesioner) ======
+var CATEGORIES = __CATEGORIES__;   // [kelompok, kategori, prioritas]
+var DICTIONARY = __DICTIONARY__;   // [id, no, topik, pertanyaan]
+
+var SH = { SET: 'Pengaturan', WIN: 'Pemenang', KAT: 'Kategori', RESP: 'Responses', RESP1: 'Jawaban - Semua Kategori', RESP2: 'Jawaban - Fashion Tas Hijab', BLOK: 'Daftar Blokir', SCR: 'Screenout', REKAP: 'Rekap', DICT: 'Kamus Kolom', UNDIAN: 'Eligible Undian', PANEL: 'Panel', CARI: 'Cari Panel', HASIL: 'Hasil Pencarian', SURV: 'Daftar Survei' };
+
+// Kolom profil panel: [nama kolom, sumber jawaban]. Kolom baru dapat ditambahkan di akhir.
+var PANEL_COLS = [
+  ['panel_id', null], ['nomor_hp', null], ['instagram', 'Z2'], ['tgl_bergabung', null], ['update_terakhir', null],
+  ['jumlah_survei', null], ['riwayat_survei', null], ['sumber_pertama', null], ['status_kualitas_terakhir', null],
+  ['usia', 'S1'], ['jenis_kelamin', 'S2'], ['kota', 'A1'], ['provinsi', 'provinsi'], ['jabodetabek', 'jabodetabek'], ['tipe_wilayah', 'tipe_wilayah'],
+  ['life_stage', 'A4'], ['pekerjaan', 'A5'], ['pendidikan', 'A6'], ['pengeluaran_rumah_tangga', 'A7'],
+  ['belanja_online_per_bulan', 'A8'], ['frekuensi_belanja_online', 'S5'], ['platform_dipakai_1bln', 'S4'],
+  ['platform_utama', 'B2'], ['kategori_terakhir_dibeli', 'C1'], ['frekuensi_beli_kategori_3bln', 'C2'],
+  ['metode_bayar_terakhir', 'L1_PU3'], ['frekuensi_live_shopping', 'D1'], ['penggunaan_paylater', 'D3'], ['momen_beli_live_shopping', 'D4'], ['prioritas_pilih_fashion', 'L1_FA1'], ['sikap_harga_fashion', 'L1_FA2'], ['format_iklan_sosmed_dilihat', 'D5'], ['produk_terakhir_dibeli', 'L1_PT1'], ['harga_produk_terakhir', 'L1_PT2'],
+  ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5']
+];
+var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
+var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
+var PROFILE_KEYS = ['S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A4', 'A5', 'A6', 'A7'];
+function respTab_(variant) {
+  if (variant === 'v2') return SH.RESP2;
+  var c = variant && variant !== 'v1' ? customById_(variant) : null;
+  return c ? c.tab : SH.RESP1;
+}
+var META = ['timestamp', 'survei', 'varian', 'versi_kuesioner', 'session_id', 'status', 'durasi_detik', 'kategori_1', 'kategori_2', 'attention_check', 'wa_normal', 'ig_normal', 'profil_dari_survei_sebelumnya', 'sumber', 'device_fp', 'user_agent'];
+
+// ====== PENGATURAN (tab "Pengaturan", diubah dari Dashboard) ======
+var SET_DEFAULTS = [
+  ['SURVEY_OPEN_V1', true, 'Survei Semua Kategori dibuka (TRUE) / ditutup (FALSE)'],
+  ['SURVEY_OPEN_V2', true, 'Survei Fashion Wanita, Tas & Aksesori, Hijab dibuka / ditutup'],
+  ['TARGET_V1', 1200, 'Target respons valid survei Semua Kategori'],
+  ['TARGET_V2', 600, 'Target respons valid survei Fashion Wanita, Tas & Aksesori, Hijab'],
+  ['TARGET_PER_CAT', 300, 'Target respons valid per kategori High (survei Semua Kategori)'],
+  ['BATAS_PELANGGARAN', 2, 'Pelanggaran ke-N (setelah dibuka) = suspend'],
+  ['SUSPEND_BULAN', 6, 'Lama suspend (bulan)'],
+  ['EMAIL_BUKA_AKSES', 'milgiftclub@gmail.com', 'Email permohonan buka akses (ditampilkan ke peserta yang diblokir)'],
+  ['ADMIN_DOMAIN', 'mildigital.id', 'Domain email yang boleh membuka Dashboard'],
+  ['ADMIN_EMAIL_TAMBAHAN', '', 'Email lain yang boleh membuka Dashboard (pisahkan dengan koma)'],
+  ['LINK_V1', 'https://survei-milgiftclub.netlify.app/', 'Link survei Semua Kategori'],
+  ['LINK_V2', 'https://survei-milgiftclub.netlify.app/fokus/', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
+  ['API_KEY', '', 'Kunci API untuk ATLAS (buat dari Dashboard > API)'],
+  ['LINK_SURVEI_BARU', 'https://survei-milgiftclub.netlify.app/s/?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
+  ['ANTHROPIC_API_KEY', '', 'Kunci API Claude (console.anthropic.com) untuk fitur "Minta AI" di Buat Survei. Kosong = fitur AI mati'],
+  ['AI_MODEL', 'claude-sonnet-5-5', 'Model Claude yang dipakai untuk menyusun survei']
+];
+var SET_MEMO_ = null;
+function settings_() {
+  if (SET_MEMO_) return SET_MEMO_;
+  var o = {}; SET_DEFAULTS.forEach(function (d) { o[d[0]] = d[1]; });
+  try {
+    var s = sheet_(SH.SET);
+    if (s && s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, 2).getValues().forEach(function (r) { if (r[0]) o[r[0]] = r[1]; });
+  } catch (e) {}
+  SET_MEMO_ = o; return o;
+}
+function set_(k) { return settings_()[k]; }
+function num_(k) { return Number(set_(k)) || 0; }
+function bool_(v) { return typeof v === 'string' ? !/^(false|tidak|no|0|tutup)$/i.test(v.trim()) : v !== false && v !== 0; }
+
+// ====== WEB APP ======
+// true / 'true' / 'ya' = dibuka; false / 'false' / 'tidak' = ditutup (toleran salah ketik tanda kutip / huruf besar)
+function isOpen_(variant) {
+  if (!bool_(CONFIG.SURVEY_OPEN)) return false;
+  if (variant && variant !== 'v1' && variant !== 'v2') { var c = customById_(variant); return !!c && c.status === 'Dibuka'; }
+  if (variant) return bool_(set_(variant === 'v2' ? 'SURVEY_OPEN_V2' : 'SURVEY_OPEN_V1'));
+  return true;
+}
+
+function publicConfig_(variant, src) {
+  return {
+    open: isOpen_(String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1'),
+    announce: CONFIG.ANNOUNCE_DATE,
+    privacy: CONFIG.PRIVACY_URL,
+    tnc: CONFIG.TNC_URL,
+    src: src || 'langsung',
+    variant: String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1',
+    funnelAll: CONFIG.FUNNEL_ALL_CATEGORIES,
+    high: highList_(),
+    periodeLabel: CONFIG.PERIODE_LABEL || '',
+    periode: CONFIG.PERIODE_GIVEAWAY || '',
+    hadiahUtama: CONFIG.HADIAH_UTAMA || '',
+    hadiah: CONFIG.HADIAH || [],
+    ig: CONFIG.IG_HANDLE || '',
+    langkah: CONFIG.LANGKAH_PENUTUP || [],
+    pesanPenutup: CONFIG.PESAN_PENUTUP || ''
+  };
+}
+
+// Tampilan lama (link script.google.com/.../exec) — tetap berfungsi
+function doGet(e) {
+  var prm = (e && e.parameter) || {};
+  if (prm.api) return apiGet_(prm);
+  // Dashboard: ?page=admin, /exec/admin, atau otomatis bila yang membuka adalah tim MIL
+  // (Google kadang membuang ?page=admin saat pindah akun/login, jadi jangan bergantung pada parameter saja)
+  var path = String((e && e.pathInfo) || '').toLowerCase();
+  if (prm.page === 'admin' || path === 'admin') return adminPage_();
+  if (prm.page !== 'survei' && !prm.survei && isAdmin_()) return adminPage_();
+  var t = HtmlService.createTemplateFromFile('Index');
+  t.cfgJson = JSON.stringify(publicConfig_(prm.survei, prm.src || prm.utm_source));
+  return t.evaluate()
+    .setTitle('Survei Belanja Online — MIL Gift Club')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// API untuk tampilan yang di-hosting di luar Google (Netlify, dll.)
+function doPost(e) {
+  var out;
+  try {
+    var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var a = req.args || [];
+    var data;
+    if (req.fn === 'config') data = publicConfig_(a[0], a[1]);
+    else if (req.fn === 'assignCategories') data = assignCategories(a[0], a[1]);
+    else if (req.fn === 'logScreenout') data = logScreenout(a[0]);
+    else if (req.fn === 'submitResponse') data = submitResponse(a[0]);
+    else if (req.fn === 'checkIg') data = checkIg(a[0], a[1]);
+    else if (req.fn === 'lookupIg') data = lookupIg(a[0], a[1]);
+    else if (req.fn === 'verifyProfile') data = verifyProfile(a[0], a[1]);
+    else if (req.fn === 'getSurvey') data = getSurvey(a[0], a[1]);
+    else throw new Error('Fungsi tidak dikenal: ' + req.fn);
+    out = { ok: true, data: data };
+  } catch (err) {
+    out = { ok: false, error: String((err && err.message) || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function ss_() {
+  // SHEET_ID_FIXED (file Config.gs) dipakai proyek Dashboard yang berdiri sendiri; proyek survei memakai Sheet tempat script terpasang
+  var id = (typeof SHEET_ID_FIXED !== 'undefined' && SHEET_ID_FIXED) || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+  return id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+}
+function sheet_(name) { return ss_().getSheetByName(name); }
+
+// ====== MENU ======
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('MIL Survey')
+    .addItem('1. Setup awal', 'setup')
+    .addItem('2. Perbarui rekap kuota', 'updateRekap')
+    .addItem('3. Tandai speeder (jalankan sebelum undian)', 'markSpeeders')
+    .addItem('4. Buat daftar peserta undian', 'buildEligibleList')
+    .addSeparator()
+    .addItem('5. Cari responden panel', 'searchPanel')
+    .addSeparator()
+    .addItem('6. Perbarui Daftar Blokir', 'refreshBlok')
+    .addItem('7. Impor data dari Sheet survei lain', 'importFromSheet')
+    .addSeparator()
+    .addItem('8. Buka Dashboard', 'openDashboard')
+    .addToUi();
+}
+
+function setup() {
+  setupCore_(SpreadsheetApp.getActiveSpreadsheet());
+  installTriggers_();
+  SpreadsheetApp.getUi().alert('Setup selesai. Tab jawaban, Daftar Blokir, dan pembaruan otomatis tiap jam sudah aktif.');
+}
+
+// Pembaruan otomatis tiap jam: tandai speeder, perbarui Daftar Blokir & Rekap
+function installTriggers_() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'autoHourly') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('autoHourly').timeBased().everyHours(1).create();
+}
+function autoHourly() {
+  markSpeeders(true);
+  refreshBlok(true);
+  updateRekap();
+}
+
+// Membuat tab yang dibutuhkan bila belum ada (dipanggil otomatis juga oleh web app)
+function ensureSetup_() {
+  var ss = ss_();
+  if (ss.getSheetByName(SH.SET) && ss.getSheetByName(SH.WIN) && ss.getSheetByName(SH.RESP1) && ss.getSheetByName(SH.RESP2) && ss.getSheetByName(SH.BLOK) && ss.getSheetByName(SH.KAT) && ss.getSheetByName(SH.SCR) && ss.getSheetByName(SH.PANEL)) return;
+  setupCore_(ss);
+}
+
+function setupCore_(ss) {
+  PropertiesService.getScriptProperties().setProperty('SHEET_ID', ss.getId());
+  var k = ss.getSheetByName(SH.KAT);
+  if (!k) {
+    k = ss.insertSheet(SH.KAT);
+    var rows = [['Kelompok', 'Kategori', 'Prioritas', 'Ditugaskan', 'Selesai valid']];
+    CATEGORIES.forEach(function (c) { rows.push([c[0], c[1], c[2], 0, 0]); });
+    k.getRange(1, 1, rows.length, 5).setValues(rows);
+    k.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#FFFF00');
+    k.setFrozenRows(1);
+    k.getRange(2, 3, CATEGORIES.length, 1).setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(['High', 'Low']).build());
+  }
+  // tab "Responses" lama (survei semua kategori) diganti nama menjadi tab jawaban survei semua kategori
+  var old = ss.getSheetByName(SH.RESP);
+  if (old && !ss.getSheetByName(SH.RESP1)) old.setName(SH.RESP1);
+  [[SH.WIN, WIN_COLS], [SH.RESP1, META], [SH.RESP2, META], [SH.BLOK, BLOK_COLS], [SH.SCR, ['timestamp', 'session_id', 'alasan', 'S1', 'S2', 'S3', 'S4', 'sumber', 'varian']]].forEach(function (p) {
+    var s = ss.getSheetByName(p[0]);
+    if (!s) {
+      s = ss.insertSheet(p[0]);
+      s.getRange(1, 1, 1, p[1].length).setValues([p[1]]).setFontWeight('bold').setBackground('#FFFF00');
+      s.setFrozenRows(1);
+    }
+  });
+  var d = ss.getSheetByName(SH.DICT);
+  if (!d) {
+    d = ss.insertSheet(SH.DICT);
+    var dr = [['Kolom', 'No', 'Topik', 'Pertanyaan']].concat(DICTIONARY);
+    dr.push(['L1_xxx', '', 'Modul kategori', 'Jawaban modul funnel untuk kategori_1 (kategori terakhir dibeli)']);
+    dr.push(['xxx_lainnya', '', '', 'Isian teks untuk opsi "Lainnya"']);
+    dr.push(['xxx: baris', '', '', 'Jawaban pertanyaan matrix per baris']);
+    d.getRange(1, 1, dr.length, 4).setValues(dr);
+    d.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#FFFF00');
+  }
+  if (!ss.getSheetByName(SH.REKAP)) ss.insertSheet(SH.REKAP);
+  var pn = ss.getSheetByName(SH.PANEL);
+  if (!pn) {
+    pn = ss.insertSheet(SH.PANEL);
+    var ph = PANEL_COLS.map(function (c) { return c[0]; });
+    pn.getRange(1, 1, 1, ph.length).setValues([ph]).setFontWeight('bold').setBackground('#FFFF00');
+    pn.setFrozenRows(1);
+  }
+  setupCari_(ss);
+  var st = ss.getSheetByName(SH.SET);
+  if (!st) {
+    st = ss.insertSheet(SH.SET, 0);
+    var sr = [['Pengaturan', 'Nilai', 'Keterangan']].concat(SET_DEFAULTS.map(function (d) { return [d[0], d[0] === 'API_KEY' ? Utilities.getUuid().replace(/-/g, '') : d[1], d[2]]; }));
+    st.getRange(1, 1, sr.length, 3).setValues(sr);
+    st.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#FFFF00');
+    st.setColumnWidth(1, 220); st.setColumnWidth(2, 320); st.setColumnWidth(3, 420);
+  }
+  var def = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
+  if (def && ss.getSheets().length > 1 && def.getLastRow() === 0) ss.deleteSheet(def);
+}
+
+// ====== API UNTUK HALAMAN SURVEI ======
+
+/** Mengembalikan kategori berprioritas High dari pilihan responden (urutan sesuai tab Kategori). */
+function filterHigh(selected) {
+  var s = sheet_(SH.KAT);
+  var n = s.getLastRow() - 1;
+  if (n < 1) return [];
+  var sel = {};
+  (selected || []).forEach(function (x) { sel[x] = true; });
+  return s.getRange(2, 1, n, 3).getValues().filter(function (r) { return r[2] === 'High' && sel[r[1]]; }).map(function (r) { return r[1]; });
+}
+
+/** Mencatat kategori modul funnel responden (1 kategori: yang paling terakhir dibeli). */
+/* (fungsi lama, tetap kompatibel) Menugaskan maks. 2 kategori High dari pilihan responden (least-fill). */
+function assignCategories(selected, sid) {
+  ensureSetup_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var s = sheet_(SH.KAT);
+    var n = s.getLastRow() - 1;
+    if (n < 1) return [];
+    var data = s.getRange(2, 1, n, 5).getValues();
+    var sel = {};
+    (selected || []).forEach(function (x) { sel[x] = true; });
+    var cand = [];
+    data.forEach(function (r, i) {
+      if ((CONFIG.FUNNEL_ALL_CATEGORIES || r[2] === 'High') && sel[r[1]]) cand.push({ i: i, name: r[1], asg: Number(r[3]) || 0, done: Number(r[4]) || 0, rnd: Math.random() });
+    });
+    cand.sort(function (a, b) { return (a.done - b.done) || (a.asg - b.asg) || (a.rnd - b.rnd); });
+    var pick = cand.slice(0, 1);
+    pick.forEach(function (p) { s.getRange(p.i + 2, 4).setValue(p.asg + 1); });
+    return pick.map(function (p) { return p.name; });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function logScreenout(p) {
+  ensureSetup_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var a = p.answers || {};
+    sheet_(SH.SCR).appendRow([new Date(), p.sid || '', p.reason || '', j_(a.S1), j_(a.S2), j_(a.S3), j_(a.S4), p.src || '', varianLabel_(p.variant)]);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function submitResponse(p) {
+  ensureSetup_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    var cs = p.variant && p.variant !== 'v1' && p.variant !== 'v2' ? customById_(p.variant) : null;
+    if (p.variant && p.variant !== 'v1' && p.variant !== 'v2' && !cs) throw new Error('Survei tidak ditemukan: ' + p.variant);
+    if (cs) ensureCustomTab_(cs);
+    var sname = cs ? cs.name : CONFIG.SURVEY_NAME;
+    var s = sheet_(respTab_(p.variant));
+    var a = p.answers || {};
+    var wa = normWa_(a.Z3), ig = normIg_(a.Z2);
+    var header = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+    var col = {};
+    header.forEach(function (h, i) { col[h] = i; });
+
+    // cek duplikat sesi / WA / IG (dalam survei yang sama = tab yang sama)
+    var dup = false, last = s.getLastRow();
+    if (last > 1) {
+      var ids = s.getRange(2, col.session_id + 1, last - 1, 1).getValues();
+      for (var x = 0; x < ids.length; x++) if (ids[x][0] === p.sid) return { ok: true, dup: true };
+      var w = s.getRange(2, col.wa_normal + 1, last - 1, 1).getValues();
+      var g = s.getRange(2, col.ig_normal + 1, last - 1, 1).getValues();
+      var sv = s.getRange(2, col.survei + 1, last - 1, 1).getValues();
+      for (var y = 0; y < w.length; y++) {
+        if (sv[y][0] !== sname) continue;
+        if ((wa && String(w[y][0]) === wa) || (ig && String(g[y][0]) === ig)) { dup = true; break; }
+      }
+    }
+    var attention = cs && cs.schema.attention === false ? true : a.QC1 === 'Biru';
+    var acc = accessStatus_(ig, wa);
+    var status = !isOpen_(cs ? cs.id : p.variant === 'v2' ? 'v2' : 'v1') ? 'Masuk setelah survei ditutup'
+      : acc.state !== 'ok' ? 'Diblokir (riwayat asal-asalan)'
+      : !attention ? 'Tidak valid - attention check'
+      : dup ? 'Duplikat' : 'Valid';
+
+    var flat = flatten_(a);
+    var row = {
+      timestamp: new Date(), survei: sname, varian: varianLabel_(p.variant), versi_kuesioner: p.ver || '', session_id: p.sid, status: status, durasi_detik: p.durasi || '',
+      kategori_1: (p.cats || [])[0] || '', kategori_2: (p.cats || [])[1] || '',
+      attention_check: attention ? 'Lulus' : 'Gagal', wa_normal: wa, ig_normal: ig, profil_dari_survei_sebelumnya: p.prefilled ? 'Ya' : '',
+      sumber: p.src || '', device_fp: p.fp || '', user_agent: (p.ua || '').slice(0, 300)
+    };
+    Object.keys(flat).forEach(function (k) { row[k] = flat[k]; });
+
+    var add = Object.keys(row).filter(function (k) { return !(k in col); });
+    if (add.length) {
+      s.getRange(1, header.length + 1, 1, add.length).setValues([add]).setFontWeight('bold').setBackground('#FFFF00');
+      add.forEach(function (k, i) { col[k] = header.length + i; });
+      header = header.concat(add);
+    }
+    var out = header.map(function (h) { return h in row ? row[h] : ''; });
+    s.appendRow(out);
+
+    if (status === 'Valid') bumpDone_(p.cats || [], 1);
+    if (status === 'Tidak valid - attention check') addViolation_(ig, wa, 'Gagal pertanyaan cek (attention check)', p.sid);
+    if (a.Z1 === 'Ya, bersedia' && status === 'Valid' && wa) upsertPanel_(a, wa, ig, status, p.src, sname);
+    if (cs && status === 'Valid') autoCloseCustom_(cs, s, col);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ====== BACA TAB JAWABAN ======
+function respTabs_() { return [[SH.RESP1, 'v1'], [SH.RESP2, 'v2']].concat(customSurveys_().filter(function (c) { return c.status !== 'Draf'; }).map(function (c) { return [c.tab, c.id]; })); }
+/** Semua baris dari kedua tab jawaban sebagai objek {kolom: nilai}, plus _tab, _row. */
+function readAll_() {
+  var out = [];
+  respTabs_().forEach(function (t) {
+    var s = sheet_(t[0]); if (!s || s.getLastRow() < 2) return;
+    var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+    s.getRange(2, 1, s.getLastRow() - 1, h.length).getValues().forEach(function (r, i) {
+      var o = { _tab: t[0], _v: t[1], _row: i + 2 };
+      h.forEach(function (name, j) { o[name] = r[j]; });
+      out.push(o);
+    });
+  });
+  return out;
+}
+
+// ====== ALAT ANALIS ======
+/** Menandai respons dengan durasi < 1/3 median (per survei) sebagai speeder, lalu mencatat pelanggarannya. */
+function markSpeeders(silent) {
+  var msg = [];
+  respTabs_().forEach(function (t) {
+    var s = sheet_(t[0]); if (!s) return;
+    var last = s.getLastRow(); if (last < 2) return;
+    var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+    var cS = h.indexOf('status'), cD = h.indexOf('durasi_detik'), c1 = h.indexOf('kategori_1'), c2 = h.indexOf('kategori_2');
+    var v = s.getRange(2, 1, last - 1, h.length).getValues();
+    var durs = v.filter(function (r) { return r[cS] === 'Valid'; }).map(function (r) { return Number(r[cD]) || 0; }).sort(function (a, b) { return a - b; });
+    if (durs.length < 10) return; // median belum stabil
+    var med = durs[Math.floor(durs.length / 2)], cut = med / 3, n = 0;
+    v.forEach(function (r, i) {
+      if (r[cS] === 'Valid' && (Number(r[cD]) || 0) < cut) {
+        s.getRange(i + 2, cS + 1).setValue('Tidak valid - speeder');
+        setPanelStatus_(r[h.indexOf('wa_normal')], 'Tidak valid - speeder');
+        bumpDone_([r[c1], r[c2]].filter(String), -1);
+        addViolation_(r[h.indexOf('ig_normal')], r[h.indexOf('wa_normal')], 'Mengisi terlalu cepat (speeder)', r[h.indexOf('session_id')]);
+        n++;
+      }
+    });
+    msg.push(t[0] + ': median ' + Math.round(med) + ' detik, ' + n + ' speeder baru (< ' + Math.round(cut) + ' detik)');
+  });
+  if (silent !== true) try { SpreadsheetApp.getUi().alert(msg.join('\n') || 'Belum cukup data (minimal 10 respons valid per survei).'); } catch (e) {}
+}
+
+function buildEligibleList() {
+  var ss = ss_(), out = [['No', 'Survei', 'Session ID', 'Instagram', 'WhatsApp', 'Timestamp']];
+  readAll_().forEach(function (r) {
+    if (r.status === 'Valid') out.push([out.length, varianLabel_(r._v), r.session_id, r.Z2, r.Z3, r.timestamp]);
+  });
+  var u = ss.getSheetByName(SH.UNDIAN) || ss.insertSheet(SH.UNDIAN);
+  u.clear();
+  u.getRange(1, 1, out.length, 6).setValues(out);
+  u.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#FFFF00');
+  try { SpreadsheetApp.getUi().alert((out.length - 1) + ' peserta eligible. Pengundian dilakukan sesuai ketentuan izin undian.'); } catch (e) {}
+}
+
+function updateRekap() {
+  var ss = ss_();
+  var valid = readAll_().filter(function (r) { return r.status === 'Valid'; });
+  var JAWA = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur'];
+  var SUM = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung'];
+  var region = function (r) {
+    if (r.jabodetabek === 'Ya') return 'Jabodetabek';
+    if (JAWA.indexOf(r.provinsi) >= 0) return 'Jawa lainnya';
+    if (SUM.indexOf(r.provinsi) >= 0) return 'Sumatera';
+    return 'Kalimantan, Sulawesi & Indonesia Timur';
+  };
+  var plat = function (r) {
+    var p = r.B2;
+    return (p === 'TikTok Shop' || p === 'Tokopedia') ? 'Shop | Tokopedia' : p === 'Shopee' ? 'Shopee' : 'Lainnya';
+  };
+  var out = [['Rekap kuota — diperbarui ' + new Date(), '', '', ''], ['', '', '', '']];
+  [['v1', num_('TARGET_V1')], ['v2', num_('TARGET_V2')]].forEach(function (V) {
+    var rows = valid.filter(function (r) { return r._v === V[0]; }), target = V[1];
+    var blocks = [
+      ['Usia', function (r) { return r.S1; }, { '18-24 tahun': 0.30, '25-34 tahun': 0.35, '35-44 tahun': 0.20, '45-54 tahun': 0.075, '55 tahun ke atas': 0.075 }],
+      ['Wilayah', region, { 'Jabodetabek': 0.25, 'Jawa lainnya': 0.35, 'Sumatera': 0.20, 'Kalimantan, Sulawesi & Indonesia Timur': 0.20 }],
+      ['Platform utama', plat, { 'Shopee': null, 'Shop | Tokopedia': null, 'Lainnya': null }]
+    ];
+    if (V[0] === 'v1') blocks.splice(1, 0, ['Jenis kelamin', function (r) { return r.S2; }, { 'Pria': 0.5, 'Wanita': 0.5 }]);
+    out.push(['SURVEI ' + varianLabel_(V[0]).toUpperCase(), '', '', '']);
+    out.push(['Total respons valid', rows.length, target, Math.round(rows.length / target * 100) + '%']);
+    out.push(['', '', '', '']);
+    blocks.forEach(function (b) {
+      out.push([b[0], 'Valid', 'Target', '% tercapai']);
+      Object.keys(b[2]).forEach(function (key) {
+        var n = rows.filter(function (r) { return b[1](r) === key; }).length;
+        var t = b[2][key] === null ? (key === 'Lainnya' ? '' : Math.round(target / 4)) : Math.round(target * b[2][key]);
+        out.push([key, n, t, t ? Math.round(n / t * 100) + '%' : '']);
+      });
+      out.push(['', '', '', '']);
+    });
+    out.push(['Kategori High (modul funnel)', 'Valid', 'Target', '% tercapai']);
+    var hl = highList_(), tc = V[0] === 'v2' ? Math.round(target / Math.max(hl.length, 1)) : num_('TARGET_PER_CAT');
+    hl.forEach(function (cat) {
+      var n = rows.filter(function (r) { return r.kategori_1 === cat; }).length;
+      out.push([cat, n, tc, Math.round(n / tc * 100) + '%']);
+    });
+    out.push(['', '', '', '']); out.push(['', '', '', '']);
+  });
+  var rk = ss.getSheetByName(SH.REKAP) || ss.insertSheet(SH.REKAP);
+  rk.clear();
+  rk.getRange(1, 1, out.length, 4).setValues(out);
+  rk.setColumnWidth(1, 300);
+}
+
+// ====== CEK USERNAME, PROFIL, BLOKIR ======
+/** Dipanggil setelah responden mengisi username IG di awal survei. */
+function lookupIg(ig, variant) {
+  ensureSetup_();
+  var n = normIg_(ig); if (!n) return { state: 'ok', known: false };
+  var acc = accessStatus_(n, '');
+  if (acc.state !== 'ok') return { state: acc.state, until: acc.until || '', email: set_('EMAIL_BUKA_AKSES') };
+  var tab = respTab_(variant || 'v1');
+  var rows = readAll_();
+  if (rows.some(function (r) { return r._tab === tab && String(r.ig_normal) === n; })) return { state: 'sudah_isi' };
+  return { state: 'ok', known: !!profileRow_(rows, n) };
+}
+function checkIg(ig, variant) { var r = lookupIg(ig, variant); return { exists: r.state === 'sudah_isi' }; }
+
+function profileRow_(rows, ig) {
+  var best = null;
+  rows.forEach(function (r) {
+    if (String(r.ig_normal) !== ig || !r.S1 || !r.wa_normal) return;
+    if (/^(Tidak valid|Diblokir)/.test(String(r.status))) return;
+    if (!best || new Date(r.timestamp) > new Date(best.timestamp)) best = r;
+  });
+  return best;
+}
+
+/** Mengembalikan profil dasar bila 4 digit terakhir nomor WA cocok. */
+function verifyProfile(ig, last4) {
+  var n = normIg_(ig), d = String(last4 || '').replace(/\D/g, '');
+  if (!n || d.length !== 4) return { ok: false };
+  var r = profileRow_(readAll_(), n);
+  if (!r || String(r.wa_normal).slice(-4) !== d) return { ok: false };
+  var prof = {};
+  PROFILE_KEYS.forEach(function (k) {
+    if (r[k] === '' || r[k] == null) return;
+    prof[k] = k === 'S3' ? String(r[k]).split(' | ') : String(r[k]);
+  });
+  return { ok: true, profile: prof };
+}
+
+// ---- Daftar Blokir ----
+function blokData_() {
+  var s = sheet_(SH.BLOK);
+  var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+  var v = s.getLastRow() > 1 ? s.getRange(2, 1, s.getLastRow() - 1, h.length).getValues() : [];
+  return { s: s, h: h, v: v, c: function (n) { return h.indexOf(n); } };
+}
+function addMonths_(d, m) { var x = new Date(d); x.setMonth(x.getMonth() + m); return x; }
+function fmt_(d) { return d ? Utilities.formatDate(new Date(d), 'Asia/Jakarta', 'd MMM yyyy') : ''; }
+function keterangan_(st, until, dibuka) {
+  var now = new Date();
+  if (st === 'Diblokir') return 'BELUM bisa ikut survei. Bisa dibuka jika peserta mengirim email ke ' + set_('EMAIL_BUKA_AKSES') + ' (centang kolom "buka_akses"). Pelanggaran berikutnya = suspend ' + num_('SUSPEND_BULAN') + ' bulan.';
+  if (st === 'Dibuka') return 'SUDAH dibuka (' + dibuka + 'x). Jika mengisi asal-asalan lagi = suspend ' + num_('SUSPEND_BULAN') + ' bulan otomatis.';
+  if (st === 'Suspend') {
+    var left = Math.ceil((new Date(until) - now) / 864e5);
+    return left > 0 ? 'Suspend sampai ' + fmt_(until) + ' — BELUM bisa dibuka (sisa ' + left + ' hari).' : 'Suspend selesai ' + fmt_(until) + ' — SUDAH bisa dibuka.';
+  }
+  if (st === 'Aktif kembali') return 'Suspend selesai ' + fmt_(until) + ' — akses SUDAH dibuka otomatis. Pelanggaran berikutnya = suspend lagi.';
+  return '';
+}
+/** Status akses responden: ok / diblokir / suspend. Suspend yang sudah lewat otomatis dibuka. */
+function accessStatus_(ig, wa) {
+  var b = blokData_(), c = b.c, now = new Date();
+  for (var i = 0; i < b.v.length; i++) {
+    var r = b.v[i];
+    var hit = (ig && String(r[c('instagram')]).replace(/^@/, '') === ig) || (wa && String(r[c('nomor_wa')]).replace(/^'/, '') === wa);
+    if (!hit) continue;
+    var st = r[c('status')];
+    if (st === 'Diblokir') return { state: 'diblokir' };
+    if (st === 'Suspend') {
+      if (new Date(r[c('suspend_sampai')]) > now) return { state: 'suspend', until: fmt_(r[c('suspend_sampai')]) };
+      b.s.getRange(i + 2, c('status') + 1).setValue('Aktif kembali');
+      b.s.getRange(i + 2, c('keterangan') + 1).setValue(keterangan_('Aktif kembali', r[c('suspend_sampai')]));
+    }
+  }
+  return { state: 'ok' };
+}
+/** Mencatat pelanggaran (isi asal-asalan). Pelanggaran ke-1 = diblokir; ke-BATAS = suspend. */
+function addViolation_(ig, wa, reason, sid) {
+  ig = normIg_(ig); wa = normWa_(wa);
+  if (!ig && !wa) return;
+  var b = blokData_(), c = b.c, now = new Date(), idx = -1;
+  for (var i = 0; i < b.v.length; i++) {
+    var r = b.v[i];
+    if ((ig && String(r[c('instagram')]).replace(/^@/, '') === ig) || (wa && String(r[c('nomor_wa')]).replace(/^'/, '') === wa)) { idx = i; break; }
+  }
+  if (idx < 0) {
+    var row = BLOK_COLS.map(function () { return ''; });
+    row[c('instagram')] = ig ? '@' + ig : ''; row[c('nomor_wa')] = wa ? "'" + wa : '';
+    row[c('jumlah_pelanggaran')] = 1; row[c('pelanggaran_terakhir')] = now; row[c('alasan_terakhir')] = reason;
+    row[c('status')] = 'Diblokir'; row[c('jumlah_dibuka')] = 0; row[c('keterangan')] = keterangan_('Diblokir');
+    row[c('buka_akses (centang)')] = false; row[c('sesi_tercatat')] = sid || '';
+    b.s.appendRow(row);
+    b.s.getRange(b.s.getLastRow(), c('buka_akses (centang)') + 1).insertCheckboxes();
+    return;
+  }
+  var r0 = b.v[idx], sesi = String(r0[c('sesi_tercatat')] || '');
+  if (sid && sesi.split(' | ').indexOf(sid) >= 0) return; // pelanggaran dari sesi ini sudah tercatat
+  var cnt = (Number(r0[c('jumlah_pelanggaran')]) || 0) + 1, st, until = '';
+  if (cnt >= num_('BATAS_PELANGGARAN')) { st = 'Suspend'; until = addMonths_(now, num_('SUSPEND_BULAN')); }
+  else st = 'Diblokir';
+  var upd = r0.slice();
+  upd[c('jumlah_pelanggaran')] = cnt; upd[c('pelanggaran_terakhir')] = now; upd[c('alasan_terakhir')] = reason;
+  upd[c('status')] = st; upd[c('suspend_sampai')] = until || r0[c('suspend_sampai')];
+  upd[c('keterangan')] = keterangan_(st, until, r0[c('jumlah_dibuka')]);
+  upd[c('buka_akses (centang)')] = false;
+  upd[c('sesi_tercatat')] = sesi ? sesi + ' | ' + (sid || '') : (sid || '');
+  if (!upd[c('nomor_wa')] && wa) upd[c('nomor_wa')] = "'" + wa;
+  if (!upd[c('instagram')] && ig) upd[c('instagram')] = '@' + ig;
+  b.s.getRange(idx + 2, 1, 1, upd.length).setValues([upd]);
+}
+/** Memperbarui keterangan & membuka otomatis suspend yang sudah selesai (juga jalan tiap jam). */
+function refreshBlok(silent) {
+  var b = blokData_(), c = b.c, now = new Date(), opened = 0;
+  b.v.forEach(function (r, i) {
+    var st = r[c('status')], until = r[c('suspend_sampai')];
+    if (st === 'Suspend' && until && new Date(until) <= now) { st = 'Aktif kembali'; b.s.getRange(i + 2, c('status') + 1).setValue(st); opened++; }
+    b.s.getRange(i + 2, c('keterangan') + 1).setValue(keterangan_(st, until, r[c('jumlah_dibuka')]));
+  });
+  if (silent !== true) try { SpreadsheetApp.getUi().alert('Daftar Blokir diperbarui. ' + opened + ' akun selesai masa suspend dan dibuka otomatis.'); } catch (e) {}
+}
+/** Centang kolom "buka_akses" di tab Daftar Blokir -> akses dibuka otomatis (bila aturan mengizinkan). */
+function onEdit(e) {
+  try {
+    var sh = e.range.getSheet(); if (sh.getName() !== SH.BLOK || e.range.getRow() < 2) return;
+    var b = blokData_(), c = b.c;
+    if (e.range.getColumn() !== c('buka_akses (centang)') + 1 || e.value !== 'TRUE') return;
+    var row = e.range.getRow(), r = b.v[row - 2], st = r[c('status')];
+    var cell = function (n) { return b.s.getRange(row, c(n) + 1); };
+    if (st === 'Diblokir') {
+      var n = (Number(r[c('jumlah_dibuka')]) || 0) + 1;
+      cell('status').setValue('Dibuka'); cell('jumlah_dibuka').setValue(n); cell('tanggal_dibuka_terakhir').setValue(new Date());
+      cell('keterangan').setValue(keterangan_('Dibuka', '', n));
+    } else if (st === 'Suspend' && new Date(r[c('suspend_sampai')]) > new Date()) {
+      cell('keterangan').setValue(keterangan_('Suspend', r[c('suspend_sampai')]) + ' Tidak bisa dibuka manual sebelum masa suspend selesai.');
+    }
+    e.range.setValue(false);
+  } catch (err) {}
+}
+
+// ====== IMPOR DATA DARI SHEET LAIN ======
+/** Menyalin data survei Fashion dari Sheet terpisah (versi lama) ke Sheet ini. */
+function importFromSheet() {
+  var ui = SpreadsheetApp.getUi();
+  var res = ui.prompt('Impor data survei', 'Tempel link Google Sheet survei Fashion Wanita, Tas & Aksesori, Hijab (yang lama):', ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+  var m = /\/d\/([a-zA-Z0-9_-]+)/.exec(res.getResponseText()) || [null, res.getResponseText().trim()];
+  var msg = importCore_(m[1]);
+  ui.alert(msg);
+}
+function importCore_(srcId) {
+  ensureSetup_();
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('IMPORTED_' + srcId)) return 'Sheet ini sudah pernah diimpor. Impor dibatalkan supaya data tidak dobel.';
+  var src = SpreadsheetApp.openById(srcId), me = ss_();
+  var sr = src.getSheetByName(SH.RESP) || src.getSheetByName(SH.RESP2);
+  var nResp = 0, nScr = 0, nPanel = 0;
+  if (sr && sr.getLastRow() > 1) {
+    var sh = sr.getRange(1, 1, 1, sr.getLastColumn()).getValues()[0];
+    var data = sr.getRange(2, 1, sr.getLastRow() - 1, sh.length).getValues();
+    var t = me.getSheetByName(SH.RESP2), th = t.getRange(1, 1, 1, t.getLastColumn()).getValues()[0];
+    var add = sh.filter(function (h) { return th.indexOf(h) < 0; });
+    if (add.length) { t.getRange(1, th.length + 1, 1, add.length).setValues([add]).setFontWeight('bold').setBackground('#FFFF00'); th = th.concat(add); }
+    var rows = data.map(function (r) { return th.map(function (h) { var i = sh.indexOf(h); return i >= 0 ? r[i] : ''; }); });
+    t.getRange(t.getLastRow() + 1, 1, rows.length, th.length).setValues(rows); nResp = rows.length;
+  }
+  var ssr = src.getSheetByName(SH.SCR);
+  if (ssr && ssr.getLastRow() > 1) {
+    var sd = ssr.getRange(2, 1, ssr.getLastRow() - 1, ssr.getLastColumn()).getValues();
+    var ts = me.getSheetByName(SH.SCR);
+    ts.getRange(ts.getLastRow() + 1, 1, sd.length, sd[0].length).setValues(sd); nScr = sd.length;
+  }
+  var sp = src.getSheetByName(SH.PANEL);
+  if (sp && sp.getLastRow() > 1) {
+    var ph = sp.getRange(1, 1, 1, sp.getLastColumn()).getValues()[0];
+    var pd = sp.getRange(2, 1, sp.getLastRow() - 1, ph.length).getValues();
+    var tp = me.getSheetByName(SH.PANEL), tph = tp.getRange(1, 1, 1, tp.getLastColumn()).getValues()[0];
+    var existing = tp.getLastRow() > 1 ? tp.getRange(2, tph.indexOf('nomor_hp') + 1, tp.getLastRow() - 1, 1).getValues().map(function (x) { return String(x[0]); }) : [];
+    pd.forEach(function (r) {
+      var hp = String(r[ph.indexOf('nomor_hp')]);
+      if (!hp || existing.indexOf(hp) >= 0) return;
+      var row = tph.map(function (h) { var i = ph.indexOf(h); return h === 'panel_id' ? 'P' + ('00000' + tp.getLastRow()).slice(-5) : (i >= 0 ? r[i] : ''); });
+      tp.appendRow(row); existing.push(hp); nPanel++;
+    });
+  }
+  recountKategori_();
+  props.setProperty('IMPORTED_' + srcId, String(new Date()));
+  updateRekap();
+  return 'Impor selesai: ' + nResp + ' jawaban ke tab "' + SH.RESP2 + '", ' + nScr + ' baris Screenout, ' + nPanel + ' anggota panel baru. Rekap & kuota kategori sudah dihitung ulang.';
+}
+function recountKategori_() {
+  var k = sheet_(SH.KAT), n = k.getLastRow() - 1; if (n < 1) return;
+  var names = k.getRange(2, 2, n, 1).getValues(), asg = k.getRange(2, 4, n, 1).getValues(), cnt = {};
+  readAll_().forEach(function (r) { if (r.status === 'Valid' && r.kategori_1) cnt[r.kategori_1] = (cnt[r.kategori_1] || 0) + 1; });
+  var done = names.map(function (x) { return [cnt[x[0]] || 0]; });
+  k.getRange(2, 5, n, 1).setValues(done);
+  k.getRange(2, 4, n, 1).setValues(asg.map(function (a, i) { return [Math.max(Number(a[0]) || 0, done[i][0])]; }));
+}
+
+// ====== PANEL PROFIL ======
+function upsertPanel_(a, wa, ig, status, src, sname) {
+  sname = sname || CONFIG.SURVEY_NAME;
+  var s = sheet_(SH.PANEL);
+  var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+  // tambahkan kolom panel baru (dari revisi kuesioner) bila belum ada
+  var missing = PANEL_COLS.map(function (c) { return c[0]; }).filter(function (n) { return h.indexOf(n) < 0; });
+  if (missing.length) { s.getRange(1, h.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold'); h = h.concat(missing); }
+  var cHp = h.indexOf('nomor_hp'), last = s.getLastRow(), rowIdx = -1, old = null;
+  if (last > 1) {
+    var hp = s.getRange(2, cHp + 1, last - 1, 1).getValues();
+    for (var i = 0; i < hp.length; i++) if (String(hp[i][0]) === wa) { rowIdx = i + 2; break; }
+    if (rowIdx > 0) old = s.getRange(rowIdx, 1, 1, h.length).getValues()[0];
+  }
+  var now = new Date(), get = function (n) { return old ? old[h.indexOf(n)] : ''; };
+  var hist = String(get('riwayat_survei') || '');
+  var already = hist.split(' | ').indexOf(sname) >= 0;
+  var row = h.map(function (name, i) {
+    var def = PANEL_COLS.filter(function (c) { return c[0] === name; })[0];
+    var src_ = def ? def[1] : null;
+    if (name === 'panel_id') return old ? old[i] : 'P' + ('00000' + (last)).slice(-5);
+    if (name === 'nomor_hp') return wa;
+    if (name === 'tgl_bergabung') return old ? old[i] : now;
+    if (name === 'update_terakhir') return now;
+    if (name === 'jumlah_survei') return (Number(get('jumlah_survei')) || 0) + (already ? 0 : 1);
+    if (name === 'riwayat_survei') return already ? hist : (hist ? hist + ' | ' : '') + sname;
+    if (name === 'sumber_pertama') return old ? old[i] : (src || '');
+    if (name === 'status_kualitas_terakhir') return status;
+    if (name === 'instagram') return ig ? '@' + ig : (old ? old[i] : '');
+    if (src_ && a[src_] != null && a[src_] !== '') return j_(a[src_]);
+    return old ? old[i] : '';
+  });
+  if (rowIdx > 0) s.getRange(rowIdx, 1, 1, row.length).setValues([row]);
+  else s.appendRow(row);
+}
+
+function setPanelStatus_(wa, st) {
+  var s = sheet_(SH.PANEL); if (!s || s.getLastRow() < 2 || !wa) return;
+  var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+  var hp = s.getRange(2, h.indexOf('nomor_hp') + 1, s.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < hp.length; i++) if (String(hp[i][0]) === String(wa)) s.getRange(i + 2, h.indexOf('status_kualitas_terakhir') + 1).setValue(st);
+}
+
+var OPS = ['sama dengan', 'tidak sama dengan', 'mengandung', 'tidak mengandung'];
+function setupCari_(ss) {
+  var c = ss.getSheetByName(SH.CARI);
+  if (c) return;
+  c = ss.insertSheet(SH.CARI);
+  var rows = [['CARI RESPONDEN PANEL', '', ''],
+    ['Isi kriteria di bawah (boleh lebih dari satu baris; semua kriteria harus terpenuhi). Lalu jalankan menu MIL Survey > 5. Cari responden panel.', '', ''],
+    ['', '', ''], ['Kolom profil', 'Kondisi', 'Nilai'],
+    ['jenis_kelamin', 'sama dengan', 'Wanita'], ['kategori_terakhir_dibeli', 'sama dengan', 'Fashion wanita']];
+  for (var i = 0; i < 8; i++) rows.push(['', '', '']);
+  c.getRange(1, 1, rows.length, 3).setValues(rows);
+  c.getRange(1, 1).setFontWeight('bold');
+  c.getRange(4, 1, 1, 3).setFontWeight('bold').setBackground('#FFFF00');
+  var cols = PANEL_COLS.map(function (x) { return x[0]; });
+  c.getRange(5, 1, 10, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(cols).build());
+  c.getRange(5, 2, 10, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(OPS).build());
+  c.setColumnWidth(1, 240); c.setColumnWidth(2, 160); c.setColumnWidth(3, 260);
+}
+
+/** Menyaring tab Panel berdasarkan kriteria di tab Cari Panel; hasil ke tab Hasil Pencarian. */
+function searchPanel() {
+  var ss = ss_(), p = sheet_(SH.PANEL), c = sheet_(SH.CARI);
+  var h = p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0];
+  var data = p.getLastRow() > 1 ? p.getRange(2, 1, p.getLastRow() - 1, h.length).getValues() : [];
+  var crit = c.getRange(5, 1, 10, 3).getValues().filter(function (r) { return r[0] && r[1] && String(r[2]) !== ''; });
+  var low = function (x) { return String(x == null ? '' : x).toLowerCase().trim(); };
+  var res = data.filter(function (r) {
+    if (String(r[h.indexOf('status_kualitas_terakhir')]).indexOf('Tidak valid') === 0) return false;
+    return crit.every(function (k) {
+      var i = h.indexOf(k[0]); if (i < 0) return false;
+      var v = low(r[i]), n = low(k[2]);
+      if (k[1] === 'sama dengan') return v === n;
+      if (k[1] === 'tidak sama dengan') return v !== n;
+      if (k[1] === 'mengandung') return v.indexOf(n) >= 0;
+      if (k[1] === 'tidak mengandung') return v.indexOf(n) < 0;
+      return true;
+    });
+  });
+  var o = ss.getSheetByName(SH.HASIL) || ss.insertSheet(SH.HASIL);
+  o.clear();
+  var desc = crit.map(function (k) { return k[0] + ' ' + k[1] + ' "' + k[2] + '"'; }).join('; ') || '(tanpa kriteria)';
+  o.getRange(1, 1, 1, 2).setValues([['Kriteria: ' + desc, res.length + ' responden ditemukan']]);
+  o.getRange(3, 1, 1, h.length).setValues([h]).setFontWeight('bold').setBackground('#FFFF00');
+  if (res.length) o.getRange(4, 1, res.length, h.length).setValues(res);
+  try { SpreadsheetApp.getUi().alert(res.length + ' responden panel memenuhi kriteria. Lihat tab "Hasil Pencarian".'); } catch (e) {}
+}
+
+function varianLabel_(v) { if (v && v !== 'v1' && v !== 'v2') { var c = customById_(v); return v + ' · ' + (c ? c.name : ''); } return v === 'v2' ? 'v2 · Fashion Wanita, Tas & Aksesori, Hijab' : 'v1 · Semua kategori'; }
+
+function highList_() {
+  try {
+    var s = sheet_(SH.KAT); if (!s || s.getLastRow() < 2) return [];
+    return s.getRange(2, 1, s.getLastRow() - 1, 3).getValues().filter(function (r) { return r[2] === 'High'; }).map(function (r) { return r[1]; });
+  } catch (e) { return []; }
+}
+
+// ====== UTIL ======
+function bumpDone_(cats, d) {
+  var k = sheet_(SH.KAT), n = k.getLastRow() - 1;
+  if (n < 1) return;
+  var names = k.getRange(2, 2, n, 1).getValues();
+  cats.forEach(function (c) {
+    for (var i = 0; i < names.length; i++) if (names[i][0] === c) {
+      var cell = k.getRange(i + 2, 5);
+      cell.setValue(Math.max(0, (Number(cell.getValue()) || 0) + d));
+    }
+  });
+}
+function j_(v) { return Array.isArray(v) ? v.join(' | ') : (v == null ? '' : v); }
+function flatten_(a) {
+  var o = {};
+  Object.keys(a).forEach(function (k) {
+    var v = a[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      Object.keys(v).forEach(function (r) { o[k + ': ' + r] = j_(v[r]); });
+    } else o[k] = j_(v);
+  });
+  return o;
+}
+function normWa_(x) {
+  var d = String(x || '').replace(/\D/g, '');
+  if (d.indexOf('62') === 0) d = '0' + d.slice(2);
+  return d;
+}
+function normIg_(x) { return String(x || '').trim().toLowerCase().replace(/^@/, ''); }
+
+// =====================================================================
+// ====== DASHBOARD ADMIN (login akun Google @mildigital.id) ======
+// =====================================================================
+function viewer_() { try { return String(Session.getActiveUser().getEmail() || '').toLowerCase(); } catch (e) { return ''; } }
+function isAdmin_(email) {
+  email = email || viewer_(); if (!email) return false;
+  var dom = String(set_('ADMIN_DOMAIN') || '').toLowerCase().replace(/^@/, '');
+  var extra = String(set_('ADMIN_EMAIL_TAMBAHAN') || '').toLowerCase().split(/[,\s]+/).filter(String);
+  return (dom && email.slice(-(dom.length + 1)) === '@' + dom) || extra.indexOf(email) >= 0;
+}
+function requireAdmin_() { if (!isAdmin_()) throw new Error('Akses ditolak. Masuk dengan akun @' + set_('ADMIN_DOMAIN') + '.'); return viewer_(); }
+
+function adminPage_() {
+  var email = viewer_();
+  if (!isAdmin_(email)) {
+    return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;max-width:480px;margin:80px auto;text-align:center"><h2>Akses ditolak</h2><p>Dashboard MIL Gift Club hanya bisa dibuka dengan akun Google <b>@' + set_('ADMIN_DOMAIN') + '</b>.</p><p style="color:#888">Akun saat ini: ' + (email || 'tidak terdeteksi') + '</p></div>').setTitle('Dashboard MIL Gift Club');
+  }
+  var t = HtmlService.createTemplateFromFile('Admin');
+  t.userEmail = email;
+  return t.evaluate().setTitle('Dashboard MIL Gift Club').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+function openDashboard() {
+  var html = HtmlService.createHtmlOutput('<p style="font-family:sans-serif">Buka Dashboard lewat link deployment <b>Dashboard</b> (akses: MIL Digital) dengan tambahan <code>?page=admin</code> di akhir link. Lihat panduan.</p>').setWidth(420).setHeight(140);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Dashboard MIL Gift Club');
+}
+
+function iso_(v) { return v instanceof Date ? Utilities.formatDate(v, 'Asia/Jakarta', "yyyy-MM-dd HH:mm") : v; }
+function day_(v) { var d = v instanceof Date ? v : new Date(v); return isNaN(d) ? '' : Utilities.formatDate(d, 'Asia/Jakarta', 'yyyy-MM-dd'); }
+function surveyList_() {
+  return [['v1', 'Semua Kategori'], ['v2', 'Fashion Wanita, Tas & Aksesori, Hijab']].map(function (x) {
+    var o = isOpen_(x[0]);
+    return { v: x[0], name: x[1], open: o, status: o ? 'Dibuka' : 'Ditutup', target: num_(x[0] === 'v2' ? 'TARGET_V2' : 'TARGET_V1'), link: set_(x[0] === 'v2' ? 'LINK_V2' : 'LINK_V1'), tab: respTab_(x[0]) };
+  }).concat(customSurveys_().filter(function (c) { return c.status !== 'Diarsipkan'; }).map(function (c) {
+    return { v: c.id, name: c.name, open: c.status === 'Dibuka', status: c.status, target: c.target, link: customLink_(c.id), tab: c.tab, custom: true, profile: c.schema.profile !== false };
+  }));
+}
+
+/** Ringkasan untuk halaman utama dashboard. */
+function summaryData_() {
+  var rows = readAll_(), today = day_(new Date()), out = { generatedAt: iso_(new Date()), surveys: [], daily: {}, quota: {}, sources: {}, screenout: {}, blok: {}, panel: 0, winners: 0 };
+  var JAWA = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur'];
+  var SUM = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung'];
+  var region = function (r) { return r.jabodetabek === 'Ya' ? 'Jabodetabek' : JAWA.indexOf(r.provinsi) >= 0 ? 'Jawa lainnya' : SUM.indexOf(r.provinsi) >= 0 ? 'Sumatera' : 'Kalimantan, Sulawesi & Indonesia Timur'; };
+  var days = []; for (var i = 29; i >= 0; i--) days.push(day_(new Date(Date.now() - i * 864e5)));
+  out.daily.dates = days;
+  surveyList_().forEach(function (S) {
+    var mine = rows.filter(function (r) { return r._v === S.v; }), valid = mine.filter(function (r) { return r.status === 'Valid'; });
+    var cnt = function (f) { return mine.filter(f).length; };
+    S.total = mine.length; S.valid = valid.length;
+    S.invalid = cnt(function (r) { return /^(Tidak valid|Diblokir)/.test(String(r.status)); });
+    S.dup = cnt(function (r) { return r.status === 'Duplikat'; });
+    S.today = cnt(function (r) { return day_(r.timestamp) === today; });
+    S.prefilled = cnt(function (r) { return r.profil_dari_survei_sebelumnya === 'Ya'; });
+    var durs = valid.map(function (r) { return Number(r.durasi_detik) || 0; }).filter(Boolean).sort(function (a, b) { return a - b; });
+    S.medianMin = durs.length ? Math.round(durs[Math.floor(durs.length / 2)] / 6) / 10 : 0;
+    out.surveys.push(S);
+    out.daily[S.v] = days.map(function (d) { return valid.filter(function (r) { return day_(r.timestamp) === d; }).length; });
+    var T = S.target || 0, q = [];
+    var block = function (name, f, plan) { q.push({ name: name, items: Object.keys(plan).map(function (k) { return { key: k, n: valid.filter(function (r) { return f(r) === k; }).length, target: plan[k] == null ? null : Math.round(T * plan[k]) }; }) }); };
+    if (S.custom) {
+      if (S.profile) {
+        block('Usia', function (r) { return r.S1; }, { '18-24 tahun': null, '25-34 tahun': null, '35-44 tahun': null, '45-54 tahun': null, '55 tahun ke atas': null });
+        block('Jenis kelamin', function (r) { return r.S2; }, { 'Pria': null, 'Wanita': null });
+        block('Wilayah', region, { 'Jabodetabek': null, 'Jawa lainnya': null, 'Sumatera': null, 'Kalimantan, Sulawesi & Indonesia Timur': null });
+      }
+      var cq = (customById_(S.v).schema.questions || []).filter(function (x) { return /^(single|dropdown|scale)$/.test(x.type); }).slice(0, 12);
+      cq.forEach(function (x) {
+        var cnt = {}; valid.forEach(function (r) { var k = r[x.id]; if (k !== '' && k != null) cnt[k] = (cnt[k] || 0) + 1; });
+        q.push({ name: x.id + ' · ' + x.text, items: Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).slice(0, 8).map(function (k) { return { key: k, n: cnt[k], target: null }; }) });
+      });
+      out.quota[S.v] = q; return;
+    }
+    block('Usia', function (r) { return r.S1; }, { '18-24 tahun': 0.30, '25-34 tahun': 0.35, '35-44 tahun': 0.20, '45-54 tahun': 0.075, '55 tahun ke atas': 0.075 });
+    if (S.v === 'v1') block('Jenis kelamin', function (r) { return r.S2; }, { 'Pria': 0.5, 'Wanita': 0.5 });
+    block('Wilayah', region, { 'Jabodetabek': 0.25, 'Jawa lainnya': 0.35, 'Sumatera': 0.20, 'Kalimantan, Sulawesi & Indonesia Timur': 0.20 });
+    var hl = highList_(), tc = S.v === 'v2' ? Math.round(T / Math.max(hl.length, 1)) : num_('TARGET_PER_CAT');
+    q.push({ name: 'Kategori High', items: hl.map(function (c) { return { key: c, n: valid.filter(function (r) { return r.kategori_1 === c; }).length, target: tc }; }) });
+    if (S.v === 'v1') {
+      var top = {}; valid.forEach(function (r) { if (r.kategori_1) top[r.kategori_1] = (top[r.kategori_1] || 0) + 1; });
+      q.push({ name: 'Kategori terbanyak (semua)', items: Object.keys(top).sort(function (a, b) { return top[b] - top[a]; }).slice(0, 10).map(function (k) { return { key: k, n: top[k], target: null }; }) });
+    }
+    out.quota[S.v] = q;
+  });
+  rows.forEach(function (r) { var k = r.sumber || 'langsung'; out.sources[k] = (out.sources[k] || 0) + 1; });
+  var sc = sheet_(SH.SCR);
+  if (sc && sc.getLastRow() > 1) sc.getRange(2, 3, sc.getLastRow() - 1, 1).getValues().forEach(function (r) { var k = String(r[0] || '-'); out.screenout[k] = (out.screenout[k] || 0) + 1; });
+  var b = blokData_(); b.v.forEach(function (r) { var k = r[b.c('status')]; out.blok[k] = (out.blok[k] || 0) + 1; });
+  var p = sheet_(SH.PANEL); out.panel = p ? Math.max(0, p.getLastRow() - 1) : 0;
+  var w = sheet_(SH.WIN); out.winners = w ? Math.max(0, w.getLastRow() - 1) : 0;
+  return out;
+}
+function adminSummary() { requireAdmin_(); return summaryData_(); }
+
+var LIST_COLS = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1', 'kategori_1', 'L1_PT1', 'L1_PT2', 'durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'session_id'];
+/** Daftar jawaban satu survei (kolom ringkas). */
+function adminResponses(v) {
+  requireAdmin_();
+  var rows = readAll_().filter(function (r) { return r._v === v; }).reverse(), cols = LIST_COLS, labels = {};
+  var c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
+  if (c) {
+    var qs = (c.schema.questions || []).slice(0, 4);
+    cols = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1'].concat(qs.map(function (x) { return x.id; })).concat(['durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'session_id']);
+    qs.forEach(function (x) { labels[x.id] = x.id + ' ' + String(x.text).slice(0, 28); });
+  }
+  return { cols: cols, labels: labels, rows: rows.map(function (r) { return cols.map(function (c) { return iso_(r[c] == null ? '' : r[c]); }); }) };
+}
+function dictMap_() { var m = {}; DICTIONARY.forEach(function (d) { m[d[0]] = d; }); return m; }
+/** Semua jawaban satu responden, lengkap dengan teks pertanyaan. */
+function adminResponseDetail(v, sid) {
+  requireAdmin_();
+  var r = readAll_().filter(function (x) { return x._v === v && x.session_id === sid; })[0];
+  if (!r) return null;
+  var dm = dictMap_(), skip = { _tab: 1, _v: 1, _row: 1 }, out = [];
+  var cu = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
+  if (cu) (cu.schema.questions || []).forEach(function (x) { dm[x.id] = [x.id, '', 'Pertanyaan survei', x.text]; });
+  Object.keys(r).forEach(function (k) {
+    if (skip[k] || r[k] === '' || r[k] == null) return;
+    var base = k.replace(/^L\d_/, '').replace(/(_lainnya|: .*)$/, ''), d = dm[base];
+    out.push({ key: k, q: d ? d[3] : '', topic: d ? d[2] : (META.indexOf(k) >= 0 ? 'Data sistem' : ''), val: String(iso_(r[k])) });
+  });
+  return { sid: sid, status: r.status, items: out };
+}
+/** Mengubah status satu jawaban (mis. menandai asal-asalan secara manual). */
+function adminSetStatus(v, sid, status, violation) {
+  var who = requireAdmin_();
+  var s = sheet_(respTab_(v)), h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+  var ids = s.getRange(2, h.indexOf('session_id') + 1, s.getLastRow() - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) if (ids[i][0] === sid) {
+    var row = s.getRange(i + 2, 1, 1, h.length).getValues()[0], prev = row[h.indexOf('status')];
+    s.getRange(i + 2, h.indexOf('status') + 1).setValue(status);
+    var cats = [row[h.indexOf('kategori_1')]].filter(String);
+    if (prev === 'Valid' && status !== 'Valid') bumpDone_(cats, -1);
+    if (prev !== 'Valid' && status === 'Valid') bumpDone_(cats, 1);
+    if (violation) addViolation_(row[h.indexOf('ig_normal')], row[h.indexOf('wa_normal')], 'Ditandai manual oleh ' + who, sid);
+    return { ok: true };
+  }
+  throw new Error('Jawaban tidak ditemukan');
+}
+
+/** Panel: daftar kolom & pencarian. */
+function adminPanelColumns() { requireAdmin_(); return PANEL_COLS.map(function (c) { return c[0]; }); }
+function adminPanelSearch(crit) {
+  requireAdmin_();
+  var p = sheet_(SH.PANEL), h = p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0];
+  var data = p.getLastRow() > 1 ? p.getRange(2, 1, p.getLastRow() - 1, h.length).getValues() : [];
+  var low = function (x) { return String(x == null ? '' : x).toLowerCase().trim(); };
+  var res = data.filter(function (r) {
+    if (String(r[h.indexOf('status_kualitas_terakhir')]).indexOf('Tidak valid') === 0) return false;
+    return (crit || []).every(function (k) {
+      if (!k.col || k.val === '' || k.val == null) return true;
+      var i = h.indexOf(k.col); if (i < 0) return false;
+      var v = low(r[i]), n = low(k.val);
+      return k.op === 'sama dengan' ? v === n : k.op === 'tidak sama dengan' ? v !== n : k.op === 'mengandung' ? v.indexOf(n) >= 0 : k.op === 'tidak mengandung' ? v.indexOf(n) < 0 : true;
+    });
+  });
+  return { cols: h, rows: res.map(function (r) { return r.map(iso_); }) };
+}
+
+/** Daftar Blokir. */
+function adminBlokList() {
+  requireAdmin_(); refreshBlok(true);
+  var b = blokData_();
+  return { cols: b.h, rows: b.v.map(function (r) { return r.map(iso_); }) };
+}
+function adminBlokOpen(rowNo) {
+  var who = requireAdmin_(), b = blokData_(), c = b.c, r = b.v[rowNo - 2];
+  if (!r) throw new Error('Baris tidak ditemukan');
+  var cell = function (n) { return b.s.getRange(rowNo, c(n) + 1); };
+  if (r[c('status')] === 'Diblokir') {
+    var n = (Number(r[c('jumlah_dibuka')]) || 0) + 1;
+    cell('status').setValue('Dibuka'); cell('jumlah_dibuka').setValue(n); cell('tanggal_dibuka_terakhir').setValue(new Date());
+    cell('keterangan').setValue(keterangan_('Dibuka', '', n) + ' (dibuka oleh ' + who + ')');
+    return { ok: true, msg: 'Akses dibuka.' };
+  }
+  if (r[c('status')] === 'Suspend' && new Date(r[c('suspend_sampai')]) > new Date()) return { ok: false, msg: 'Masih masa suspend sampai ' + fmt_(r[c('suspend_sampai')]) + '. Tidak bisa dibuka manual.' };
+  return { ok: false, msg: 'Akun ini tidak sedang diblokir.' };
+}
+function adminBlokAdd(ig, wa, reason) { var who = requireAdmin_(); addViolation_(ig, wa, (reason || 'Ditambahkan manual') + ' (oleh ' + who + ')', 'manual-' + Date.now()); return { ok: true }; }
+
+/** Undian. */
+function eligible_(v) {
+  var won = {}, w = sheet_(SH.WIN);
+  if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) { if (String(r[7]).indexOf('Gugur') !== 0) won[String(r[4]).replace(/^'/, '')] = 1; });
+  var seen = {};
+  return readAll_().filter(function (r) {
+    if (r.status !== 'Valid' || (v !== 'all' && r._v !== v)) return false;
+    var k = String(r.wa_normal); if (!k || won[k] || seen[k]) return false;
+    if (accessStatus_(String(r.ig_normal), k).state !== 'ok') return false;
+    seen[k] = 1; return true;
+  });
+}
+function adminEligible(v) { requireAdmin_(); var e = eligible_(v); return { count: e.length, rows: e.slice(0, 500).map(function (r) { return [varianLabel_(r._v), r.Z2, r.Z3, iso_(r.timestamp)]; }) }; }
+function adminDraw(v, prize, count) {
+  var who = requireAdmin_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var pool = eligible_(v), picked = [];
+    count = Math.max(1, Math.min(Number(count) || 1, pool.length));
+    for (var i = 0; i < count; i++) { var j = Math.floor(Math.random() * pool.length); picked.push(pool.splice(j, 1)[0]); }
+    var w = sheet_(SH.WIN), now = new Date();
+    picked.forEach(function (r) { w.appendRow([now, varianLabel_(r._v), prize, r.Z2, "'" + r.wa_normal, r.session_id, who, 'Menang', 'Dari ' + (pool.length + picked.length) + ' peserta eligible']); });
+    return picked.map(function (r) { return { survei: varianLabel_(r._v), ig: r.Z2, wa: r.wa_normal, sid: r.session_id }; });
+  } finally { lock.releaseLock(); }
+}
+function adminWinners() {
+  requireAdmin_(); var w = sheet_(SH.WIN);
+  return { cols: WIN_COLS, rows: w && w.getLastRow() > 1 ? w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().map(function (r) { return r.map(iso_); }) : [] };
+}
+function adminWinnerVoid(rowNo, reason) {
+  var who = requireAdmin_(), w = sheet_(SH.WIN);
+  w.getRange(rowNo, 8).setValue('Gugur'); w.getRange(rowNo, 9).setValue((reason || '') + ' (oleh ' + who + ')');
+  return { ok: true };
+}
+
+/** Survei & pengaturan. */
+function adminSettings() {
+  requireAdmin_(); SET_MEMO_ = null;
+  var s = settings_();
+  return { surveys: surveyList_(), list: SET_DEFAULTS.map(function (d) { return { key: d[0], val: String(s[d[0]] == null ? '' : s[d[0]]), note: d[2] }; }), execUrl: ScriptApp.getService().getUrl() };
+}
+function adminSaveSettings(obj) {
+  var who = requireAdmin_(), s = sheet_(SH.SET);
+  var keys = s.getRange(2, 1, s.getLastRow() - 1, 1).getValues().map(function (r) { return r[0]; });
+  Object.keys(obj || {}).forEach(function (k) {
+    if (k === 'ADMIN_DOMAIN' && !String(obj[k]).trim()) return; // jangan sampai semua admin terkunci
+    var i = keys.indexOf(k), v = obj[k];
+    if (i >= 0) s.getRange(i + 2, 2).setValue(v); else { s.appendRow([k, v, '']); keys.push(k); }
+  });
+  SET_MEMO_ = null;
+  return adminSettings();
+}
+function adminRegenKey() { requireAdmin_(); var k = Utilities.getUuid().replace(/-/g, ''); adminSaveSettings({ API_KEY: k }); return k; }
+function adminRunTask(name) {
+  requireAdmin_();
+  if (name === 'speeder') markSpeeders(true);
+  if (name === 'blok') refreshBlok(true);
+  if (name === 'rekap') updateRekap();
+  return { ok: true };
+}
+
+// =====================================================================
+// ====== API UNTUK DASHBOARD LAIN (ATLAS) ======
+// GET <link web app>?api=summary&key=KUNCI   (juga: daily, quota, responses)
+// =====================================================================
+var API_HIDE = ['Z2', 'Z3', 'PV', 'wa_normal', 'ig_normal', 'device_fp', 'user_agent', '_tab', '_row'];
+function apiGet_(p) {
+  var out;
+  try {
+    var key = String(set_('API_KEY') || '');
+    if (!key || p.key !== key) throw new Error('Kunci API tidak valid');
+    var d = summaryData_(), v = p.survei || 'all';
+    if (p.api === 'summary') out = { generatedAt: d.generatedAt, surveys: d.surveys.map(function (s) { return { id: s.v, name: s.name, open: s.open, target: s.target, total: s.total, valid: s.valid, invalid: s.invalid, duplicate: s.dup, today: s.today, median_minutes: s.medianMin }; }), screenout: d.screenout, blocked: d.blok, panel_members: d.panel, sources: d.sources };
+    else if (p.api === 'daily') out = d.daily;
+    else if (p.api === 'quota') out = v === 'all' ? d.quota : d.quota[v];
+    else if (p.api === 'responses') {
+      var since = p.since ? new Date(p.since) : null, st = p.status || 'Valid';
+      out = readAll_().filter(function (r) { return (v === 'all' || r._v === v) && (st === 'all' || r.status === st) && (!since || new Date(r.timestamp) >= since); })
+        .map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { if (API_HIDE.indexOf(k) < 0) o[k] = iso_(r[k]); }); o.survei_id = r._v; return o; });
+    } else throw new Error('Endpoint tidak dikenal. Gunakan: summary, daily, quota, responses');
+    out = { ok: true, data: out };
+  } catch (e) { out = { ok: false, error: String(e.message || e) }; }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+/** Semua kolom satu survei untuk diunduh (CSV) dari Dashboard. */
+function adminExport(v) {
+  requireAdmin_();
+  var s = sheet_(respTab_(v)); if (!s || s.getLastRow() < 1) return { cols: [], rows: [] };
+  var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+  var rows = s.getLastRow() > 1 ? s.getRange(2, 1, s.getLastRow() - 1, h.length).getValues().map(function (r) { return r.map(iso_); }) : [];
+  return { cols: h, rows: rows };
+}
+
+
+// =====================================================================
+// ====== SURVEI BARU (dibuat dari Dashboard) ======
+// Disimpan di tab "Daftar Survei": satu baris per survei, rancangan pertanyaan (JSON) di kolom schema.
+// =====================================================================
+var SURV_COLS = ['id', 'nama', 'status', 'target', 'tab_jawaban', 'dibuat_oleh', 'dibuat', 'diubah_oleh', 'diubah', 'schema'];
+var CUSTOM_MEMO_ = null, SCHEMA_CHUNK = 45000;
+function survSheet_() {
+  var s = sheet_(SH.SURV);
+  if (!s) {
+    s = ss_().insertSheet(SH.SURV);
+    s.getRange(1, 1, 1, SURV_COLS.length).setValues([SURV_COLS]).setFontWeight('bold').setBackground('#FFFF00');
+    s.setFrozenRows(1);
+  }
+  return s;
+}
+function customSurveys_() {
+  if (CUSTOM_MEMO_) return CUSTOM_MEMO_;
+  var out = [];
+  try {
+    var s = sheet_(SH.SURV);
+    if (s && s.getLastRow() > 1) s.getRange(2, 1, s.getLastRow() - 1, s.getLastColumn()).getValues().forEach(function (r, i) {
+      if (!r[0]) return;
+      var js = r.slice(9).join(''), sch = {};
+      try { sch = JSON.parse(js || '{}'); } catch (e) {}
+      out.push({ id: String(r[0]), name: String(r[1]), status: String(r[2] || 'Draf'), target: Number(r[3]) || 0, tab: String(r[4] || ''), row: i + 2, schema: sch, by: r[5], created: r[6], editedBy: r[7], edited: r[8] });
+    });
+  } catch (e) {}
+  CUSTOM_MEMO_ = out; return out;
+}
+function customById_(id) { id = String(id || ''); return customSurveys_().filter(function (c) { return c.id === id; })[0] || null; }
+function customLink_(id) { return String(set_('LINK_SURVEI_BARU') || '') + id; }
+function slug_(x) { return String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'survei'; }
+function tabName_(name, id) {
+  var base = ('Jawaban - ' + String(name).replace(/[\[\]\*\?\/\\:]/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 90);
+  var ss = ss_(), n = base;
+  if (ss.getSheetByName(n)) n = (base.slice(0, 80) + ' (' + id + ')').slice(0, 99);
+  return n;
+}
+function ensureCustomTab_(c) {
+  if (c.tab && sheet_(c.tab)) return c.tab;
+  var tab = c.tab || tabName_(c.name, c.id), s = sheet_(tab);
+  if (!s) {
+    s = ss_().insertSheet(tab);
+    s.getRange(1, 1, 1, META.length).setValues([META]).setFontWeight('bold').setBackground('#FFFF00');
+    s.setFrozenRows(1);
+  }
+  if (c.tab !== tab) { survSheet_().getRange(c.row, 5).setValue(tab); c.tab = tab; }
+  return tab;
+}
+function writeCustom_(row, rec) {
+  var s = survSheet_(), js = JSON.stringify(rec.schema), parts = [];
+  for (var i = 0; i < js.length; i += SCHEMA_CHUNK) parts.push(js.slice(i, i + SCHEMA_CHUNK));
+  var vals = [rec.id, rec.name, rec.status, rec.target, rec.tab || '', rec.by || '', rec.created || '', rec.editedBy || '', rec.edited || ''].concat(parts);
+  var width = Math.max(s.getLastColumn(), vals.length);
+  while (vals.length < width) vals.push('');
+  if (s.getMaxColumns() < width) s.insertColumnsAfter(s.getMaxColumns(), width - s.getMaxColumns());
+  if (row) s.getRange(row, 1, 1, width).setValues([vals]); else s.appendRow(vals);
+  CUSTOM_MEMO_ = null;
+}
+function setCustomStatus_(id, status) {
+  var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
+  if (status === 'Dibuka') ensureCustomTab_(c);
+  survSheet_().getRange(c.row, 3).setValue(status);
+  CUSTOM_MEMO_ = null;
+}
+function autoCloseCustom_(c, s, col) {
+  if (c.schema.autoClose === false || !c.target) return;
+  var last = s.getLastRow(); if (last < 2) return;
+  var n = s.getRange(2, col.status + 1, last - 1, 1).getValues().filter(function (r) { return r[0] === 'Valid'; }).length;
+  if (n >= c.target) setCustomStatus_(c.id, 'Ditutup');
+}
+
+/** Dipanggil halaman survei (Netlify /s/?id=...). preview=true: draf boleh dibuka untuk dicoba. */
+function getSurvey(id, preview) {
+  var c = customById_(id);
+  if (!c || c.status === 'Diarsipkan') throw new Error('Survei tidak ditemukan');
+  return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: c.schema,
+    giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
+}
+
+// ---- fungsi Dashboard (Buat survei) ----
+function adminBuilderList() {
+  requireAdmin_(); CUSTOM_MEMO_ = null;
+  var rows = readAll_();
+  return customSurveys_().map(function (c) {
+    var mine = rows.filter(function (r) { return r._v === c.id; });
+    return { id: c.id, name: c.name, status: c.status, target: c.target, link: customLink_(c.id), questions: (c.schema.questions || []).length, total: mine.length, valid: mine.filter(function (r) { return r.status === 'Valid'; }).length, edited: iso_(c.edited), editedBy: c.editedBy };
+  });
+}
+function adminBuilderGet(id) {
+  requireAdmin_(); CUSTOM_MEMO_ = null;
+  var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
+  var n = 0; try { var s = sheet_(c.tab); n = s ? Math.max(0, s.getLastRow() - 1) : 0; } catch (e) {}
+  return { id: c.id, status: c.status, link: customLink_(c.id), responses: n, schema: c.schema };
+}
+function adminBuilderDefaults() {
+  requireAdmin_();
+  return { giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
+}
+/** Simpan rancangan. publish=true -> status Dibuka & tab jawaban dibuat. */
+function adminBuilderSave(sch, publish) {
+  var who = requireAdmin_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    CUSTOM_MEMO_ = null;
+    sch = sch || {};
+    var name = String(sch.name || '').trim(); if (!name) throw new Error('Nama survei wajib diisi');
+    var qs = sch.questions || []; if (!qs.length) throw new Error('Survei belum punya pertanyaan');
+    var seen = {};
+    qs.forEach(function (q, i) {
+      if (!String(q.text || '').trim()) throw new Error('Pertanyaan nomor ' + (i + 1) + ' masih kosong');
+      if (!q.id || seen[q.id] || /^(O1|Z1|Z2|Z3|PV|QC1|S1|S2|S3|A[0-9]+)$/.test(q.id)) q.id = 'Q' + (i + 1);
+      while (seen[q.id]) q.id = q.id + 'x';
+      seen[q.id] = 1;
+      if (/^(single|multi|dropdown)$/.test(q.type) && !(q.options || []).filter(function (o) { return String(o.t || '').trim(); }).length) throw new Error('Pertanyaan nomor ' + (i + 1) + ' belum punya pilihan jawaban');
+    });
+    var c = sch.id ? customById_(sch.id) : null, now = new Date();
+    var rec;
+    if (c) {
+      rec = { id: c.id, name: name, status: publish ? 'Dibuka' : c.status, target: Number(sch.target) || 0, tab: c.tab, by: c.by, created: c.created, editedBy: who, edited: now, schema: sch };
+    } else {
+      var id = slug_(sch.slug || name), base = id, k = 2;
+      while (id === 'v1' || id === 'v2' || customById_(id)) id = base.slice(0, 26) + '-' + (k++);
+      rec = { id: id, name: name, status: publish ? 'Dibuka' : 'Draf', target: Number(sch.target) || 0, tab: '', by: who, created: now, editedBy: who, edited: now, schema: sch };
+    }
+    rec.schema.id = rec.id; rec.schema.name = name;
+    writeCustom_(c ? c.row : 0, rec);
+    var saved = customById_(rec.id);
+    if (rec.status === 'Dibuka') ensureCustomTab_(saved);
+    return { id: rec.id, status: rec.status, link: customLink_(rec.id) };
+  } finally { lock.releaseLock(); }
+}
+function adminBuilderStatus(id, status) {
+  requireAdmin_();
+  if (['Dibuka', 'Ditutup', 'Draf', 'Diarsipkan'].indexOf(status) < 0) throw new Error('Status tidak dikenal');
+  setCustomStatus_(id, status); return { ok: true };
+}
+function adminBuilderDelete(id) {
+  requireAdmin_(); CUSTOM_MEMO_ = null;
+  var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
+  var s = c.tab ? sheet_(c.tab) : null;
+  if (s && s.getLastRow() > 1) { setCustomStatus_(id, 'Diarsipkan'); return { ok: true, archived: true }; }
+  if (s) ss_().deleteSheet(s);
+  survSheet_().deleteRow(c.row); CUSTOM_MEMO_ = null;
+  return { ok: true, archived: false };
+}
+
+/** Menyusun pertanyaan dengan Claude. mode 'brief' = dari tujuan riset, 'parse' = merapikan daftar pertanyaan yang ditempel. */
+function adminAi(text, mode, n) {
+  requireAdmin_();
+  var key = String(set_('ANTHROPIC_API_KEY') || '').trim();
+  if (!key) throw new Error('Fitur AI belum aktif. Isi ANTHROPIC_API_KEY di Survei & Pengaturan > Pengaturan lain.');
+  var fmt = 'Balas HANYA dengan JSON valid (tanpa teks lain, tanpa ```), format:\n' +
+    '{"name":"nama survei singkat","intro":"1-2 kalimat pembuka untuk responden","estimasi":angka_menit,"questions":[{"text":"teks pertanyaan","type":"single|multi|dropdown|text|longtext|number|scale","options":[{"t":"pilihan","other":false,"exclusive":false,"screen":false}],"max":0,"random":false,"scale":{"min":1,"max":5,"minLabel":"Sangat tidak setuju","maxLabel":"Sangat setuju"},"showIf":null,"hint":""}]}\n' +
+    'Aturan: single = pilih satu; multi = boleh lebih dari satu (max = batas jumlah pilihan, 0 = bebas); dropdown = pilih satu dari daftar panjang; text = isian singkat; longtext = isian panjang; number = angka; scale = skala (pakai field scale). ' +
+    '"other": true untuk pilihan "Lainnya" yang perlu diisi teks. "exclusive": true untuk pilihan seperti "Tidak satu pun" pada multi. "screen": true bila responden yang memilih pilihan itu TIDAK LOLOS (survei berhenti). "random": true bila urutan pilihan sebaiknya diacak. ' +
+    '"showIf": null, atau {"q": nomor_pertanyaan_sebelumnya (mulai 1), "op": "is" | "isnot" | "has", "val": "teks pilihan persis"} bila pertanyaan hanya muncul untuk jawaban tertentu. ' +
+    'JANGAN buat pertanyaan usia, jenis kelamin, kota, pekerjaan, pendidikan, pengeluaran, username Instagram, nomor WhatsApp, persetujuan ikut survei, atau attention check, karena sudah otomatis ditambahkan sistem. Gunakan Bahasa Indonesia baku dengan sapaan "Anda".';
+  var prompt = mode === 'parse'
+    ? 'Ubah daftar pertanyaan kuesioner berikut menjadi JSON survei. Pertahankan teks, urutan, dan pilihan jawaban selengkap mungkin (rapikan ejaan seperlunya). Tentukan tipe dari konteks. Lewati pertanyaan yang termasuk daftar "JANGAN" di bawah.\n\n' + fmt + '\n\nKUESIONER:\n' + text
+    : 'Anda adalah peneliti riset pasar senior di MIL Digital (konsultan digital marketing Indonesia) yang menyusun survei online untuk komunitas giveaway MIL Gift Club (responden: pembelanja online Indonesia). Susun survei berdasarkan brief berikut. Buat sekitar ' + (Number(n) || 15) + ' pertanyaan, alur dari umum ke spesifik, pilihan jawaban lengkap dan saling eksklusif, kalimat netral (tidak menggiring), dan cocok diisi di HP.\n\n' + fmt + '\n\nBRIEF:\n' + text;
+  var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({ model: String(set_('AI_MODEL') || 'claude-sonnet-5-5'), max_tokens: 16000, messages: [{ role: 'user', content: prompt }] })
+  });
+  var code = res.getResponseCode(), body = res.getContentText();
+  if (code !== 200) {
+    var msg = body; try { msg = JSON.parse(body).error.message; } catch (e) {}
+    throw new Error('AI gagal (' + code + '): ' + String(msg).slice(0, 300));
+  }
+  var txt = (JSON.parse(body).content || []).map(function (b) { return b.text || ''; }).join('');
+  var a = txt.indexOf('{'), b = txt.lastIndexOf('}');
+  if (a < 0 || b < a) throw new Error('Jawaban AI tidak bisa dibaca. Coba lagi.');
+  return JSON.parse(txt.slice(a, b + 1));
+}
+
+/** Jalankan sekali dari editor Apps Script bila muncul "Authorization is required" setelah deploy otomatis. */
+function izinkanAkses() {
+  var n = ss_().getSheets().length;
+  ScriptApp.getProjectTriggers();
+  try { UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true }); } catch (e) {}
+  Logger.log('Akses diizinkan. Sheet: ' + ss_().getName() + ' (' + n + ' tab). Akun: ' + Session.getActiveUser().getEmail());
+}

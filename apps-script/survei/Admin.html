@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard MIL Gift Club</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#F6F7FB;--card:#fff;--ink:#141A2E;--ink2:#5E6478;--muted:#8A90A2;--line:#E7E9F2;--navy:#25339A;--navy-d:#1C2678;--navy-l:#EEF0FB;--navy-m:#C9CFF2;--blue:#3D5BDB;--green:#2F8A57;--gl:#E7F5EC;--red:#C2362F;--rl:#FCEBEA;--amber:#B26A00;--al:#FFF3DD;--yl:#FFF8E1;--yellow:#F2C94C;--sh:0 1px 2px rgba(20,26,46,.04),0 6px 24px rgba(20,26,46,.05)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',Inter,system-ui,sans-serif;font-size:14px}
+a{color:var(--blue);text-decoration:none}
+.app{display:flex;min-height:100vh;align-items:flex-start}
+nav.side{width:300px;flex:0 0 300px;background:#fff;border-right:1px solid var(--line);padding:22px 18px;position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column}
+.app.collapsed nav.side{display:none}
+.logo{display:flex;align-items:center;gap:12px;padding:4px 10px 22px}
+.logo .w{font-weight:800;font-size:22px;letter-spacing:.02em;background:linear-gradient(90deg,#2BA7E0,#2A3B9C);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo .sep{width:1.5px;height:28px;background:var(--line)}
+.logo .m{font-weight:800;font-size:24px;color:var(--navy);letter-spacing:-.02em}
+.grp{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--muted);margin:18px 10px 8px}
+nav.side button{display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;color:var(--ink);font:inherit;font-size:15px;font-weight:500;padding:12px 14px;border-radius:14px;cursor:pointer;text-align:left;margin:2px 0}
+nav.side button svg{width:20px;height:20px;stroke:#5E6478;flex:0 0 20px}
+nav.side button:hover{background:var(--navy-l)}
+nav.side button.on{background:var(--navy);color:#fff;box-shadow:0 8px 18px rgba(37,51,154,.25)}
+nav.side button.on svg{stroke:#fff}
+.datecard{margin-top:auto;border:1px solid var(--line);border-radius:16px;padding:14px 16px;font-size:13px;line-height:1.5}
+.datecard span{color:var(--ink2)}
+main{flex:1;min-width:0}
+.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:20}
+.iconbtn{width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:#fff;display:grid;place-items:center;cursor:pointer}
+.iconbtn svg{width:20px;height:20px;stroke:#3B4256}
+.user{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:40px;padding:6px 16px 6px 6px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--navy-l);color:var(--navy);font-weight:800;display:grid;place-items:center;font-size:13px}
+.user b{display:block;font-size:14px} .user small{color:var(--ink2);font-size:12px}
+.content{padding:32px 44px 70px;max-width:1400px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--navy);text-transform:uppercase;margin-bottom:8px}
+h1{font-weight:800;font-size:34px;letter-spacing:-.02em;margin:0 0 8px}
+.desc{color:var(--ink2);font-size:15px;line-height:1.6;max-width:820px;margin:0 0 22px}
+h2{font-weight:700;font-size:18px;margin:0 0 4px}
+.muted{color:var(--ink2);font-size:13px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.grid{display:grid;gap:20px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--sh)}
+.card h2+.muted{margin-bottom:16px}
+.hero{background:linear-gradient(120deg,#2B3BA6 0%,#1E2A86 60%,#18206A 100%);color:#fff;border-radius:28px;padding:36px 42px;margin-bottom:24px;position:relative;overflow:hidden}
+.hero:after{content:'';position:absolute;right:-80px;top:-120px;width:360px;height:360px;border-radius:50%;background:rgba(255,255,255,.05)}
+.hero .d{opacity:.85;font-size:15px}
+.hero h1{color:#fff;font-size:40px;margin:14px 0 8px}
+.hero p{opacity:.85;font-size:16px;margin:0 0 20px}
+.chip{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:10px 18px;font-weight:600;font-size:14px;margin-right:10px}
+.chip.glass{background:rgba(255,255,255,.14);color:#fff}
+.chip.white{background:#fff;color:var(--navy)}
+.kpi .lab{font-size:13px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kpi .val{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:10px 0 2px}
+.kpi .val small{font-size:18px;color:var(--muted);font-weight:600}
+.kpi .pct{float:right;color:var(--green);font-weight:800;font-size:26px;margin-top:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;margin-top:16px}
+.stats div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.stats b{color:var(--ink)}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px}
+.badge:before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.b-open,.b-g{background:var(--gl);color:var(--green)} .b-closed,.b-r{background:var(--rl);color:var(--red)}
+.b-y{background:var(--al);color:var(--amber)} .b-b{background:var(--navy-l);color:var(--navy)} .b-n{background:#F1F2F6;color:var(--ink2)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border:0;border-radius:30px;padding:11px 20px;font:inherit;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(37,51,154,.22)}
+.btn:hover{background:var(--navy-d)} .btn:disabled{opacity:.5;cursor:default}
+.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.sec:hover{background:var(--navy-l)}
+.btn.soft{background:var(--navy-l);color:var(--navy);box-shadow:none}
+.btn.sm{padding:7px 14px;font-size:13px}
+input,select{font:inherit;border:1px solid var(--line);border-radius:14px;padding:10px 14px;background:#fff;color:var(--ink);outline:none}
+input:focus,select:focus{border-color:var(--navy-m);box-shadow:0 0 0 3px var(--navy-l)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:var(--sh)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{position:sticky;top:0;background:#FAFBFE;text-align:left;font-weight:700;font-size:12px;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{white-space:nowrap;padding:12px 14px;border-bottom:1px solid #F0F1F6;vertical-align:top;max-width:300px}
+tr.click:hover td{background:#F8F9FE;cursor:pointer}
+.bar{height:10px;background:#EEF0F6;border-radius:6px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#3D5BDB,#25339A);border-radius:6px}
+.bar i.full{background:var(--green)}
+.qrow{display:grid;grid-template-columns:1fr 96px;gap:10px;align-items:center;margin:10px 0;font-size:13.5px}
+.qrow .num{text-align:right;color:var(--ink2);font-weight:700}
+.tabs{display:inline-flex;gap:4px;margin:6px 0 14px;background:#F1F2F7;border-radius:30px;padding:4px}
+.tabs button{border:0;background:none;border-radius:30px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink2)}
+.tabs button.on{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(20,26,46,.1)}
+.list{margin:0;padding:0;list-style:none}
+.list li{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.list li b{color:var(--ink)}
+.modal{position:fixed;inset:0;background:rgba(20,26,46,.35);display:none;align-items:flex-start;justify-content:center;padding:50px 16px;z-index:50;overflow:auto}
+.modal.on{display:flex}
+.modal .card{max-width:780px;width:100%}
+.detail dt{font-size:12px;color:var(--ink2);font-weight:600;margin-top:14px}
+.detail dd{margin:3px 0 0;font-weight:700}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:30px;font-weight:600;display:none;z-index:60}
+.page{display:none} .page.on{display:block}
+.loading{color:var(--ink2);padding:30px;text-align:center}
+.kv{display:grid;grid-template-columns:minmax(140px,200px) 1fr;gap:12px;align-items:center;margin:12px 0}
+.kv input,.kv select{width:100%}
+code.k{background:var(--navy-l);color:var(--navy);padding:4px 8px;border-radius:8px;font-size:12px;word-break:break-all}
+.switch{position:relative;display:inline-block;width:48px;height:28px}
+.switch input{display:none}
+.switch span{position:absolute;inset:0;background:#D9DCE8;border-radius:20px;cursor:pointer;transition:.2s}
+.switch span:before{content:'';position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked+span{background:var(--navy)}
+.switch input:checked+span:before{transform:translateX(20px)}
+.note{background:var(--gl);color:var(--green);border:1px solid #CDEBD8;border-radius:16px;padding:14px 18px;font-weight:600}
+.winbox{background:var(--navy-l);border:1px solid var(--navy-m);border-radius:18px;padding:18px}
+@media(max-width:960px){.app{flex-direction:column}nav.side{width:auto;height:auto;position:static;flex:none}.datecard{display:none}.content{padding:20px}.kv{grid-template-columns:1fr}.hero h1{font-size:30px}}
+.grp .cnt{background:var(--navy-l);color:var(--navy);border-radius:10px;padding:2px 8px;font-size:11px;letter-spacing:0}
+nav.side button.sv{align-items:flex-start;padding:10px 14px}
+nav.side button.sv .dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px;margin-top:5px}
+nav.side button.sv .t{display:block;font-weight:600;font-size:14px;line-height:1.35}
+nav.side button.sv .s{display:block;font-size:12px;color:var(--ink2);margin-top:2px}
+nav.side button.sv.on .s{color:rgba(255,255,255,.8)}
+nav.side button.sv-new{color:var(--ink2);font-size:13.5px;padding:9px 14px;border:1.5px dashed var(--line);margin-top:6px}
+nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-height:1}
+.btn.danger{background:#fff;color:var(--red);border:1px solid #F3C9C6;box-shadow:none}
+.btn.danger:hover{background:var(--rl)}
+.svhead{margin-bottom:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.svhead .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.bq{border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin-bottom:14px;background:#fff}
+.bq-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.bq-n{font-weight:800;color:var(--navy);background:var(--navy-l);border-radius:10px;padding:4px 10px;font-size:13px}
+.bq-id{font-size:11px;color:var(--muted)}
+.bq-h select{padding:7px 10px;font-size:13px;border-radius:10px}
+.bq-h .sp{flex:1}
+.ib{border:1px solid var(--line);background:#fff;border-radius:10px;width:32px;height:32px;cursor:pointer;font-size:14px;color:var(--ink2)}
+.ib:hover{background:var(--navy-l);color:var(--navy)}
+.ib.del:hover{background:var(--rl);color:var(--red)}
+.bq textarea,.bwide{width:100%;font:inherit;border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:vertical;outline:none}
+.bq textarea:focus,.bwide:focus{border-color:var(--navy-m);box-shadow:0 0 0 3px var(--navy-l)}
+.bq textarea.qt{font-weight:600;font-size:15px;min-height:52px}
+.bo{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
+.bo input[type=text]{flex:1;min-width:180px;padding:8px 12px;border-radius:10px}
+.flag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);white-space:nowrap;cursor:pointer;border:1px solid var(--line);border-radius:20px;padding:4px 9px;user-select:none}
+.flag input{margin:0}
+.flag.on{background:var(--navy-l);color:var(--navy);border-color:var(--navy-m)}
+.flag.on.scr{background:var(--rl);color:var(--red);border-color:#F3C9C6}
+.bopts{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px;color:var(--ink2)}
+.bopts input[type=number]{width:80px;padding:6px 10px;border-radius:10px}
+.bopts input[type=text]{padding:6px 10px;border-radius:10px;width:170px}
+.blogic{margin-top:10px;padding:10px 12px;background:#FAFBFE;border:1px dashed var(--line);border-radius:12px;font-size:13px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.blogic select{padding:6px 10px;border-radius:10px;font-size:13px;max-width:260px}
+.bgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.bside{position:sticky;top:90px;display:flex;flex-direction:column;gap:16px}
+.bside .kv{grid-template-columns:1fr;gap:6px;margin:10px 0}
+.bside label.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;font-size:14px}
+.bside label.row small{display:block;color:var(--ink2);font-size:12px}
+.stab{display:flex;gap:4px;background:#F1F2F7;border-radius:30px;padding:4px;margin:4px 0 14px;width:max-content;max-width:100%;flex-wrap:wrap}
+.stab button{border:0;background:none;border-radius:30px;padding:8px 16px;font:inherit;font-weight:700;cursor:pointer;color:var(--ink2)}
+.stab button.on{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(20,26,46,.1)}
+.tip{font-size:12.5px;color:var(--ink2);background:#FAFBFE;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.55}
+.tip code{background:var(--navy-l);color:var(--navy);padding:1px 6px;border-radius:6px}
+.empty{text-align:center;color:var(--ink2);padding:30px 10px;border:2px dashed var(--line);border-radius:18px;margin-bottom:14px}
+.sv-new.on{color:#fff!important;border-color:transparent!important}
+.dirty{font-size:12px;font-weight:700;color:var(--amber);align-self:center}
+.lnk{display:flex;gap:8px;align-items:center;margin:10px 0}
+.lnk input{flex:1;font-size:12px;padding:8px 10px;min-width:0}
+@media(max-width:1100px){.bgrid{grid-template-columns:1fr}.bside{position:static}}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="side">
+  <div class="logo"><span class="w">SURVEY</span><span class="sep"></span><span class="m">mil</span></div>
+  <div class="grp">DASHBOARD</div>
+  <button data-p="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Ringkasan</button>
+  <div class="grp">SURVEI <span class="cnt" id="sv-cnt"></span></div>
+  <div id="sv-list"><div class="muted" style="padding:6px 14px">Memuat…</div></div>
+  <button class="sv-new" data-p="build" onclick="newSurvey()"><span>+</span>Survei baru</button>
+  <div class="grp">DATA</div>
+  <button data-p="resp"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Jawaban</button>
+  <button data-p="panel"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .4 5.5 2.8 5.5 5.8"/></svg>Panel Responden</button>
+  <div class="grp">OPERASIONAL</div>
+  <button data-p="draw"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z"/></svg>Undian Pemenang</button>
+  <button data-p="blok"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Daftar Blokir</button>
+  <div class="grp">PENGATURAN</div>
+  <button data-p="set"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Survei &amp; Pengaturan</button>
+  <button data-p="api"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>API untuk ATLAS</button>
+  <div class="datecard"><b id="today-d"></b><br><span>Asia/Jakarta (WIB)</span></div>
+</nav>
+<main>
+<div class="topbar"><button class="iconbtn" onclick="document.querySelector('.app').classList.toggle('collapsed')" title="Sembunyikan menu"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 10l-2 2 2 2"/></svg></button>
+  <div class="user"><div class="avatar" id="u-ini"></div><div><b id="u-name"></b><small>Admin Survei · <span id="u-mail"><?= userEmail ?></span></small></div></div></div>
+<div class="content">
+<!-- RINGKASAN -->
+<section class="page on" id="p-home">
+  <div class="hero"><div class="d" id="h-date"></div><h1 id="h-greet">Halo!</h1><p>Ini yang terjadi di survei MIL Gift Club hari ini.</p>
+    <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span></div>
+  <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted" id="h-upd">Memuat…</div></div>
+    <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="loadHome()">Muat ulang</button></div></div>
+  <div class="grid g4" id="h-kpi"><div class="loading">Memuat data…</div></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h2>Respons valid per hari (30 hari)</h2><canvas id="c-daily" height="150"></canvas></div>
+    <div class="card"><h2>Kuota</h2><div class="tabs" id="q-tabs"></div><div id="q-body"></div></div>
+  </div>
+  <div class="grid g4" style="margin-top:16px">
+    <div class="card"><h2>Sumber traffic</h2><ul class="list" id="h-src"></ul></div>
+    <div class="card"><h2>Alasan tidak lolos</h2><ul class="list" id="h-scr"></ul></div>
+    <div class="card"><h2>Daftar Blokir</h2><ul class="list" id="h-blok"></ul></div>
+    <div class="card"><h2>Panel & undian</h2><ul class="list" id="h-misc"></ul></div>
+  </div>
+</section>
+
+<!-- SURVEI (per survei) -->
+<section class="page" id="p-survey">
+  <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
+    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+  <div class="grid g2" id="sv-kpi"></div>
+  <div class="grid g2" style="margin-top:20px;align-items:start">
+    <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
+    <div class="card"><h2 id="sv-qh">Kuota</h2><p class="muted" id="sv-qd">Jumlah valid dibanding target per kelompok.</p><div id="sv-quota"></div></div>
+  </div>
+</section>
+
+<!-- BUAT SURVEI -->
+<section class="page" id="p-build">
+  <div class="svhead"><div><div class="eyebrow">Buat survei</div><h1 id="b-title">Survei baru</h1><p class="desc">Minta AI menyusun pertanyaan dari brief, atau tempel daftar pertanyaanmu sendiri. Rapikan, coba lewat pratinjau, lalu publish. Pembuka, giveaway, cek Instagram, profil, dan penutup ditambahkan otomatis.</p></div>
+    <div class="acts"><span class="dirty" id="b-dirty"></span><button class="btn sec sm" onclick="bPreview()">Pratinjau</button><button class="btn sec sm" onclick="bSave(false)">Simpan draf</button><button class="btn sm" id="b-pub" onclick="bSave(true)">Publish</button></div></div>
+  <div class="bgrid">
+    <div>
+      <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
+        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="paste">Tempel pertanyaan</button><button data-m="blank">Kosong</button></div>
+        <div id="b-m-ai">
+          <textarea class="bwide" id="b-brief" rows="5" placeholder="Contoh: Saya ingin tahu kebiasaan wanita 20–35 tahun membeli skincare lewat TikTok Shop: apa yang membuat mereka percaya pada produk, peran review & live, sensitivitas harga, dan alasan pindah brand."></textarea>
+          <div class="toolbar" style="margin:10px 0 0"><label class="muted">Jumlah pertanyaan</label><select id="b-n"><option>8</option><option>12</option><option selected>15</option><option>20</option><option>25</option></select>
+            <button class="btn sm" id="b-ai-btn" onclick="bAi('brief')">✨ Susun dengan AI</button><label class="flag" title="Kalau tidak dicentang, pertanyaan yang ada akan diganti"><input type="checkbox" id="b-append"> Tambahkan ke yang sudah ada</label></div>
+          <div class="tip" id="b-ai-off" style="display:none">Fitur AI belum aktif. Isi <code>ANTHROPIC_API_KEY</code> di menu <a href="#" onclick="navTo('set');return false">Survei &amp; Pengaturan</a>. Sementara itu, kamu tetap bisa menyusun pertanyaan di Claude lalu menempelkannya lewat tab <b>Tempel pertanyaan</b>.</div>
+        </div>
+        <div id="b-m-paste" style="display:none">
+          <textarea class="bwide" id="b-paste" rows="9" placeholder="1. Seberapa sering Anda belanja skincare online? (pilih satu)&#10;- Setiap minggu&#10;- 2–3 kali sebulan&#10;- Sebulan sekali&#10;- Lebih jarang&#10;&#10;2. Platform apa saja yang Anda pakai? (boleh lebih dari satu)&#10;- Shopee&#10;- TikTok Shop&#10;- Lainnya, sebutkan&#10;&#10;3. Apa alasan utama Anda memilih brand tersebut? (isian)"></textarea>
+          <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><button class="btn soft sm" id="b-ai2" onclick="bAi('parse')">✨ Rapikan dengan AI</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
+          <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Pilihan "Lainnya" otomatis bisa diisi. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
+        </div>
+        <div id="b-m-blank" style="display:none"><p class="muted">Mulai dari nol dengan tombol <b>+ Tambah pertanyaan</b> di bawah.</p></div>
+      </div>
+      <div class="card"><div class="top" style="margin:0 0 12px"><div><h2>Pertanyaan <span class="muted" id="b-count"></span></h2><div class="muted">Muncul setelah profil responden, sebelum data kontak.</div></div><button class="btn sec sm" onclick="bAdd()">+ Tambah pertanyaan</button></div>
+        <div id="b-qs"></div>
+        <button class="btn sec sm" onclick="bAdd()" style="margin-top:4px">+ Tambah pertanyaan</button></div>
+    </div>
+    <div class="bside">
+      <div class="card" id="b-statecard" style="display:none"><h2>Status</h2><div id="b-state"></div></div>
+      <div class="card"><h2>Info survei</h2>
+        <div class="kv"><label>Nama survei</label><input id="b-name" placeholder="mis. Skincare di TikTok Shop"></div>
+        <div class="kv"><label>Kalimat pembuka (opsional)</label><textarea class="bwide" id="b-intro" rows="3" placeholder="Terima kasih telah berpartisipasi dalam survei tentang…"></textarea></div>
+        <div class="kv"><label>Perkiraan waktu isi (menit)</label><input id="b-est" type="number" min="1" placeholder="dihitung otomatis"></div>
+        <div class="kv"><label>Target respons valid</label><input id="b-target" type="number" min="0" value="300"></div>
+        <label class="row"><span>Tutup otomatis saat target tercapai</span><span class="switch"><input type="checkbox" id="b-auto" checked><span></span></span></label>
+      </div>
+      <div class="card"><h2>Fitur</h2>
+        <label class="row"><span>Giveaway &amp; cek IG / WA<small>Halaman hadiah, cek IG ganda, daftar blokir, ikut undian</small></span><span class="switch"><input type="checkbox" id="b-g" checked><span></span></span></label>
+        <label class="row"><span>Profil standar + pakai profil lama<small>Usia, gender, kota, dll. Responden lama cukup verifikasi 4 digit WA</small></span><span class="switch"><input type="checkbox" id="b-p" checked><span></span></span></label>
+        <label class="row"><span>Saring orang industri<small>Tidak lolos bila kerja di agensi, riset, atau e-commerce</small></span><span class="switch"><input type="checkbox" id="b-ind" checked><span></span></span></label>
+        <label class="row"><span>Attention check<small>Pertanyaan "pilih Biru" di tengah survei</small></span><span class="switch"><input type="checkbox" id="b-att" checked><span></span></span></label>
+        <div class="kv"><label>Khusus responden</label><select id="b-gender"><option value="all">Semua gender</option><option value="Wanita">Wanita saja</option><option value="Pria">Pria saja</option></select></div>
+      </div>
+      <div class="card"><h2>Hadiah <span class="muted">(opsional)</span></h2><p class="muted">Kosongkan untuk memakai hadiah &amp; periode yang sama dengan survei lain.</p>
+        <div class="kv"><label>Hadiah utama</label><input id="b-prize"></div>
+        <div class="kv"><label>Periode giveaway</label><input id="b-period"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JAWABAN -->
+<section class="page" id="p-resp">
+  <div class="top"><div><div class="eyebrow">Data survei</div><h1>Jawaban</h1><p class="desc">Semua jawaban yang masuk per survei. Klik satu baris untuk melihat detail dan menandai jawaban asal-asalan.</p></div></div>
+  <div class="toolbar">
+    <select id="r-v" onchange="loadResp()"><option value="v1">Semua Kategori</option><option value="v2">Fashion Wanita, Tas & Aksesori, Hijab</option></select>
+    <select id="r-st" onchange="drawResp()"><option value="">Semua status</option><option>Valid</option><option>Tidak valid - attention check</option><option>Tidak valid - speeder</option><option>Tidak valid - manual</option><option>Duplikat</option><option>Diblokir (riwayat asal-asalan)</option></select>
+    <input id="r-q" placeholder="Cari IG / WA / kota / kategori" oninput="drawResp()" style="min-width:240px">
+    <span class="muted" id="r-n"></span>
+    <span style="flex:1"></span>
+    <button class="btn sec sm" onclick="csvResp()">Unduh CSV (tabel ini)</button>
+    <button class="btn sm" onclick="csvFull()">Unduh semua kolom</button>
+  </div>
+  <div class="tw" style="max-height:66vh"><table id="r-t"></table></div>
+  <div class="toolbar" style="margin-top:10px"><button class="btn sec sm" onclick="pg(-1)">‹ Sebelumnya</button><span class="muted" id="r-pg"></span><button class="btn sec sm" onclick="pg(1)">Berikutnya ›</button></div>
+</section>
+
+<!-- PANEL -->
+<section class="page" id="p-panel">
+  <div class="top"><div><div class="eyebrow">Data survei</div><h1>Panel responden</h1><p class="desc">Cari responden yang bersedia dihubungi kembali berdasarkan profil, lalu unduh daftarnya untuk riset berikutnya.</p></div></div>
+  <div class="card"><h2>Kriteria</h2><div id="pn-crit"></div>
+    <div class="toolbar" style="margin-top:10px"><button class="btn sec sm" onclick="addCrit()">+ Tambah kriteria</button><button class="btn sm" onclick="searchPanel()">Cari</button><span class="muted" id="pn-n"></span><span style="flex:1"></span><button class="btn sec sm" onclick="csvPanel()">Unduh CSV</button></div></div>
+  <div class="tw" style="margin-top:14px;max-height:60vh"><table id="pn-t"></table></div>
+</section>
+
+<!-- UNDIAN -->
+<section class="page" id="p-draw">
+  <div class="top"><div><div class="eyebrow">Operasional</div><h1>Undian pemenang</h1><p class="desc">Undi pemenang secara acak dari jawaban yang valid. Hasil tersimpan otomatis dan bisa digugurkan bila pemenang tidak memenuhi syarat.</p></div></div>
+  <div class="grid g2">
+    <div class="card"><h2>Undi</h2>
+      <div class="kv"><label>Survei</label><select id="d-v" onchange="loadElig()"><option value="all">Gabungan kedua survei</option><option value="v1">Semua Kategori</option><option value="v2">Fashion Wanita, Tas & Aksesori, Hijab</option></select></div>
+      <div class="kv"><label>Hadiah</label><input id="d-prize" placeholder="mis. AirPods"></div>
+      <div class="kv"><label>Jumlah pemenang</label><input id="d-n" type="number" min="1" value="1"></div>
+      <p class="muted" id="d-elig">Menghitung peserta eligible…</p>
+      <p class="muted">Peserta eligible: jawaban berstatus Valid, tidak sedang diblokir/suspend, dan belum pernah menang (1 nomor WA = 1 kesempatan).</p>
+      <button class="btn" onclick="draw()">Undi sekarang</button>
+      <div id="d-res" style="margin-top:14px"></div></div>
+    <div class="card"><h2>Riwayat pemenang</h2><div class="tw" style="max-height:52vh"><table id="w-t"></table></div></div>
+  </div>
+</section>
+
+<!-- BLOKIR -->
+<section class="page" id="p-blok">
+  <div class="top"><div><div class="eyebrow">Operasional</div><h1>Daftar Blokir</h1><p class="desc">Akun yang mengisi asal-asalan. Buka akses setelah peserta mengirim email permohonan; pelanggaran berikutnya otomatis suspend.</p></div><button class="btn sec sm" onclick="loadBlok()">Muat ulang</button></div>
+  <div class="card" style="margin-bottom:14px"><h2>Tambah manual</h2><div class="toolbar" style="margin:0"><input id="bk-ig" placeholder="@username"><input id="bk-wa" placeholder="08…"><input id="bk-r" placeholder="Alasan" style="min-width:240px"><button class="btn sm" onclick="addBlok()">Tambahkan</button></div></div>
+  <div class="tw" style="max-height:66vh"><table id="bk-t"></table></div>
+</section>
+
+<!-- PENGATURAN -->
+<section class="page" id="p-set">
+  <div class="top"><div><div class="eyebrow">Pengaturan</div><h1>Survei & pengaturan</h1><p class="desc">Buka atau tutup survei, ubah target, dan atur aturan blokir. Perubahan berlaku langsung untuk responden.</p></div></div>
+  <div class="grid g2" id="s-surveys"></div>
+  <div class="card" style="margin-top:16px"><h2>Pengaturan lain</h2><div id="s-form"></div><button class="btn" onclick="saveSet()">Simpan pengaturan</button></div>
+  <div class="card" id="s-new" style="margin-top:16px"><h2>Membuat survei baru</h2><p class="muted">Susun survei baru dengan bantuan AI atau tempel daftar pertanyaan, lalu publish langsung dari Dashboard.</p><button class="btn sm" onclick="newSurvey()">+ Buat survei baru</button></div>
+</section>
+
+<!-- API -->
+<section class="page" id="p-api">
+  <div class="top"><div><div class="eyebrow">Pengaturan</div><h1>API untuk ATLAS</h1><p class="desc">Sambungkan data survei ke ATLAS atau dashboard lain. Data pribadi responden tidak pernah dikirim lewat API.</p></div></div>
+  <div class="card"><h2>Kunci API</h2><p><code class="k" id="a-key">••••••••</code> <button class="btn sec sm" onclick="showKey()">Tampilkan</button> <button class="btn sm" onclick="regenKey()">Buat kunci baru</button></p>
+    <p class="muted">Kunci ini seperti kata sandi. Bagikan hanya ke tim yang mengelola ATLAS. Membuat kunci baru langsung mematikan kunci lama.</p></div>
+  <div class="card" style="margin-top:16px"><h2>Endpoint</h2><div class="tw"><table id="a-t"></table></div>
+    <p class="muted">Semua endpoint mengembalikan JSON <code>{ ok, data }</code>. Nomor WA, username Instagram, dan data perangkat <b>tidak</b> pernah dikirim lewat API.</p></div>
+</section>
+</div>
+</main>
+</div>
+
+<div class="modal" id="m"><div class="card"><div id="m-body"></div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var run = function (fn) { var a = [].slice.call(arguments, 1); return new Promise(function (ok, no) { google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { toast((e && e.message) || 'Gagal'); no(e); })[fn].apply(null, a); }); };
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
+var fmt = function (n) { return Number(n || 0).toLocaleString('id-ID'); };
+function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function () { e.style.display = 'none'; }, 3000); }
+function closeM() { $('m').classList.remove('on'); }
+$('m').onclick = function (e) { if (e.target.id === 'm') closeM(); };
+function badge(st) {
+  st = String(st || '');
+  var c = /^Valid|^Menang|^Dibuka|^Aktif/.test(st) ? 'b-g' : /^Tidak valid|^Diblokir|^Gugur/.test(st) ? 'b-r' : /^Suspend/.test(st) ? 'b-y' : /^Duplikat/.test(st) ? 'b-b' : 'b-n';
+  return '<span class="badge ' + c + '">' + esc(st) + '</span>';
+}
+function table(el, cols, rows, opt) {
+  opt = opt || {};
+  var h = '<thead><tr>' + cols.map(function (c) { return '<th>' + esc(opt.label ? opt.label(c) : c) + '</th>'; }).join('') + (opt.action ? '<th></th>' : '') + '</tr></thead><tbody>';
+  rows.forEach(function (r, i) {
+    h += '<tr class="' + (opt.click ? 'click' : '') + '" data-i="' + i + '">' + r.map(function (v, j) { return '<td>' + (opt.cell ? opt.cell(cols[j], v, r) : esc(String(v == null ? '' : v).replace(/^'/, ''))) + '</td>'; }).join('') + (opt.action ? '<td>' + opt.action(r, i) + '</td>' : '') + '</tr>';
+  });
+  el.innerHTML = h + (rows.length ? '' : '<tr><td colspan="' + (cols.length + 1) + '" class="loading">Belum ada data</td></tr>') + '</tbody>';
+  if (opt.click) [].forEach.call(el.querySelectorAll('tr.click'), function (tr) { tr.onclick = function () { opt.click(rows[+tr.dataset.i]); }; });
+}
+function csv(name, cols, rows) {
+  var q = function (v) { v = v == null ? '' : String(v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  var s = '﻿' + [cols].concat(rows).map(function (r) { return r.map(q).join(','); }).join('\n');
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([s], { type: 'text/csv;charset=utf-8' })); a.download = name + '.csv'; a.click();
+}
+var LABEL = { timestamp: 'Waktu', status: 'Status', Z2: 'Instagram', Z3: 'WhatsApp', S1: 'Usia', S2: 'Gender', A1: 'Kota', kategori_1: 'Kategori', L1_PT1: 'Produk', L1_PT2: 'Harga/item', durasi_detik: 'Durasi (dtk)', sumber: 'Sumber', profil_dari_survei_sebelumnya: 'Profil lama', session_id: 'Session' };
+
+// ---------- navigasi ----------
+var loaded = {};
+var SV = null;
+function showPage(p, btn) {
+  [].forEach.call(document.querySelectorAll('nav.side button'), function (x) { x.classList.toggle('on', x === btn); });
+  [].forEach.call(document.querySelectorAll('.page'), function (pg) { pg.classList.toggle('on', pg.id === 'p-' + p); });
+  window.scrollTo(0, 0);
+}
+function bindNav(b) {
+  b.onclick = function () {
+    if (typeof bDirty !== 'undefined' && bDirty && $('p-build').classList.contains('on') && !confirm('Perubahan survei yang sedang diedit belum disimpan. Tinggalkan?')) return;
+    if ($('p-build').classList.contains('on')) markDirty(false);
+    showPage(b.dataset.p, b);
+    if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
+    var f = { home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
+  };
+}
+[].forEach.call(document.querySelectorAll('nav.side button[data-p]:not(.sv-new)'), bindNav);
+function navTo(p) { var b = document.querySelector('nav.side button[data-p="' + p + '"]'); if (b) b.click(); }
+function newSurvey() { openBuilder(null); }
+
+// ---------- daftar survei di menu samping ----------
+var SV_COLOR = { v1: '#25339A', v2: '#2BA7E0' }, SV_PAL = ['#7B61FF', '#E8833A', '#2F8A57', '#C2367A', '#0F9BB5', '#B26A00'];
+function svColor(v) { if (SV_COLOR[v]) return SV_COLOR[v]; var i = SUM.surveys.map(function (s) { return s.v; }).indexOf(v); return SV_PAL[Math.max(0, i - 2) % SV_PAL.length]; }
+function drawSurveyNav() {
+  $('sv-cnt').textContent = SUM.surveys.length;
+  $('sv-list').innerHTML = SUM.surveys.map(function (s) {
+    return '<button data-p="survey" data-v="' + s.v + '" class="sv' + (SV === s.v && $('p-survey').classList.contains('on') ? ' on' : '') + '"><i class="dot" style="background:' + (s.open ? svColor(s.v) : '#C2C6D3') + '"></i><span><span class="t">' + esc(s.name) + '</span>' +
+      '<span class="s">' + esc(s.status || (s.open ? 'Dibuka' : 'Ditutup')) + ' · ' + fmt(s.valid) + ' / ' + fmt(s.target) + ' valid</span></span></button>';
+  }).join('');
+  [].forEach.call($('sv-list').children, bindNav);
+  var opt = function (sel, all) { var e = $(sel), cur = e.value; e.innerHTML = (all ? '<option value="all">Gabungan semua survei</option>' : '') + SUM.surveys.map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + (s.status === 'Draf' ? ' (draf)' : '') + '</option>'; }).join(''); if (cur && [].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur; };
+  opt('r-v'); opt('d-v', true);
+}
+
+// ---------- halaman per survei ----------
+var svChart;
+function quotaHtml(v) {
+  return (SUM.quota[v] || []).map(function (b) {
+    return '<div style="margin-bottom:12px"><b style="font-size:13px">' + esc(b.name) + '</b>' + b.items.map(function (it) {
+      var pct = it.target ? Math.round(it.n / it.target * 100) : null;
+      return '<div class="qrow"><div>' + esc(it.key) + (it.target ? '<div class="bar"><i class="' + (pct >= 100 ? 'full' : '') + '" style="width:' + Math.min(100, pct) + '%"></i></div>' : '') + '</div><div class="num">' + fmt(it.n) + (it.target ? ' / ' + fmt(it.target) : '') + '</div></div>';
+    }).join('') + '</div>';
+  }).join('');
+}
+function drawSurvey() {
+  var s = SUM.surveys.filter(function (x) { return x.v === SV; })[0]; if (!s) return;
+  var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
+  $('sv-title').textContent = s.name;
+  $('sv-desc').innerHTML = '<span class="badge ' + (s.open ? 'b-open">Dibuka' : s.status === 'Draf' ? 'b-y">Draf' : 'b-closed">Ditutup') + '</span> &nbsp;' + (s.tab ? 'Data tersimpan di tab <b>' + esc(s.tab) + '</b>. ' : 'Belum dipublish. ') + 'Diperbarui ' + esc(SUM.generatedAt) + '.';
+  $('sv-edit').style.display = s.custom ? '' : 'none';
+  $('sv-link').href = s.link || '#';
+  $('sv-toggle').textContent = s.open ? 'Tutup survei' : s.status === 'Draf' ? 'Publish survei' : 'Buka survei untuk responden';
+  $('sv-toggle').className = s.open ? 'btn danger sm' : 'btn sm';
+  $('sv-kpi').innerHTML = '<div class="card kpi"><div class="lab">Progres target</div><span class="pct">' + pct + '%</span><div class="val">' + fmt(s.valid) + ' <small>/ ' + fmt(s.target) + ' valid</small></div>' +
+    '<div class="bar"><i class="' + (pct >= 100 ? 'full' : '') + '" style="width:' + Math.min(100, pct) + '%"></i></div>' +
+    '<div class="stats"><div>Masuk hari ini<b>' + fmt(s.today) + '</b></div><div>Median durasi<b>' + s.medianMin + ' mnt</b></div></div></div>' +
+    '<div class="card kpi"><div class="lab">Kualitas jawaban</div><div class="val">' + fmt(s.total) + ' <small>jawaban masuk</small></div>' +
+    '<div class="stats"><div>Valid<b>' + fmt(s.valid) + '</b></div><div>Tidak valid<b>' + fmt(s.invalid) + '</b></div><div>Duplikat<b>' + fmt(s.dup) + '</b></div><div>Pakai profil lama<b>' + fmt(s.prefilled) + '</b></div></div></div>';
+  $('sv-qh').textContent = s.custom ? 'Profil & jawaban' : 'Kuota'; $('sv-qd').textContent = s.custom ? 'Sebaran jawaban valid: profil responden dan pertanyaan pilihan.' : 'Jumlah valid dibanding target per kelompok.';
+  $('sv-quota').innerHTML = quotaHtml(SV);
+  if (svChart) svChart.destroy();
+  if (window.Chart) svChart = new Chart($('sv-daily'), { type: 'bar', data: { labels: SUM.daily.dates.map(function (x) { return x.slice(5); }),
+    datasets: [{ label: 'Valid', data: SUM.daily[SV], backgroundColor: svColor(SV), borderRadius: 6, maxBarThickness: 18 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } } });
+}
+function svToResp() { $('r-v').value = SV; loaded.resp = 1; navTo('resp'); loadResp(); }
+function svToggle() {
+  var s = SUM.surveys.filter(function (x) { return x.v === SV; })[0];
+  if (!confirm((s.open ? 'Tutup' : 'Buka') + ' survei "' + s.name + '"? Berlaku langsung untuk responden.')) return;
+  var fin = function () { toast(s.open ? 'Survei ditutup' : 'Survei dibuka'); loaded.set = 0; loadHome(); };
+  if (s.custom) return run('adminBuilderStatus', SV, s.open ? 'Ditutup' : 'Dibuka').then(fin);
+  var o = {}; o['SURVEY_OPEN_' + SV.toUpperCase()] = !s.open;
+  run('adminSaveSettings', o).then(function () { toast(s.open ? 'Survei ditutup' : 'Survei dibuka'); loaded.set = 0; loadHome(); });
+}
+
+// ---------- ringkasan ----------
+var chart, SUM, qv = 'v1';
+function loadHome() {
+  run('adminSummary').then(function (d) {
+    SUM = d; loaded.home = 1; drawSurveyNav(); if (SV && $('p-survey').classList.contains('on')) drawSurvey();
+    $('h-upd').textContent = 'Diperbarui ' + d.generatedAt;
+    $('h-kpi').innerHTML = d.surveys.map(function (s) {
+      var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
+      return '<div class="card kpi"><div class="lab">' + esc(s.name) + ' <span class="badge ' + (s.open ? 'b-open">Dibuka' : 'b-closed">Ditutup') + '</span></div>' +
+        '<span class="pct">' + pct + '%</span><div class="val">' + fmt(s.valid) + ' <small>/ ' + fmt(s.target) + ' valid</small></div>' +
+        '<div class="bar"><i class="' + (pct >= 100 ? 'full' : '') + '" style="width:' + Math.min(100, pct) + '%"></i></div>' +
+        '<div class="stats"><div>Total masuk<b>' + fmt(s.total) + '</b></div><div>Hari ini<b>' + fmt(s.today) + '</b></div><div>Tidak valid<b>' + fmt(s.invalid) + '</b></div><div>Duplikat<b>' + fmt(s.dup) + '</b></div><div>Median durasi<b>' + s.medianMin + ' mnt</b></div><div>Pakai profil lama<b>' + fmt(s.prefilled) + '</b></div></div></div>';
+    }).join('');
+    var nOpen = d.surveys.filter(function (s) { return s.open; }).length, nToday = d.surveys.reduce(function (a, s) { return a + (s.today || 0); }, 0);
+    $('h-chip1').textContent = nOpen + ' dari ' + d.surveys.length + ' survei dibuka';
+    $('h-chip2').textContent = fmt(nToday) + ' jawaban baru hari ini';
+    var ctx = $('c-daily'); if (chart) chart.destroy();
+    if (window.Chart) chart = new Chart(ctx, { type: 'line', data: { labels: d.daily.dates.map(function (x) { return x.slice(5); }), datasets: [
+      { label: 'Semua Kategori', data: d.daily.v1, borderColor: '#25339A', backgroundColor: '#25339A', tension: .25, cubicInterpolationMode: 'monotone', pointRadius: 2 },
+      { label: 'Fashion, Tas & Hijab', data: d.daily.v2, borderColor: '#2BA7E0', backgroundColor: '#2BA7E0', tension: .25, cubicInterpolationMode: 'monotone', pointRadius: 2 }] },
+      options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } } });
+    $('q-tabs').innerHTML = d.surveys.map(function (s) { return '<button data-v="' + s.v + '" class="' + (s.v === qv ? 'on' : '') + '">' + esc(s.v === 'v1' ? 'Semua Kategori' : 'Fashion, Tas & Hijab') + '</button>'; }).join('');
+    [].forEach.call($('q-tabs').children, function (b) { b.onclick = function () { qv = b.dataset.v; drawQuota(); [].forEach.call($('q-tabs').children, function (x) { x.classList.toggle('on', x === b); }); }; });
+    drawQuota();
+    var li = function (o, empty) { var k = Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }); return k.length ? k.map(function (x) { return '<li><span>' + esc(x) + '</span><b>' + fmt(o[x]) + '</b></li>'; }).join('') : '<li class="muted">' + empty + '</li>'; };
+    $('h-src').innerHTML = li(d.sources, 'Belum ada');
+    $('h-scr').innerHTML = li(d.screenout, 'Belum ada');
+    $('h-blok').innerHTML = li(d.blok, 'Tidak ada akun diblokir');
+    $('h-misc').innerHTML = '<li><span>Anggota panel</span><b>' + fmt(d.panel) + '</b></li><li><span>Pemenang tercatat</span><b>' + fmt(d.winners) + '</b></li>';
+  });
+}
+function drawQuota() { $('q-body').innerHTML = quotaHtml(qv); }
+function runTask(n) { toast('Menjalankan…'); run('adminRunTask', n).then(function () { toast('Selesai'); loadHome(); }); }
+
+// ---------- jawaban ----------
+var RESP = { cols: [], rows: [] }, page = 0, FILT = [];
+function loadResp() { $('r-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminResponses', $('r-v').value).then(function (d) { RESP = d; page = 0; drawResp(); }); }
+function drawResp() {
+  var st = $('r-st').value, q = $('r-q').value.toLowerCase().trim(), ci = RESP.cols.indexOf('status');
+  FILT = RESP.rows.filter(function (r) { return (!st || r[ci] === st) && (!q || r.join(' ').toLowerCase().indexOf(q) >= 0); });
+  var per = 50, max = Math.max(0, Math.ceil(FILT.length / per) - 1); page = Math.min(page, max);
+  $('r-n').textContent = fmt(FILT.length) + ' jawaban';
+  $('r-pg').textContent = 'Halaman ' + (page + 1) + ' dari ' + (max + 1);
+  table($('r-t'), RESP.cols, FILT.slice(page * per, page * per + per), { label: function (c) { return (RESP.labels || {})[c] || LABEL[c] || c; }, cell: function (c, v) { return c === 'status' ? badge(v) : esc(v); }, click: function (r) { detail(r[RESP.cols.indexOf('session_id')]); } });
+}
+function pg(d) { page = Math.max(0, page + d); drawResp(); }
+function csvResp() { csv('jawaban_' + $('r-v').value, RESP.cols.map(function (c) { return LABEL[c] || c; }), FILT); }
+function csvFull() { toast('Menyiapkan file…'); run('adminExport', $('r-v').value).then(function (d) { csv('jawaban_lengkap_' + $('r-v').value, d.cols, d.rows); }); }
+function detail(sid) {
+  var v = $('r-v').value;
+  $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
+  run('adminResponseDetail', v, sid).then(function (d) {
+    if (!d) { $('m-body').innerHTML = 'Tidak ditemukan'; return; }
+    $('m-body').innerHTML = '<div class="top"><h2 style="margin:0">Detail jawaban</h2><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
+      '<p>' + badge(d.status) + ' <span class="muted">' + esc(sid) + '</span></p>' +
+      '<div class="toolbar"><button class="btn sm" onclick="setSt(\'' + v + '\',\'' + sid + '\',\'Tidak valid - manual\',true)">Tandai asal-asalan (masuk Daftar Blokir)</button><button class="btn sec sm" onclick="setSt(\'' + v + '\',\'' + sid + '\',\'Valid\',false)">Tandai Valid</button></div>' +
+      '<dl class="detail">' + d.items.map(function (it) { return '<dt>' + esc(it.key) + (it.q ? ' · ' + esc(it.q) : '') + '</dt><dd>' + esc(it.val) + '</dd>'; }).join('') + '</dl>';
+  });
+}
+function setSt(v, sid, st, vio) {
+  if (vio && !confirm('Tandai jawaban ini asal-asalan? Status jadi tidak valid dan akun masuk Daftar Blokir.')) return;
+  run('adminSetStatus', v, sid, st, vio).then(function () { toast('Status diperbarui'); closeM(); loadResp(); loaded.home = 0; });
+}
+
+// ---------- panel ----------
+var PCOLS = [], PRES = { cols: [], rows: [] }, OPS = ['sama dengan', 'tidak sama dengan', 'mengandung', 'tidak mengandung'];
+function loadPanel() { run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'sama dengan', 'Wanita'); addCrit(); searchPanel(); }); }
+function addCrit(col, op, val) {
+  var d = document.createElement('div'); d.className = 'toolbar'; d.style.margin = '6px 0';
+  d.innerHTML = '<select class="c-col">' + PCOLS.map(function (c) { return '<option' + (c === col ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select><select class="c-op">' + OPS.map(function (o) { return '<option' + (o === op ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select><input class="c-val" placeholder="nilai" value="' + esc(val || '') + '"><button class="btn sec sm">Hapus</button>';
+  d.querySelector('button').onclick = function () { d.remove(); };
+  $('pn-crit').appendChild(d);
+}
+function searchPanel() {
+  var crit = [].map.call(document.querySelectorAll('#pn-crit .toolbar'), function (d) { return { col: d.querySelector('.c-col').value, op: d.querySelector('.c-op').value, val: d.querySelector('.c-val').value }; });
+  run('adminPanelSearch', crit).then(function (d) { PRES = d; $('pn-n').textContent = fmt(d.rows.length) + ' responden'; table($('pn-t'), d.cols, d.rows.slice(0, 300)); });
+}
+function csvPanel() { csv('panel', PRES.cols, PRES.rows); }
+
+// ---------- undian ----------
+function loadDraw() { loadElig(); loadWin(); }
+function loadElig() { $('d-elig').textContent = 'Menghitung…'; run('adminEligible', $('d-v').value).then(function (d) { $('d-elig').innerHTML = '<b>' + fmt(d.count) + '</b> peserta eligible.'; }); }
+function loadWin() { run('adminWinners').then(function (d) { table($('w-t'), d.cols, d.rows.slice().reverse(), { cell: function (c, v) { return c === 'status' ? badge(v) : esc(String(v).replace(/^'/, '')); }, action: function (r, i) { return String(r[7]).indexOf('Gugur') === 0 ? '' : '<button class="btn sec sm" onclick="voidWin(' + (d.rows.length - i + 1) + ')">Gugurkan</button>'; } }); }); }
+function draw() {
+  var prize = $('d-prize').value.trim(), n = +$('d-n').value;
+  if (!prize) return toast('Isi nama hadiah dulu');
+  if (!confirm('Undi ' + n + ' pemenang untuk "' + prize + '"? Hasil langsung tersimpan.')) return;
+  run('adminDraw', $('d-v').value, prize, n).then(function (w) {
+    $('d-res').innerHTML = '<div class="winbox"><b>Pemenang ' + esc(prize) + '</b><ul class="list">' + w.map(function (x) { return '<li><span>' + esc(x.ig) + ' · ' + esc(x.wa) + '</span><span class="muted">' + esc(x.survei) + '</span></li>'; }).join('') + '</ul></div>';
+    loadElig(); loadWin();
+  });
+}
+function voidWin(row) { var r = prompt('Alasan menggugurkan pemenang (mis. tidak follow, tidak bisa dihubungi):'); if (r === null) return; run('adminWinnerVoid', row, r).then(function () { toast('Pemenang digugurkan. Undi ulang untuk penggantinya.'); loadDraw(); }); }
+
+// ---------- blokir ----------
+function loadBlok() {
+  run('adminBlokList').then(function (d) {
+    var show = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'suspend_sampai', 'keterangan'];
+    var idx = show.map(function (c) { return d.cols.indexOf(c); });
+    var rows = d.rows.map(function (r, i) { var o = idx.map(function (j) { return j >= 0 ? r[j] : ''; }); o._row = i + 2; return o; });
+    table($('bk-t'), show, rows, { label: function (c) { return c.replace(/_/g, ' '); }, cell: function (c, v) { return c === 'status' ? badge(v) : esc(String(v).replace(/^'/, '')); }, action: function (r) { return r[4] === 'Diblokir' ? '<button class="btn sm" onclick="openBlok(' + r._row + ')">Buka akses</button>' : ''; } });
+  });
+}
+function openBlok(row) { if (!confirm('Buka akses akun ini? Pastikan peserta sudah mengirim email permohonan.')) return; run('adminBlokOpen', row).then(function (r) { toast(r.msg); loadBlok(); }); }
+function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig && !wa) return toast('Isi IG atau WA'); run('adminBlokAdd', ig, wa, $('bk-r').value).then(function () { toast('Ditambahkan'); $('bk-ig').value = $('bk-wa').value = $('bk-r').value = ''; loadBlok(); }); }
+
+// ---------- pengaturan ----------
+var SET;
+var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY'];
+function loadSet() {
+  run('adminSettings').then(function (d) {
+    SET = d;
+    $('s-surveys').innerHTML = d.surveys.filter(function (s) { return !s.custom; }).map(function (s) {
+      var k = s.v.toUpperCase();
+      return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
+        '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (s.open ? ' checked' : '') + '><span></span></label></div>' +
+        '<div class="kv"><label>Target respons valid</label><input type="number" id="tgt-' + k + '" value="' + s.target + '"></div>' +
+        '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link) + '"></div>' +
+        '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab) + '</span></div>' +
+        '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> <a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a></div>';
+    }).join('');
+    $('s-form').innerHTML = d.list.filter(function (x) { return HIDE_SET.indexOf(x.key) < 0; }).map(function (x) {
+      return '<div class="kv"><label><b>' + esc(x.key) + '</b><div class="muted">' + esc(x.note) + '</div></label><input data-k="' + x.key + '"' + (/KEY/.test(x.key) ? ' type="password" autocomplete="off"' : '') + ' value="' + esc(x.val) + '"></div>';
+    }).join('');
+  });
+}
+function saveSurvey(k) {
+  var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value;
+  run('adminSaveSettings', o).then(function () { toast('Tersimpan. Berlaku langsung untuk responden.'); loadHome(); });
+}
+function saveSet() {
+  var o = {}; [].forEach.call(document.querySelectorAll('#s-form input'), function (i) { o[i.dataset.k] = i.value; });
+  run('adminSaveSettings', o).then(function () { toast('Pengaturan tersimpan'); });
+}
+
+// ---------- API ----------
+var KEY = '';
+function loadApi() {
+  run('adminSettings').then(function (d) {
+    KEY = (d.list.filter(function (x) { return x.key === 'API_KEY'; })[0] || {}).val || '';
+    var base = d.execUrl || '<link web app>';
+    var eps = [['summary', 'Ringkasan per survei: total, valid, tidak valid, hari ini, median durasi, status buka/tutup'], ['daily', 'Jumlah respons valid per hari (30 hari terakhir)'], ['quota', 'Progres kuota (usia, gender, wilayah, kategori). Tambah &survei=v1 atau v2'], ['responses', 'Jawaban tanpa data pribadi. Opsi: &survei=v1|v2|all, &since=2026-11-01, &status=Valid|all']];
+    table($('a-t'), ['Endpoint', 'Isi', 'Link'], eps.map(function (e) { return [e[0], e[1], base + '?api=' + e[0] + '&key=KUNCI']; }), { cell: function (c, v) { return c === 'Link' ? '<code class="k">' + esc(v) + '</code>' : esc(v); } });
+  });
+}
+function showKey() { $('a-key').textContent = KEY || '(belum ada, klik Buat kunci baru)'; }
+function regenKey() { if (!confirm('Buat kunci baru? Kunci lama langsung tidak berlaku, dan ATLAS perlu diperbarui.')) return; run('adminRegenKey').then(function (k) { KEY = k; showKey(); toast('Kunci baru dibuat'); }); }
+
+loadHome();
+
+// =====================================================================
+// ---------- BUAT SURVEI (builder) ----------
+// =====================================================================
+var B = null, BMETA = null, BDEF = null, bDirty = false;
+var BTYPES = [['single', 'Pilih satu'], ['multi', 'Pilih beberapa'], ['dropdown', 'Dropdown (daftar panjang)'], ['scale', 'Skala'], ['number', 'Angka'], ['text', 'Isian singkat'], ['longtext', 'Isian panjang']];
+var HAS_OPT = { single: 1, multi: 1, dropdown: 1 };
+function bNew() { return { questions: [], target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all' }; }
+function markDirty(v) { bDirty = v !== false; $('b-dirty').textContent = bDirty ? '● Belum disimpan' : ''; }
+function openBuilder(id) {
+  if ($('p-build').classList.contains('on') && bDirty && !confirm('Perubahan survei yang sedang diedit belum disimpan. Tinggalkan?')) return;
+  showPage('build', id ? null : document.querySelector('nav.side .sv-new'));
+  if (!BDEF) run('adminBuilderDefaults').then(function (d) { BDEF = d; bDefaults(); }); else bDefaults();
+  markDirty(false);
+  if (id) {
+    $('b-qs').innerHTML = '<p class="loading">Memuat survei…</p>';
+    run('adminBuilderGet', id).then(function (d) { BMETA = d; B = d.schema || bNew(); B.id = d.id; bFill(); });
+  } else { BMETA = null; B = bNew(); bFill(); }
+}
+function editSurvey(id) { openBuilder(id); }
+function bDefaults() {
+  var g = BDEF.giveaway || {};
+  $('b-prize').placeholder = g.hadiahUtama || ''; $('b-period').placeholder = g.periode || '';
+  $('b-ai-off').style.display = BDEF.ai ? 'none' : '';
+  $('b-ai-btn').disabled = !BDEF.ai; $('b-ai2').disabled = !BDEF.ai;
+}
+function bFill() {
+  $('b-title').textContent = B.id ? 'Edit: ' + (B.name || B.id) : 'Survei baru';
+  $('b-name').value = B.name || ''; $('b-intro').value = B.intro || ''; $('b-est').value = B.estimasi || '';
+  $('b-target').value = B.target == null ? '' : B.target; $('b-auto').checked = B.autoClose !== false;
+  $('b-g').checked = B.giveaway !== false; $('b-p').checked = B.profile !== false; $('b-ind').checked = B.screenIndustri !== false;
+  $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
+  $('b-prize').value = B.hadiahUtama || ''; $('b-period').value = B.periode || '';
+  $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan & tetap dibuka' : 'Publish';
+  bState(); bRender();
+}
+function bRead() {
+  B.name = $('b-name').value.trim(); B.intro = $('b-intro').value.trim(); B.estimasi = Number($('b-est').value) || '';
+  B.target = Number($('b-target').value) || 0; B.autoClose = $('b-auto').checked;
+  B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
+  B.gender = $('b-gender').value; B.hadiahUtama = $('b-prize').value.trim(); B.periode = $('b-period').value.trim();
+}
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-prize', 'b-period'].forEach(function (id) {
+  var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); }); e.addEventListener('change', function () { bRead(); markDirty(); });
+});
+[].forEach.call($('b-src').children, function (b) {
+  b.onclick = function () {
+    [].forEach.call($('b-src').children, function (x) { x.classList.toggle('on', x === b); });
+    ['ai', 'paste', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
+  };
+});
+function bState() {
+  if (!BMETA) { $('b-statecard').style.display = 'none'; return; }
+  $('b-statecard').style.display = '';
+  var st = BMETA.status, cls = st === 'Dibuka' ? 'b-open' : st === 'Draf' ? 'b-y' : 'b-closed';
+  $('b-state').innerHTML = '<span class="badge ' + cls + '">' + esc(st) + '</span> <span class="muted">' + fmt(BMETA.responses || 0) + ' jawaban masuk</span>' +
+    '<div class="lnk"><input id="b-link" readonly value="' + esc(BMETA.link) + '"><button class="btn sec sm" onclick="bCopy()">Salin</button></div>' +
+    (BMETA.responses ? '<div class="tip">Sudah ada jawaban masuk. Menambah pertanyaan atau memperbaiki ejaan aman. Hindari menghapus pertanyaan atau mengganti isi pilihan, supaya data lama tetap bisa dibandingkan.</div>' : '') +
+    '<div class="toolbar" style="margin:12px 0 0">' +
+    (st === 'Dibuka' ? '<button class="btn danger sm" onclick="bStatus(\'Ditutup\')">Tutup survei</button>' : st !== 'Draf' ? '<button class="btn soft sm" onclick="bStatus(\'Dibuka\')">Buka lagi</button>' : '') +
+    '<button class="btn sec sm" onclick="bDelete()">' + (BMETA.responses ? 'Arsipkan' : 'Hapus') + '</button></div>';
+}
+function bCopy() { var i = $('b-link'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } toast('Link disalin'); }
+function bStatus(st) {
+  if (!confirm((st === 'Ditutup' ? 'Tutup' : 'Buka') + ' survei ini untuk responden?')) return;
+  run('adminBuilderStatus', B.id, st).then(function () { BMETA.status = st; bFill(); toast('Status: ' + st); loadHome(); });
+}
+function bDelete() {
+  var arch = BMETA.responses > 0;
+  if (!confirm(arch ? 'Arsipkan survei ini? Survei ditutup dan hilang dari menu, data jawaban tetap tersimpan di Sheet.' : 'Hapus survei ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  run('adminBuilderDelete', B.id).then(function (r) { toast(r.archived ? 'Survei diarsipkan' : 'Survei dihapus'); markDirty(false); loadHome(); navTo('home'); });
+}
+
+// ---- daftar pertanyaan ----
+function nextId() { var m = 0; B.questions.forEach(function (q) { var n = +(String(q.id || '').match(/^Q(\d+)$/) || [0, 0])[1]; if (n > m) m = n; }); return 'Q' + (m + 1); }
+function bQ(type) { return { id: nextId(), text: '', type: type || 'single', options: type === 'text' ? [] : [{ t: '' }, { t: '' }], required: true }; }
+function bAdd() { B.questions.push(bQ()); markDirty(); bRender(); setTimeout(function () { var t = document.querySelectorAll('#b-qs .qt'); if (t.length) { t[t.length - 1].focus(); t[t.length - 1].scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 50); }
+function srcOpts(p) { if (p.type !== 'scale') return p.options || []; var sc = p.scale || {}, o = []; for (var n = Number(sc.min == null ? 1 : sc.min); n <= Number(sc.max || 5); n++) o.push({ t: String(n) }); return o; }
+function qLabel(q, i) { return 'Pertanyaan ' + (i + 1) + ': ' + String(q.text || '(belum ada teks)').slice(0, 50); }
+function bRender() {
+  var qs = B.questions;
+  $('b-count').textContent = qs.length ? '(' + qs.length + ')' : '';
+  if (!qs.length) { $('b-qs').innerHTML = '<div class="empty">Belum ada pertanyaan. Minta AI, tempel daftar pertanyaan, atau klik <b>+ Tambah pertanyaan</b>.</div>'; return; }
+  $('b-qs').innerHTML = qs.map(function (q, i) {
+    var h = '<div class="bq" data-i="' + i + '"><div class="bq-h"><span class="bq-n">' + (i + 1) + '</span><span class="bq-id">' + esc(q.id) + '</span>' +
+      '<select data-f="type">' + BTYPES.map(function (t) { return '<option value="' + t[0] + '"' + (q.type === t[0] ? ' selected' : '') + '>' + t[1] + '</option>'; }).join('') + '</select><span class="sp"></span>' +
+      '<button class="ib" data-a="up" title="Naik">↑</button><button class="ib" data-a="down" title="Turun">↓</button><button class="ib" data-a="dup" title="Duplikat">⧉</button><button class="ib del" data-a="del" title="Hapus">✕</button></div>' +
+      '<textarea class="qt" data-f="text" rows="2" placeholder="Tulis pertanyaan…">' + esc(q.text) + '</textarea>';
+    if (HAS_OPT[q.type]) {
+      h += '<div style="margin-top:8px">' + (q.options || []).map(function (o, j) {
+        return '<div class="bo" data-j="' + j + '"><input type="text" data-o="t" value="' + esc(o.t) + '" placeholder="Pilihan ' + (j + 1) + '">' +
+          '<label class="flag' + (o.other ? ' on' : '') + '" title="Responden bisa menulis jawaban sendiri"><input type="checkbox" data-o="other"' + (o.other ? ' checked' : '') + '> Isian</label>' +
+          (q.type === 'multi' ? '<label class="flag' + (o.exclusive ? ' on' : '') + '" title="Tidak bisa dipilih bersama pilihan lain"><input type="checkbox" data-o="exclusive"' + (o.exclusive ? ' checked' : '') + '> Eksklusif</label>' : '') +
+          '<label class="flag scr' + (o.screen ? ' on' : '') + '" title="Responden yang memilih ini berhenti (tidak lolos)"><input type="checkbox" data-o="screen"' + (o.screen ? ' checked' : '') + '> Tidak lolos</label>' +
+          '<button class="ib del" data-a="odel" title="Hapus pilihan">✕</button></div>';
+      }).join('') + '<button class="btn sec sm" data-a="oadd" style="margin-top:4px">+ Pilihan</button> <button class="btn sec sm" data-a="obulk">Tempel banyak pilihan</button></div>';
+    }
+    h += '<div class="bopts"><label><input type="checkbox" data-f="required"' + (q.required !== false ? ' checked' : '') + '> Wajib diisi</label>';
+    if (q.type === 'single' || q.type === 'multi') h += '<label><input type="checkbox" data-f="random"' + (q.random ? ' checked' : '') + '> Acak urutan pilihan</label>';
+    if (q.type === 'multi') h += '<label>Maks. pilihan <input type="number" min="0" data-f="max" value="' + (q.max || '') + '" placeholder="bebas"></label>';
+    if (q.type === 'scale') { var sc = q.scale || {}; h += '<label>Dari <input type="number" data-s="min" value="' + (sc.min == null ? 1 : sc.min) + '"></label><label>sampai <input type="number" data-s="max" value="' + (sc.max || 5) + '"></label><input type="text" data-s="minLabel" placeholder="Label nilai terendah" value="' + esc(sc.minLabel || '') + '"><input type="text" data-s="maxLabel" placeholder="Label nilai tertinggi" value="' + esc(sc.maxLabel || '') + '">'; }
+    if (q.type === 'number') h += '<label>Min <input type="number" data-f="min" value="' + (q.min == null ? '' : q.min) + '"></label><label>Maks <input type="number" data-f="maxNum" value="' + (q.maxNum == null ? '' : q.maxNum) + '"></label>';
+    h += '</div>';
+    var prev = qs.slice(0, i).filter(function (p) { return (HAS_OPT[p.type] && (p.options || []).some(function (o) { return o.t; })) || p.type === 'scale'; });
+    if (prev.length) {
+      var c = q.showIf || {}, src = prev.filter(function (p) { return p.id === c.q; })[0];
+      h += '<div class="blogic"><span>Tampilkan</span><select data-l="q"><option value="">selalu</option>' + prev.map(function (p) { return '<option value="' + p.id + '"' + (src && src.id === p.id ? ' selected' : '') + '>hanya jika ' + esc(qLabel(p, qs.indexOf(p))) + '</option>'; }).join('') + '</select>';
+      if (src) {
+        h += '<select data-l="op"><option value="is"' + (c.op !== 'isnot' ? ' selected' : '') + '>' + (src.type === 'multi' ? 'memilih' : 'dijawab') + '</option><option value="isnot"' + (c.op === 'isnot' ? ' selected' : '') + '>' + (src.type === 'multi' ? 'tidak memilih' : 'tidak dijawab') + '</option></select>' +
+          '<select data-l="val">' + srcOpts(src).filter(function (o) { return o.t; }).map(function (o) { return '<option' + (o.t === c.val ? ' selected' : '') + '>' + esc(o.t) + '</option>'; }).join('') + '</select>';
+      }
+      h += '</div>';
+    }
+    return h + '</div>';
+  }).join('');
+  [].forEach.call(document.querySelectorAll('#b-qs .bq'), bBind);
+}
+function bBind(card) {
+  var i = +card.dataset.i, q = B.questions[i];
+  [].forEach.call(card.querySelectorAll('[data-f]'), function (e) {
+    var f = e.dataset.f, ev = e.tagName === 'SELECT' || e.type === 'checkbox' ? 'change' : 'input';
+    e.addEventListener(ev, function () {
+      var v = e.type === 'checkbox' ? e.checked : e.type === 'number' ? (e.value === '' ? '' : Number(e.value)) : e.value;
+      q[f] = v; markDirty();
+      if (f === 'type') { if (HAS_OPT[v] && !(q.options || []).length) q.options = [{ t: '' }, { t: '' }]; bRender(); }
+    });
+    if (f === 'text') e.addEventListener('change', bRender);
+  });
+  [].forEach.call(card.querySelectorAll('[data-s]'), function (e) {
+    e.addEventListener('input', function () { q.scale = q.scale || {}; q.scale[e.dataset.s] = e.type === 'number' ? Number(e.value) : e.value; markDirty(); });
+  });
+  [].forEach.call(card.querySelectorAll('.bo'), function (row) {
+    var j = +row.dataset.j, o = q.options[j];
+    row.querySelector('[data-o="t"]').addEventListener('input', function (e) { o.t = e.target.value; markDirty(); });
+    row.querySelector('[data-o="t"]').addEventListener('change', bRender);
+    row.querySelector('[data-o="t"]').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); q.options.splice(j + 1, 0, { t: '' }); markDirty(); bRender(); var n = document.querySelector('#b-qs .bq[data-i="' + i + '"] .bo[data-j="' + (j + 1) + '"] input'); if (n) n.focus(); } });
+    [].forEach.call(row.querySelectorAll('input[type=checkbox]'), function (c) { c.addEventListener('change', function () { o[c.dataset.o] = c.checked; markDirty(); bRender(); }); });
+  });
+  [].forEach.call(card.querySelectorAll('[data-a]'), function (b) {
+    b.onclick = function () {
+      var a = b.dataset.a, qs = B.questions;
+      if (a === 'up' && i > 0) { qs.splice(i - 1, 0, qs.splice(i, 1)[0]); }
+      else if (a === 'down' && i < qs.length - 1) { qs.splice(i + 1, 0, qs.splice(i, 1)[0]); }
+      else if (a === 'dup') { var c = JSON.parse(JSON.stringify(q)); c.id = nextId(); qs.splice(i + 1, 0, c); }
+      else if (a === 'del') { if (!confirm('Hapus pertanyaan ' + (i + 1) + '?')) return; qs.splice(i, 1); qs.forEach(function (x) { if (x.showIf && x.showIf.q === q.id) x.showIf = null; }); }
+      else if (a === 'oadd') { q.options.push({ t: '' }); }
+      else if (a === 'odel') { q.options.splice(+b.closest('.bo').dataset.j, 1); }
+      else if (a === 'obulk') { var t = prompt('Tempel pilihan jawaban, satu per baris:'); if (!t) return; var add = t.split(/\r?\n/).map(function (x) { return x.replace(/^\s*(?:[-•*·]|[a-zA-Z0-9][.)])\s*/, '').trim(); }).filter(String).map(optFrom); q.options = q.options.filter(function (o) { return o.t; }).concat(add); }
+      else return;
+      // logika ke pertanyaan yang sekarang berada di bawahnya tidak valid lagi
+      qs.forEach(function (x, k) { if (x.showIf && qs.slice(0, k).every(function (p) { return p.id !== x.showIf.q; })) x.showIf = null; });
+      markDirty(); bRender();
+    };
+  });
+  [].forEach.call(card.querySelectorAll('[data-l]'), function (e) {
+    e.addEventListener('change', function () {
+      var l = e.dataset.l;
+      if (l === 'q') { if (!e.value) q.showIf = null; else { var src = B.questions.filter(function (p) { return p.id === e.value; })[0]; q.showIf = { q: e.value, op: 'is', val: (srcOpts(src).filter(function (o) { return o.t; })[0] || {}).t || '' }; } }
+      else { q.showIf = q.showIf || {}; q.showIf[l] = e.value; }
+      markDirty(); bRender();
+    });
+  });
+}
+
+// ---- tempel daftar pertanyaan (tanpa AI) ----
+function optFrom(t) {
+  var o = { t: String(t).trim() };
+  if (/\((?:eksklusif|exclusive)\)/i.test(o.t)) { o.exclusive = true; o.t = o.t.replace(/\s*\((?:eksklusif|exclusive)\)/i, ''); }
+  if (/\((?:tidak lolos|screen ?out|stop|berhenti)\)/i.test(o.t)) { o.screen = true; o.t = o.t.replace(/\s*\((?:tidak lolos|screen ?out|stop|berhenti)\)/i, ''); }
+  if (/^lainnya/i.test(o.t)) { o.other = true; o.t = 'Lainnya'; }
+  if (/^(tidak satu pun|tidak ada|bukan salah satu|tidak pernah)/i.test(o.t)) o.exclusive = true;
+  return o;
+}
+function parseText(txt) {
+  var out = [], q = null;
+  var QRE = /^\s*(?:(?:Q|P|No\.?)\s*)?(\d{1,3})\s*[.):]\s+(.+)$/i, ORE = /^\s*(?:[-•*·▪○●◦☐□]|\[\s?\]|\(\s?\)|[a-zA-Z][.)])\s+(.+)$/;
+  var push = function () { if (q && q.text.trim()) out.push(q); };
+  txt.split(/\r?\n/).forEach(function (line) {
+    if (!line.trim()) return;
+    var m = line.match(QRE), o = line.match(ORE);
+    if (m && !(o && q)) { push(); q = { text: m[2].trim(), options: [] }; return; }
+    if (!q) { q = { text: line.trim(), options: [] }; return; }
+    if (o) q.options.push(o[1].trim());
+    else if (/^\s*\d+\s*=\s*\S/.test(line)) q.options.push(line.trim());
+    else if (!q.options.length) q.text += ' ' + line.trim();
+    else q.options.push(line.trim());
+  });
+  push();
+  return out.map(function (x) {
+    var t = x.text, type = x.options.length ? 'single' : 'text', sc = null, m;
+    if (/\((?:boleh |bisa )?(?:pilih )?(?:lebih dari satu|beberapa|semua yang sesuai)[^)]*\)|\((?:MA|multi)\)/i.test(t)) type = 'multi';
+    else if (/\((?:pilih )?(?:satu|salah satu)[^)]*\)|\((?:SA|single)\)/i.test(t)) type = x.options.length > 12 ? 'dropdown' : 'single';
+    else if (/\((?:isian|jawaban terbuka|terbuka|OA|esai|uraian)[^)]*\)/i.test(t)) type = /panjang|esai|uraian/i.test(t) ? 'longtext' : 'text';
+    else if (/\((?:angka|nominal|jumlah)[^)]*\)/i.test(t)) type = 'number';
+    if ((m = t.match(/\(skala\s*(\d+)\s*[-–]\s*(\d+)[^)]*\)/i))) { type = 'scale'; sc = { min: +m[1], max: +m[2] }; }
+    t = t.replace(/\s*\((?:boleh |bisa )?(?:pilih )?(?:lebih dari satu|beberapa|semua yang sesuai|satu|salah satu|MA|SA|multi|single|isian[^)]*|jawaban terbuka|terbuka|OA|esai|uraian|angka|nominal|jumlah)[^)]*\)\s*/ig, ' ').replace(/\s*\(skala[^)]*\)\s*/i, ' ').trim();
+    var q2 = { text: t, type: type, options: type === 'scale' || !/single|multi|dropdown/.test(type) ? [] : x.options.map(optFrom), required: true };
+    if (sc) {
+      q2.scale = sc;
+      x.options.forEach(function (op) { var mm = op.match(/^(\d+)\s*[=:-]\s*(.+)$/); if (mm && +mm[1] === sc.min) sc.minLabel = mm[2]; if (mm && +mm[1] === sc.max) sc.maxLabel = mm[2]; });
+    }
+    return q2;
+  });
+}
+function bTake(list, append, meta) {
+  if (!list.length) return toast('Tidak ada pertanyaan yang terbaca. Cek formatnya atau pakai Rapikan dengan AI.');
+  if (!append && B.questions.length && !confirm('Ganti ' + B.questions.length + ' pertanyaan yang ada dengan ' + list.length + ' pertanyaan baru?')) return;
+  if (!append) B.questions = [];
+  var idx = [];
+  list.forEach(function (q) {
+    var n = { id: nextId(), text: q.text || '', type: q.type || 'single', options: (q.options || []).map(function (o) { return typeof o === 'string' ? optFrom(o) : { t: o.t || '', other: !!o.other, exclusive: !!o.exclusive, screen: !!o.screen }; }), required: q.required !== false, random: !!q.random, max: q.max || 0 };
+    if (q.scale) n.scale = q.scale;
+    if (q.hint) n.hint = q.hint;
+    if (q.showIf && q.showIf.q) n._if = q.showIf;
+    B.questions.push(n); idx.push(n.id);
+  });
+  // showIf dari AI memakai nomor urut (1 = pertanyaan pertama hasil AI)
+  B.questions.forEach(function (n) { if (n._if) { var ref = typeof n._if.q === 'number' ? idx[n._if.q - 1] : n._if.q; if (ref && ref !== n.id) n.showIf = { q: ref, op: n._if.op === 'isnot' ? 'isnot' : 'is', val: n._if.val }; delete n._if; } });
+  if (meta) { if (meta.name && !$('b-name').value) $('b-name').value = meta.name; if (meta.intro && !$('b-intro').value) $('b-intro').value = meta.intro; if (meta.estimasi && !$('b-est').value) $('b-est').value = meta.estimasi; bRead(); }
+  markDirty(); bRender(); toast(list.length + ' pertanyaan ditambahkan. Cek dan rapikan sebelum publish.');
+}
+function bParse() { bTake(parseText($('b-paste').value), $('b-append2').checked); }
+function bAi(mode) {
+  var txt = mode === 'brief' ? $('b-brief').value.trim() : $('b-paste').value.trim();
+  if (!txt) return toast(mode === 'brief' ? 'Tulis brief survei dulu' : 'Tempel daftar pertanyaan dulu');
+  var btn = mode === 'brief' ? $('b-ai-btn') : $('b-ai2'), lab = btn.textContent;
+  btn.disabled = true; btn.textContent = 'AI sedang menyusun… (±30–60 detik)';
+  run('adminAi', txt, mode, +$('b-n').value).then(function (d) {
+    btn.disabled = false; btn.textContent = lab;
+    bTake(d.questions || [], mode === 'brief' ? $('b-append').checked : $('b-append2').checked, d);
+  }, function () { btn.disabled = false; btn.textContent = lab; });
+}
+
+// ---- simpan, publish, pratinjau ----
+function bCheck() {
+  bRead();
+  if (!B.name) { $('b-name').focus(); return 'Isi nama survei dulu.'; }
+  if (!B.questions.length) return 'Survei belum punya pertanyaan.';
+  for (var i = 0; i < B.questions.length; i++) {
+    var q = B.questions[i];
+    if (!String(q.text).trim()) return 'Pertanyaan ' + (i + 1) + ' masih kosong.';
+    if (HAS_OPT[q.type]) { q.options = q.options.filter(function (o) { return String(o.t).trim(); }); if (q.options.length < 2) return 'Pertanyaan ' + (i + 1) + ' perlu minimal 2 pilihan jawaban.'; }
+  }
+  return '';
+}
+function bPayload() {
+  var o = JSON.parse(JSON.stringify(B));
+  if (!o.estimasi) o.estimasiOtomatis = Math.max(3, Math.round(1 + o.questions.length * 0.35 + (o.profile ? 1.5 : 0) + (o.giveaway ? 0.5 : 0)));
+  if (!o.estimasi) o.estimasi = o.estimasiOtomatis;
+  return o;
+}
+function bSave(publish, then) {
+  var e = bCheck(); if (e) { toast(e); return; }
+  if (publish && !(BMETA && BMETA.status === 'Dibuka') && !confirm('Publish survei "' + B.name + '"? Link langsung bisa diisi responden.')) return;
+  toast('Menyimpan…');
+  run('adminBuilderSave', bPayload(), !!publish).then(function (r) {
+    B.id = r.id; BMETA = Object.assign(BMETA || { responses: 0 }, { id: r.id, status: r.status, link: r.link });
+    markDirty(false); bFill(); loadHome();
+    toast(publish ? 'Survei dipublish! Link siap dibagikan.' : 'Draf tersimpan');
+    if (then) then(r);
+  });
+}
+function bPreview() {
+  var open = function (r) { window.open(r.link + (r.link.indexOf('?') >= 0 ? '&' : '?') + 'preview=1', '_blank'); };
+  if (B.id && !bDirty && BMETA) return open(BMETA);
+  bSave(false, open);
+}
+
+(function () {
+  var mail = ($('u-mail').textContent || '').trim(), nm = mail.split('@')[0].split(/[._-]/)[0] || 'Tim MIL';
+  nm = nm.charAt(0).toUpperCase() + nm.slice(1);
+  $('u-name').textContent = nm; $('u-ini').textContent = nm.slice(0, 2).toUpperCase();
+  var now = new Date(), h = +now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false }) % 24;
+  var sal = h < 11 ? 'pagi' : h < 15 ? 'siang' : h < 18 ? 'sore' : 'malam';
+  var tgl = now.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  $('h-greet').textContent = 'Selamat ' + sal + ', ' + nm + '!';
+  $('h-date').textContent = tgl; $('today-d').textContent = tgl;
+})();
+</script>
+</body>
+</html>

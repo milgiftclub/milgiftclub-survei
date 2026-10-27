@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+generator/survey_out/
+generator/tests/admin_page.html
+generator/tests/responses.json
+generator/tests/screenout.json
+.clasprc.json
+*.png
+!site/**/*.png

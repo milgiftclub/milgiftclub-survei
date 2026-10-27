@@ -1,0 +1,11 @@
+{
+  "name": "milgiftclub-survei-tests",
+  "private": true,
+  "description": "Tes otomatis survei & dashboard (mock Apps Script + Playwright)",
+  "scripts": {
+    "test:dashboard": "node admin_test.js",
+    "test:builder": "node builder_test.js",
+    "test:survei": "HOSTED=1 SCEN=v1:alice,v2:alice-pv,v2:bob-pvwrong node run.js"
+  },
+  "devDependencies": { "chart.js": "4.4.1", "playwright": "^1.40.0" }
+}

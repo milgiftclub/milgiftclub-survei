@@ -1,0 +1,4 @@
+# Netlify menayangkan folder site/ apa adanya (sudah dibangun oleh scripts/build.sh)
+[build]
+  publish = "site"
+  command = ""
