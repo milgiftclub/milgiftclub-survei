@@ -11,10 +11,10 @@ Platform survei **Indonesia Online Shopper Journey 2026** dan survei-survei baru
 
 ## Cara kerja deploy otomatis
 
-| Yang berubah | Yang terjadi setelah push ke `main` |
-|---|---|
-| `site/` | GitHub Actions meng-upload website ke Netlify (±1 menit), link tetap sama |
-| `apps-script/` | GitHub Actions memasang kode ke Apps Script dan meng-update deployment **yang sama** (link tidak berubah) |
+Setiap perubahan di `generator/`, `site/`, atau `apps-script/` yang masuk ke `main` (termasuk edit langsung di website GitHub) otomatis menjalankan workflow **Build & Deploy** (±2 menit):
+1. build ulang dari `generator/`;
+2. upload website ke Netlify (link tetap);
+3. pasang kode ke Apps Script survei & dashboard (deployment yang sama, link tetap).
 
 Tidak perlu lagi copy-paste kode atau klik *New version*.
 
@@ -51,8 +51,7 @@ Sekitar 1 menit kemudian, survei sudah memakai teks baru.
    - tampilan survei: `survey_src/Index.html.tpl`
    - dashboard: `survey_src/Admin.html`
    - server: `survey_src/Code.gs.tpl`
-2. Jalankan `./scripts/build.sh`.
-3. Commit dan push ke `main`. Selesai.
+2. Commit ke `main` (dari komputer, atau klik ikon pensil di GitHub lalu *Commit changes*). Build dan deploy berjalan otomatis.
 
 Tes otomatis (opsional):
 

@@ -1,0 +1,52 @@
+# SATU alur untuk semua perubahan:
+#   edit di generator/ (atau site/config.js) -> build otomatis -> website ke Netlify -> kode ke Apps Script (survei & dashboard)
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ['generator/**', 'site/**', 'apps-script/**', 'scripts/**', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+
+permissions: { contents: write }
+concurrency: { group: deploy, cancel-in-progress: false }
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NETLIFY_SITE_ID: 8e632396-776b-4e8c-86e5-a60703ae0e28   # project survei-milgiftclub
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Build (generator -> site/ & apps-script/)
+        run: ./scripts/build.sh
+      - name: Simpan hasil build ke repo
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site apps-script generator/hosted_config.js
+          git diff --cached --quiet || { git commit -m "Build otomatis [skip ci]"; git push; }
+      - name: Upload website ke Netlify
+        run: npx --yes netlify-cli@17.38.1 deploy --dir=site --prod --site="$NETLIFY_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN" --message "github ${GITHUB_SHA::7}"
+      - run: npm install -g @google/clasp@2.4.2
+      - name: Login Google
+        env: { KUNCI: '${{ secrets.NETLIFY_AUTH_TOKEN }}' }
+        run: |
+          if [ -n "$CLASPRC_JSON" ]; then printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          elif [ -f apps-script/clasprc.enc ]; then openssl enc -d -aes-256-cbc -pbkdf2 -pass env:KUNCI -in apps-script/clasprc.enc -out ~/.clasprc.json
+          else echo "::error::Belum login Google. Jalankan workflow 'Login Google (setup Apps Script)'."; exit 1; fi
+      - name: Deploy Apps Script survei
+        working-directory: apps-script/survei
+        run: |
+          clasp push --force
+          clasp deploy --deploymentId "$(jq -r .survei ../deployments.json)" --description "auto ${GITHUB_SHA::7}"
+      - name: Deploy Apps Script dashboard
+        working-directory: apps-script/dashboard
+        run: |
+          clasp push --force
+          clasp deploy --deploymentId "$(jq -r .dashboard ../deployments.json)" --description "auto ${GITHUB_SHA::7}"
