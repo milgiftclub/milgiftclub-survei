@@ -55,6 +55,8 @@ async function respondent(browser, i, scenario) {
     if (id === 'O1') await clickText(scenario === 'refuse' ? 'Tidak bersedia' : 'Ya, saya setuju');
     else if (id === 'S2') await clickText(scenario === 'v2pria' ? 'Pria' : (V2 || who ? 'Wanita' : pick(['Pria', 'Wanita'])));
     else if (id === 'SC1') { if (scenario === 'v2none') await clickText('Tidak membeli'); else if (scenario === 'v2single') await clickText('Tas & aksesori'); else { await clickText('Fashion wanita'); await clickText('Fashion muslim'); } }
+    else if (id === 'S0') await page.selectOption('select', scenario === 'minor' ? '2010' : pick(['2000', '1995', '1990', '1985', '1975', '1965']));
+    else if (id === 'S0B') await clickText(scenario === 'minor18' ? 'Belum' : 'Ya, sudah');
     else if (id === 'S1') await clickText(scenario === 'minor' ? 'Di bawah 18' : pick(['18-24', '25-34', '35-44', '45-54', '55 tahun']));
     else if (id === 'S3') await clickText(scenario === 'industry' ? 'Perusahaan riset pasar' : 'Tidak satu pun');
     else if (id === 'S4') { if (scenario === 'noplat') await clickText('Lazada'); else if (scenario === 'single') await clickText('Shopee'); else { await clickText('Shopee'); if (Math.random() < .6) await clickText('TikTok Shop'); if (Math.random() < .3) { await clickText('Lainnya'); await page.fill('.other input', 'Zalora'); } } }

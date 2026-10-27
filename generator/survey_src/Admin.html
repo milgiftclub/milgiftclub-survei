@@ -1623,7 +1623,7 @@ function pplLoad(first) {
 function pplDetail(key) {
   $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
   run('adminPerson', key).then(function (d) {
-    var pr = d.profile, lab = { S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A4: 'Kondisi', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan' };
+    var pr = d.profile, lab = { S0: 'Tahun lahir', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan', A17: 'Peliharaan' };
     $('m-body').innerHTML = '<div class="top" style="margin-bottom:6px"><div><div class="eyebrow">Database Responden</div><h2 style="font-size:24px">' + esc(d.ig || d.wa) + '</h2><div class="muted">' + esc(d.wa) + ' · ikut ' + d.surveys.length + ' survei · pertama ' + esc(d.first) + ' · terakhir ' + esc(d.last) + (d.contact ? ' · ✅ bersedia dihubungi' : '') + '</div></div><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
       '<div class="stats" style="margin:10px 0 6px">' + Object.keys(lab).filter(function (k) { return pr[k]; }).map(function (k) { return '<div>' + lab[k] + '<b>' + esc(pr[k]) + '</b></div>'; }).join('') + '</div>' +
       d.surveys.map(function (s, i) {

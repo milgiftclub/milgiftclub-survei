@@ -120,14 +120,16 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
 
 (function () {
   var BY = {}; SCHEMA.forEach(function (q) { BY[q.id] = q; });
-  var PRE = ['O1','Z2','PV','S1','S2','S3','S4','SC1','S5','A1','A4','A5','A6','A7','A8','B2','B3','B4','C1','C2'];
+  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A4M','A4N','A4K','A4','A5','A6','A7','A8','B2','B3','B4','C1','C2'];
   var LOOP = SCHEMA.filter(function (q) { return q.loop; }).map(function (q) { return q.id; });
-  var POST = ['D0','D1','D2','D4','D3','D5','Z1','Z3'];
+  var POST = ['D0','D1','D2','D4','D3','D5','A9','A10','A11','A12','A13','A14','A15','A16','A17','Z1','Z3'];
+  var CY = new Date().getFullYear();
   var MAIN_PLAT = ['Shopee', 'TikTok Shop', 'Tokopedia'];
   var MKT = ['Shopee', 'TikTok Shop', 'Tokopedia', 'Lazada', 'Blibli'];
   var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
   var lastKey = null, keepY = 0;
   var ST = load() || { a: {}, cats: null, cur: null, sid: uid(), start: null, order: {} };
+  if (ST.prSum && BY.PR) BY.PR.hint = ST.prSum;
   var app = document.getElementById('app'), btnN = document.getElementById('next'), btnB = document.getElementById('back');
   var api = window.google && google.script && google.script.run;
 
@@ -179,6 +181,12 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     if (k == null && ST.pre && ST.pre.indexOf(id) >= 0) return false; // profil sudah ada dari survei sebelumnya
     switch (id) {
       case 'PV': return !!ST.known;
+      case 'PR': return !!ST.stale;
+      case 'S1': case 'A4': return false; // diturunkan otomatis (tahun lahir / status & anak)
+      case 'S0B': return get('S0') === String(CY - 18);
+      case 'A4N': return shown('A4M') && !!get('A4M') && get('A4M') !== o('A4M')[0];
+      case 'A4K': return shown('A4N') && !!get('A4N') && get('A4N') !== o('A4N')[0];
+      case 'A15': return get('S2') === 'Wanita';
       case 'B2': return plats().length > 1;
       case 'C1': return BY.C1.pipe === 'SC1' ? sc1Cats().length > 1 : true;
       case 'B4': return colsOf(BY.B4).length > 2;
@@ -197,6 +205,14 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       case 'D4': var d2 = o('D2').indexOf(get('D2')); return d2 === 0 || d2 === 1;
     }
     return true;
+  }
+  function shown(id) { return (ST.pre && ST.pre.indexOf(id) >= 0) || visible(id); }
+  function ageBand() {
+    var y = get('S0'); if (!y) return;
+    var age = /sebelum/.test(y) ? 99 : CY - parseInt(y, 10);
+    if (age === 18) { if (!get('S0B')) return; age = get('S0B') === opts('S0B')[0] ? 18 : 17; } else delete ST.a.S0B;
+    var o = opts('S1');
+    ST.a.S1 = age < 18 ? o[0] : age <= 24 ? o[1] : age <= 34 ? o[2] : age <= 44 ? o[3] : age <= 54 ? o[4] : o[5];
   }
   function seq() {
     var s = [];
@@ -465,6 +481,9 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     if (q.id === 'O1' && !ST.start) ST.start = Date.now();
     var so = step.k == null ? screenout(q.id, ST.a[q.id]) : null;
     if (so) return endScreenout(so);
+    if (q.id === 'S0' || q.id === 'S0B') { ageBand(); save(); if (ST.a.S1 === opts('S1')[0]) return endScreenout('Usia di bawah 18 tahun'); }
+    if (q.id === 'PR' && ST.a.PR === opts('PR')[1]) { (ST.pre || []).forEach(function (x) { delete ST.a[x]; }); delete ST.pre; ST.profOk = false; save(); }
+    if (q.id === 'PR' && ST.a.PR === opts('PR')[0]) { ST.profOk = true; save(); }
     if (q.id === 'S4') {
       var p = plats();
       if (p.length === 1) ST.a.B2 = p[0]; else if (p.indexOf(ST.a.B2) < 0) delete ST.a.B2;
@@ -501,6 +520,8 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
         if (res && res.ok) {
           ST.pre = Object.keys(res.profile);
           ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
+          ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
+          if (ST.a.S0) ageBand();
           save();
           for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return endScreenout(so2); }
           return go(1);
@@ -518,6 +539,9 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     }
     if (q.id === 'Z3') return submit();
     go(1);
+  }
+  function profSummary(p) {
+    return [p.S0 ? 'Lahir ' + p.S0 : p.S1, p.S2, p.A1, p.A4M || p.A4, p.A5, p.A7 ? 'Pengeluaran ' + p.A7 : ''].filter(Boolean).join(' · ');
   }
   function netErr() { busy(false); btnN.textContent = 'Lanjut'; document.getElementById('err').textContent = 'Koneksi bermasalah. Silakan coba lagi.'; }
   function setCats(nc) {
@@ -539,7 +563,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
   function payload(extra) {
     var fp = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, (Intl.DateTimeFormat().resolvedOptions().timeZone || '')].join('|');
     var hsh = 0; for (var i = 0; i < fp.length; i++) { hsh = ((hsh << 5) - hsh + fp.charCodeAt(i)) | 0; }
-    var o = { sid: ST.sid, ver: VERSION, variant: VARIANT, prefilled: !!(ST.pre && ST.pre.length), answers: ST.a, cats: ST.cats || [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: CFG.src, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
+    var o = { sid: ST.sid, ver: VERSION, variant: VARIANT, prefilled: !!(ST.pre && ST.pre.length), profOk: !!ST.profOk, answers: ST.a, cats: ST.cats || [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: CFG.src, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
     for (var x in extra) o[x] = extra[x];
     return o;
   }

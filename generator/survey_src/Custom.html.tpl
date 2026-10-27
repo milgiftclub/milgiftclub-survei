@@ -120,13 +120,23 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       BY[t.id] = t; return t.id;
     });
     var PRE = [std('O1')];
-    if (G) { PRE.push(std('Z2')); if (PROF) PRE.push(std('PV')); }
-    if (PROF || G) PRE.push(std('S1'));
-    if (PROF) { PRE.push(std('S2')); if (S.screenIndustri !== false) PRE.push(std('S3')); ['A1', 'A4', 'A5', 'A6', 'A7'].forEach(function (x) { PRE.push(std(x)); }); }
+    var CY = new Date().getFullYear();
+    if (G) { PRE.push(std('Z2')); if (PROF) { PRE.push(std('PV')); PRE.push(std('PR')); } }
+    if (PROF || G) { PRE.push(std('S0')); PRE.push(std('S0B')); BY.S0B.showIf = { q: 'S0', op: 'is', val: String(CY - 18) }; }
+    if (PROF) {
+      PRE.push(std('S2')); if (S.screenIndustri !== false) PRE.push(std('S3'));
+      ['A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8'].forEach(function (x) { PRE.push(std(x)); });
+      BY.A4N.showIf = { q: 'A4M', op: 'isnot', val: BY.A4M.options[0].t };
+      BY.A4K.showIf = { q: 'A4N', op: 'isnot', val: BY.A4N.options[0].t };
+    }
     else if (S.gender && S.gender !== 'all') PRE.push(std('S2'));
+    // profil gaya hidup: ditanyakan di akhir (sebelum data kontak), dilewati bila sudah ada di database
+    var LIFE = PROF ? ['A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'].map(std) : [];
+    if (BY.A15) BY.A15.showIf = { q: 'S2', op: 'is', val: 'Wanita' };
+    var S1O = STD.S1.options.map(function (o) { return o.t; });
     var MAIN = custom.slice();
     if (S.attention !== false && MAIN.length) { std('QC1'); MAIN.splice(Math.ceil(MAIN.length / 2), 0, 'QC1'); }
-    var POST = G ? [std('Z1'), std('Z3')] : [];
+    var POST = LIFE.concat(G ? [std('Z1'), std('Z3')] : []);
     var intro = (S.intro ? S.intro.trim().replace(/([^.!?])$/, '$1.') + ' ' : 'Terima kasih telah berpartisipasi dalam survei ' + D.name + '. ') +
       (S.estimasi ? 'Survei ini membutuhkan waktu ±' + S.estimasi + ' menit. ' : '') + 'Jawaban Anda bersifat rahasia dan hanya digunakan untuk keperluan riset.' +
       (G ? ' Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.' : '');
@@ -138,6 +148,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var KEY = 'milc_' + ID + (PREVIEW ? '_p' : '');
     var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
     var ST = load() || { a: {}, cur: null, sid: uid(), start: null, order: {} };
+    if (ST.prSum && BY.PR) BY.PR.hint = ST.prSum;
     var lastKey = null;
     function uid() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
     function save() { try { sessionStorage.setItem(KEY, JSON.stringify(ST)); } catch (e) {} }
@@ -162,9 +173,10 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     function visible(id) {
       if (ST.pre && ST.pre.indexOf(id) >= 0) return false;
       if (id === 'PV') return !!ST.known;
+      if (id === 'PR') return !!ST.stale;
       var q = BY[id], c = q && q.showIf;
-      if (c && c.q && BY[c.q]) {
-        if (!visible(c.q)) return false;
+      if (c && c.q && (BY[c.q] || ST.a[c.q] != null)) {
+        if (BY[c.q] && !(ST.pre && ST.pre.indexOf(c.q) >= 0) && !visible(c.q)) return false;
         var v = ST.a[c.q], has = Array.isArray(v) ? v.indexOf(c.val) >= 0 : String(v == null ? '' : v) === String(c.val);
         if (c.op === 'isnot') return v != null && v !== '' && !has;
         return has;
@@ -175,7 +187,6 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     function screenout(id, v) {
       var q = BY[id], o = q.options ? opts(id) : [];
       if (id === 'O1' && v === o[1]) return 'Menolak persetujuan';
-      if (id === 'S1' && v === o[0]) return 'Usia di bawah 18 tahun';
       if (id === 'S2' && S.gender && S.gender !== 'all' && v !== S.gender) return 'Survei khusus responden ' + S.gender.toLowerCase();
       if (id === 'S3' && arr(v).some(function (x) { return o.slice(0, 3).indexOf(x) >= 0; })) return 'Bekerja di industri terkait';
       if (!q.std && q.options) {
@@ -355,6 +366,9 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       var e = validate(q); errBox(e); if (e) return;
       if (id === 'O1' && !ST.start) ST.start = Date.now();
       var so = screenout(id, ST.a[id]); if (so) return endScreenout(so);
+      if (id === 'S0' || id === 'S0B') { ageBand(); save(); if (ST.a.S1 === S1O[0]) return endScreenout('Usia di bawah 18 tahun'); }
+      if (id === 'PR' && ST.a.PR === opts('PR')[1]) { (ST.pre || []).forEach(function (x) { delete ST.a[x]; }); delete ST.pre; ST.profOk = false; save(); }
+      if (id === 'PR' && ST.a.PR === opts('PR')[0]) { ST.profOk = true; save(); }
       if (id === 'Z2' && !PREVIEW) {
         busy(true, 'Memverifikasi...'); ST.known = false; delete ST.pre;
         waitMsg('Tunggu sesaat, kami sedang memverifikasi data kamu di database kami.');
@@ -374,7 +388,10 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
         return api('verifyProfile', [ST.a.Z2, pv]).then(function (res) {
           waitMsg(''); busy(false);
           if (res && res.ok) {
-            ST.pre = Object.keys(res.profile); ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; }); save();
+            ST.pre = Object.keys(res.profile); ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
+            ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
+            if (ST.a.S0) ageBand(); if (ST.a.S1 === S1O[0]) return endScreenout('Usia di bawah 18 tahun');
+            save();
             for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return endScreenout(so2); }
             return go(1);
           }
@@ -386,12 +403,21 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       if (c.i === c.s.length - 1) return submit();
       go(1);
     }
+    function ageBand() {
+      var y = ST.a.S0; if (!y) return;
+      var age = /sebelum/.test(y) ? 99 : CY - parseInt(y, 10);
+      if (age === 18) { if (!ST.a.S0B) return; age = ST.a.S0B === opts('S0B')[0] ? 18 : 17; } else delete ST.a.S0B;
+      ST.a.S1 = age < 18 ? S1O[0] : age <= 24 ? S1O[1] : age <= 34 ? S1O[2] : age <= 44 ? S1O[3] : age <= 54 ? S1O[4] : S1O[5];
+    }
+    function profSummary(p) {
+      return [p.S0 ? 'Lahir ' + p.S0 : p.S1, p.S2, p.A1, p.A4M || p.A4, p.A5, p.A7 ? 'Pengeluaran ' + p.A7 : ''].filter(Boolean).join(' · ');
+    }
     function payload(extra) {
       var fp = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, (Intl.DateTimeFormat().resolvedOptions().timeZone || '')].join('|');
       var hsh = 0; for (var i = 0; i < fp.length; i++) { hsh = ((hsh << 5) - hsh + fp.charCodeAt(i)) | 0; }
       var vis = {}; seq().forEach(function (x) { vis[x] = 1; });
       var a = {}; Object.keys(ST.a).forEach(function (k) { var base = k.replace(/_lainnya$/, ''); if (!BY[base] || vis[base] || (ST.pre && ST.pre.indexOf(base) >= 0)) a[k] = ST.a[k]; });
-      var o = { sid: ST.sid, ver: VERSION, variant: ID, prefilled: !!(ST.pre && ST.pre.length), answers: a, cats: [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: SRC, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
+      var o = { sid: ST.sid, ver: VERSION, variant: ID, prefilled: !!(ST.pre && ST.pre.length), profOk: !!ST.profOk, answers: a, cats: [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: SRC, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
       for (var x in extra) o[x] = extra[x];
       return o;
     }

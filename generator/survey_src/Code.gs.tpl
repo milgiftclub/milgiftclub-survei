@@ -54,17 +54,23 @@ var PANEL_COLS = [
   ['belanja_online_per_bulan', 'A8'], ['frekuensi_belanja_online', 'S5'], ['platform_dipakai_1bln', 'S4'],
   ['platform_utama', 'B2'], ['kategori_terakhir_dibeli', 'C1'], ['frekuensi_beli_kategori_3bln', 'C2'],
   ['metode_bayar_terakhir', 'L1_PU3'], ['frekuensi_live_shopping', 'D1'], ['penggunaan_paylater', 'D3'], ['momen_beli_live_shopping', 'D4'], ['prioritas_pilih_fashion', 'L1_FA1'], ['sikap_harga_fashion', 'L1_FA2'], ['format_iklan_sosmed_dilihat', 'D5'], ['produk_terakhir_dibeli', 'L1_PT1'], ['harga_produk_terakhir', 'L1_PT2'],
-  ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5']
+  ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5'],
+  ['tahun_lahir', 'S0'], ['status_pernikahan', 'A4M'], ['jumlah_anak', 'A4N'], ['usia_anak', 'A4K'], ['peran_belanja_rumah_tangga', 'A9'],
+  ['media_sosial_harian', 'A10'], ['durasi_media_sosial', 'A11'], ['metode_pembayaran', 'A12'], ['jenis_hp', 'A13'], ['minat_hobi', 'A14'],
+  ['hijab', 'A15'], ['kendaraan', 'A16'], ['hewan_peliharaan', 'A17'], ['profil_diperbarui', 'profil_diperbarui']
 ];
 var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
 var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
-var PROFILE_KEYS = ['S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A4', 'A5', 'A6', 'A7'];
+var PROFILE_KEYS = ['S0', 'S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8',
+  'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'];
+var PROFILE_MULTI = ['S3', 'A4K', 'A10', 'A12', 'A14', 'A16', 'A17'];   // jawaban pilihan ganda (disimpan "a | b")
+var PROFILE_REFRESH_DAYS = 183;   // profil > 6 bulan -> responden diminta konfirmasi / isi ulang
 function respTab_(variant) {
   if (variant === 'v2') return SH.RESP2;
   var c = variant && variant !== 'v1' ? customById_(variant) : null;
   return c ? c.tab : SH.RESP1;
 }
-var META = ['timestamp', 'survei', 'varian', 'versi_kuesioner', 'session_id', 'status', 'durasi_detik', 'kategori_1', 'kategori_2', 'attention_check', 'wa_normal', 'ig_normal', 'profil_dari_survei_sebelumnya', 'sumber', 'device_fp', 'user_agent'];
+var META = ['timestamp', 'survei', 'varian', 'versi_kuesioner', 'session_id', 'status', 'durasi_detik', 'kategori_1', 'kategori_2', 'attention_check', 'wa_normal', 'ig_normal', 'profil_dari_survei_sebelumnya', 'profil_diperbarui', 'sumber', 'device_fp', 'user_agent'];
 
 // ====== PENGATURAN (tab "Pengaturan", diubah dari Dashboard) ======
 var SET_DEFAULTS = [
@@ -358,11 +364,12 @@ function submitResponse(p) {
       : !attention ? 'Tidak valid - attention check'
       : dup ? 'Duplikat' : 'Valid';
 
+    if (a.A4M) a.A4 = deriveA4_(a);
     var flat = flatten_(a);
     var row = {
       timestamp: new Date(), survei: sname, varian: varianLabel_(p.variant), versi_kuesioner: p.ver || '', session_id: p.sid, status: status, durasi_detik: p.durasi || '',
       kategori_1: (p.cats || [])[0] || '', kategori_2: (p.cats || [])[1] || '',
-      attention_check: attention ? 'Lulus' : 'Gagal', wa_normal: wa, ig_normal: ig, profil_dari_survei_sebelumnya: p.prefilled ? 'Ya' : '',
+      attention_check: attention ? 'Lulus' : 'Gagal', wa_normal: wa, ig_normal: ig, profil_dari_survei_sebelumnya: p.prefilled ? 'Ya' : '', profil_diperbarui: (!p.prefilled || p.profOk) && a.S1 ? new Date() : '',
       sumber: p.src || '', device_fp: p.fp || '', user_agent: (p.ua || '').slice(0, 300)
     };
     Object.keys(flat).forEach(function (k) { row[k] = flat[k]; });
@@ -378,6 +385,7 @@ function submitResponse(p) {
 
     if (status === 'Valid') bumpDone_(p.cats || [], 1);
     if (status === 'Tidak valid - attention check') addViolation_(ig, wa, 'Gagal pertanyaan cek (attention check)', p.sid);
+    if (row.profil_diperbarui) a.profil_diperbarui = row.profil_diperbarui;
     if (a.Z1 === 'Ya, bersedia' && status === 'Valid' && wa) upsertPanel_(a, wa, ig, status, p.src, sname);
     if (cs && status === 'Valid') autoCloseCustom_(cs, s, col);
     return { ok: true };
@@ -506,6 +514,21 @@ function lookupIg(ig, variant) {
 }
 function checkIg(ig, variant) { var r = lookupIg(ig, variant); return { exists: r.state === 'sudah_isi' }; }
 
+/** Life stage lama (A4) diturunkan dari status pernikahan, jumlah & usia anak, dan pekerjaan. */
+function deriveA4_(a) {
+  if (!a.A4M) return a.A4 || '';
+  var kids = Array.isArray(a.A4K) ? a.A4K : String(a.A4K || '').split(' | ').filter(String);
+  if (/^Pelajar/.test(a.A5 || '')) return 'Pelajar / mahasiswa';
+  if (a.A4M === 'Belum menikah') return 'Bekerja, belum menikah';
+  if (!a.A4N || /^Belum/.test(a.A4N)) return 'Menikah, belum memiliki anak';
+  if (kids.some(function (k) { return /^(Di bawah 2|2-5|6-12)/.test(k); })) return 'Menikah, memiliki anak usia di bawah 12 tahun';
+  return 'Menikah, memiliki anak usia 12 tahun ke atas';
+}
+function profileRows_(rows, ig) {
+  return rows.filter(function (r) {
+    return String(r.ig_normal) === ig && r.S1 && r.wa_normal && !/^(Tidak valid|Diblokir)/.test(String(r.status));
+  }).sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+}
 function profileRow_(rows, ig) {
   var best = null;
   rows.forEach(function (r) {
@@ -520,14 +543,20 @@ function profileRow_(rows, ig) {
 function verifyProfile(ig, last4) {
   var n = normIg_(ig), d = String(last4 || '').replace(/\D/g, '');
   if (!n || d.length !== 4) return { ok: false };
-  var r = profileRow_(readAll_(), n);
+  var list = profileRows_(readAll_(), n), r = list[list.length - 1];
   if (!r || String(r.wa_normal).slice(-4) !== d) return { ok: false };
-  var prof = {};
-  PROFILE_KEYS.forEach(function (k) {
-    if (r[k] === '' || r[k] == null) return;
-    prof[k] = k === 'S3' ? String(r[k]).split(' | ') : String(r[k]);
+  // gabungkan: tiap kolom profil diambil dari jawaban terbaru yang terisi
+  var prof = {}, upd = 0;
+  list.forEach(function (x) {
+    PROFILE_KEYS.forEach(function (k) {
+      if (x[k] === '' || x[k] == null) return;
+      prof[k] = PROFILE_MULTI.indexOf(k) >= 0 ? String(x[k]).split(' | ') : String(x[k]);
+    });
+    var t = x.profil_diperbarui ? new Date(x.profil_diperbarui) : x.profil_dari_survei_sebelumnya !== 'Ya' ? new Date(x.timestamp) : null;
+    if (t && !isNaN(t) && t.getTime() > upd) upd = t.getTime();
   });
-  return { ok: true, profile: prof };
+  var stale = !upd || (Date.now() - upd) > PROFILE_REFRESH_DAYS * 864e5;
+  return { ok: true, profile: prof, updated: upd ? fmt_(new Date(upd)) : '', stale: stale };
 }
 
 // ---- Daftar Blokir ----
@@ -1386,7 +1415,7 @@ function adminReportCore_(v, opt) {
 // ====== DATABASE RESPONDEN (1 orang = 1 baris, gabungan semua survei) ======
 // Kunci orang: nomor WA (bila ada), selain itu username IG.
 // =====================================================================
-var PEOPLE_PROFILE = ['S1', 'S2', 'A1', 'provinsi', 'A4', 'A5', 'A6', 'A7'];
+var PEOPLE_PROFILE = ['S0', 'S1', 'S2', 'A1', 'provinsi', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'];
 function personKey_(r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); return w ? 'wa:' + w : g ? 'ig:' + g : ''; }
 function peopleIndex_() {
   var rows = readAll_(), byKey = {}, igToKey = {}, names = {};
