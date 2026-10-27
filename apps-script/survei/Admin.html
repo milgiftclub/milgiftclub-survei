@@ -366,6 +366,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
       <select id="pp-g" onchange="pplLoad()"><option value="">Semua gender</option></select>
       <select id="pp-a" onchange="pplLoad()"><option value="">Semua usia</option></select>
       <select id="pp-p" onchange="pplLoad()"><option value="">Semua provinsi</option></select>
+      <select id="pp-ses" onchange="pplLoad()"><option value="">Semua SES</option></select>
       <label class="flag"><input type="checkbox" id="pp-c" onchange="pplLoad()"> Bersedia dihubungi</label>
       <label class="flag"><input type="checkbox" id="pp-v" onchange="pplLoad()"> Punya jawaban valid</label>
     </div>
@@ -1614,7 +1615,7 @@ var PPL = null, PPLCOLS = null, pplT = null;
 function pplLoadSoon() { clearTimeout(pplT); pplT = setTimeout(pplLoad, 350); }
 function pplFilter() {
   var ac = $('pp-ac').value, col = ac ? JSON.parse(ac) : null;
-  return { q: $('pp-q').value, minSurveys: $('pp-min').value, survey: $('pp-sv').value, gender: $('pp-g').value, age: $('pp-a').value, prov: $('pp-p').value,
+  return { q: $('pp-q').value, minSurveys: $('pp-min').value, survey: $('pp-sv').value, gender: $('pp-g').value, age: $('pp-a').value, prov: $('pp-p').value, ses: $('pp-ses').value,
     contact: $('pp-c').checked, valid: $('pp-v').checked, aCol: col, aVal: col ? $('pp-av').value : '' };
 }
 function pplAnsVals() {
@@ -1632,7 +1633,7 @@ function pplLoad(first) {
       PPLCOLS = d.answerCols;
       $('pp-ac').innerHTML = '<option value="">— pertanyaan dari survei mana pun —</option>' + d.answerCols.map(function (c) { return '<option value="' + esc(JSON.stringify({ v: c.v, col: c.col })) + '">' + esc(c.survey + ' · ' + c.col + ' · ' + c.text.slice(0, 70)) + '</option>'; }).join('');
       var fill = function (id, arr, lab) { var e = $(id), cur = e.value; e.innerHTML = '<option value="">' + lab + '</option>' + arr.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join(''); e.value = cur; };
-      fill('pp-g', d.options.S2, 'Semua gender'); fill('pp-a', d.options.S1, 'Semua usia'); fill('pp-p', d.options.provinsi, 'Semua provinsi');
+      fill('pp-g', d.options.S2, 'Semua gender'); fill('pp-a', d.options.S1, 'Semua usia'); fill('pp-p', d.options.provinsi, 'Semua provinsi'); fill('pp-ses', d.options.ses || [], 'Semua SES');
       var sv = $('pp-sv'), cur = sv.value; sv.innerHTML = '<option value="">Semua survei</option>' + d.surveys.map(function (s) { return '<option value="' + s.v + '">Ikut: ' + esc(s.name) + '</option>'; }).join(''); sv.value = cur;
     }
     $('pp-kpi').innerHTML = '<div><span>Orang unik</span><b>' + fmt(d.total) + '</b><span>dari semua survei</span></div>' +
@@ -1655,7 +1656,7 @@ function pplLoad(first) {
 function pplDetail(key) {
   $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
   run('adminPerson', key).then(function (d) {
-    var pr = d.profile, lab = { S0: 'Tahun lahir', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan' };
+    var pr = d.profile, lab = { S0: 'Tahun lahir', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A18: 'Tempat tinggal', A19: 'Status hunian', ses: 'SES', kelas_ekonomi: 'Kelas ekonomi', A7N: 'Anggota RT', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan' };
     $('m-body').innerHTML = '<div class="top" style="margin-bottom:6px"><div><div class="eyebrow">Database Responden</div><h2 style="font-size:24px">' + esc(d.ig || d.wa) + '</h2><div class="muted">' + esc(d.wa) + ' · ikut ' + d.surveys.length + ' survei · pertama ' + esc(d.first) + ' · terakhir ' + esc(d.last) + (d.contact ? ' · ✅ bersedia dihubungi' : '') + '</div></div><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
       '<div class="stats" style="margin:10px 0 6px">' + Object.keys(lab).filter(function (k) { return pr[k]; }).map(function (k) { return '<div>' + lab[k] + '<b>' + esc(pr[k]) + '</b></div>'; }).join('') + '</div>' +
       d.surveys.map(function (s, i) {

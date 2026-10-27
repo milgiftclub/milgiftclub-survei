@@ -29,3 +29,13 @@ if (ctx.CacheService) try { ctx.CacheService.getScriptCache().removeAll && ctx.C
 r = ctx.verifyProfile('@rina', '8888');
 assert.strictEqual(r.stale, true, 'profil > 6 bulan -> stale');
 console.log('OK profile_test', rows.length, r.updated);
+// SES dari pengeluaran per kapita
+const S = (A7, A7N) => ctx.deriveSes_({ A7, A7N });
+let x = S('Rp5.000.001 - Rp7.500.000', '4 orang'); assert.strictEqual(x.kelas, 'Menuju kelas menengah'); assert.strictEqual(x.perKapita, 1562500);
+x = S('Rp10.000.001 - Rp15.000.000', '2 orang'); assert.strictEqual(x.kelas, 'Kelas menengah'); assert(/^B/.test(x.ses), x.ses);
+x = S('Di atas Rp40.000.000', '1 orang (hanya saya)'); assert.strictEqual(x.kelas, 'Kelas atas'); assert(/^A/.test(x.ses));
+x = S('Di bawah Rp2.000.000', '5 orang'); assert.strictEqual(x.kelas, 'Miskin'); assert.strictEqual(S('Rp3.000.001 - Rp5.000.000', '5 orang').kelas, 'Rentan miskin'); assert.strictEqual(S('', '2 orang'), null);
+sub('s3', 'v1', { Z2: '@sesa', Z3: '081233334444', S1: '25-34 tahun', S2: 'Pria', A18: 'Kos / kamar sewa', A7N: '1 orang (hanya saya)', A7: 'Rp3.000.001 - Rp5.000.000' });
+const row = ctx.readAll_().find(r => r.ig_normal === 'sesa');
+assert.strictEqual(row.A19, 'Sewa / kontrak (bulanan atau tahunan)'); assert.strictEqual(row.kelas_ekonomi, 'Kelas menengah'); assert(/^C1/.test(row.ses), row.ses);
+console.log('OK ses', row.pengeluaran_per_kapita, row.ses);

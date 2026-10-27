@@ -57,11 +57,11 @@ var PANEL_COLS = [
   ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5'],
   ['tahun_lahir', 'S0'], ['status_pernikahan', 'A4M'], ['jumlah_anak', 'A4N'], ['usia_anak', 'A4K'], ['peran_belanja_rumah_tangga', 'A9'],
   ['media_sosial_harian', 'A10'], ['durasi_media_sosial', 'A11'], ['metode_pembayaran', 'A12'], ['jenis_hp', 'A13'], ['minat_hobi', 'A14'],
-  ['hijab', 'A15'], ['kendaraan', 'A16'], ['profil_diperbarui', 'profil_diperbarui'], ['pengalaman_live_shopping', 'D1']
+  ['hijab', 'A15'], ['kendaraan', 'A16'], ['profil_diperbarui', 'profil_diperbarui'], ['jenis_tempat_tinggal', 'A18'], ['status_tempat_tinggal', 'A19'], ['jumlah_anggota_rumah_tangga', 'A7N'], ['pengeluaran_per_kapita', 'pengeluaran_per_kapita'], ['kelas_ekonomi', 'kelas_ekonomi'], ['ses', 'ses'], ['pengalaman_live_shopping', 'D1']
 ];
 var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
 var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
-var PROFILE_KEYS = ['S0', 'S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8',
+var PROFILE_KEYS = ['S0', 'S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'A8',
   'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
 var PROFILE_MULTI = ['S3', 'A4K', 'A10', 'A12', 'A14', 'A16'];   // jawaban pilihan ganda (disimpan "a | b")
 var PROFILE_REFRESH_DAYS = 183;   // profil > 6 bulan -> responden diminta konfirmasi / isi ulang
@@ -98,7 +98,8 @@ var SET_DEFAULTS = [
   ['TUTUP_V1', '2026-12-31T23:59', 'Survei Semua Kategori tutup otomatis pada tanggal & jam ini (WIB). Kosong = tanpa batas waktu'],
   ['TUTUP_V2', '2026-12-31T23:59', 'Survei Fashion Wanita, Tas & Aksesori, Hijab tutup otomatis pada tanggal & jam ini (WIB)'],
   ['PERIODE_KE', 1, 'Periode giveaway survei utama (angka)'],
-  ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama']
+  ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama'],
+  ['GARIS_KEMISKINAN', 669235, 'Garis kemiskinan nasional BPS (Rp/kapita/bulan) untuk menghitung kelas ekonomi & SES. Maret 2026 = 669235; perbarui tiap rilis BPS']
 ];
 
 // ---- tanggal tutup & periode giveaway ----
@@ -426,6 +427,8 @@ function submitResponse(p) {
       : dup ? 'Duplikat' : 'Valid';
 
     if (a.A4M) a.A4 = deriveA4_(a);
+    if (a.A18 === 'Kos / kamar sewa' && !a.A19) a.A19 = 'Sewa / kontrak (bulanan atau tahunan)';
+    var ses = deriveSes_(a); if (ses) { a.pengeluaran_per_kapita = ses.perKapita; a.kelas_ekonomi = ses.kelas; a.ses = ses.ses; }
     var flat = flatten_(a);
     var row = {
       timestamp: new Date(), survei: sname, varian: varianLabel_(p.variant), versi_kuesioner: p.ver || '', session_id: p.sid, status: status, durasi_detik: p.durasi || '',
@@ -584,6 +587,21 @@ function deriveA4_(a) {
   if (!a.A4N || /^Belum/.test(a.A4N)) return 'Menikah, belum memiliki anak';
   if (kids.some(function (k) { return /^(Di bawah 2|2-5|6-12)/.test(k); })) return 'Menikah, memiliki anak usia di bawah 12 tahun';
   return 'Menikah, memiliki anak usia 12 tahun ke atas';
+}
+// ---- Kelas ekonomi & SES dari pengeluaran rumah tangga per kapita ----
+// Kelas ekonomi mengikuti BPS / Bank Dunia (Aspiring Indonesia, 2019): kelipatan garis kemiskinan (GK) per kapita.
+//   Miskin < 1x GK | Rentan miskin 1-1,5x | Menuju kelas menengah 1,5-3,5x | Kelas menengah 3,5-17x | Kelas atas > 17x
+// SES (A-E) = konvensi MIL: kelas menengah dibelah di 7,5x GK menjadi B (menengah atas) & C1 (menengah).
+var SES_KELAS = ['Miskin', 'Rentan miskin', 'Menuju kelas menengah', 'Kelas menengah', 'Kelas atas'];
+var SES_HURUF = ['E (miskin)', 'D (rentan miskin)', 'C2 (menuju kelas menengah)', 'C1 (kelas menengah)', 'B (kelas menengah atas)', 'A (kelas atas)'];
+var A7_TENGAH = [1500000, 2500000, 4000000, 6250000, 8750000, 12500000, 20000000, 32500000, 50000000];   // titik tengah tiap rentang A7
+function deriveSes_(a) {
+  var o = (QOPTS.A7 || []), i = o.indexOf(a.A7), n = parseInt(String(a.A7N || ''), 10);
+  if (i < 0 || !n) return null;
+  var pk = A7_TENGAH[i] / n, gk = num_('GARIS_KEMISKINAN') || 669235, r = pk / gk;
+  var k = r < 1 ? 0 : r < 1.5 ? 1 : r < 3.5 ? 2 : r < 17 ? 3 : 4;
+  var h = k === 4 ? 5 : k === 3 ? (r >= 7.5 ? 4 : 3) : k;
+  return { perKapita: Math.round(pk), kelas: SES_KELAS[k], ses: SES_HURUF[h] };
 }
 function profileRows_(rows, ig) {
   return rows.filter(function (r) {
@@ -1401,7 +1419,7 @@ function imageData_(ids) {
 // =====================================================================
 // ====== LAPORAN (grafik per pertanyaan) ======
 // =====================================================================
-var REPORT_SKIP = ['O1', 'Z2', 'Z3', 'PV', 'QC1', 'Z1', 'tipe_wilayah', 'jabodetabek', 'kategori_ditugaskan', 'A1'];
+var REPORT_SKIP = ['O1', 'Z2', 'Z3', 'PV', 'QC1', 'Z1', 'tipe_wilayah', 'jabodetabek', 'kategori_ditugaskan', 'A1', 'pengeluaran_per_kapita', 'profil_diperbarui', 'PR', 'S0B'];
 function reportMeta_(v) {
   var meta = {}, c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
   DICTIONARY.forEach(function (d) { meta[d[0]] = { text: d[3], topic: d[2], opts: QOPTS[d[0]] || null }; });
@@ -1411,6 +1429,8 @@ function reportMeta_(v) {
     meta[q.id] = { text: q.text, topic: c.name, opts: o.length ? o : null, type: q.type };
   });
   meta.provinsi = { text: 'Provinsi (otomatis dari kota)', topic: 'Profil' };
+  meta.kelas_ekonomi = { text: 'Kelas ekonomi (otomatis: pengeluaran per kapita vs garis kemiskinan BPS)', topic: 'Profil', opts: SES_KELAS };
+  meta.ses = { text: 'SES (otomatis dari pengeluaran per kapita)', topic: 'Profil', opts: SES_HURUF.slice().reverse() };
   meta.kategori_1 = { text: 'Kategori yang dibahas di modul belanja', topic: 'Belanja terakhir' };
   return meta;
 }
@@ -1485,7 +1505,7 @@ function adminReportCore_(v, opt) {
 // ====== DATABASE RESPONDEN (1 orang = 1 baris, gabungan semua survei) ======
 // Kunci orang: nomor WA (bila ada), selain itu username IG.
 // =====================================================================
-var PEOPLE_PROFILE = ['S0', 'S1', 'S2', 'A1', 'provinsi', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
+var PEOPLE_PROFILE = ['S0', 'S1', 'S2', 'A1', 'provinsi', 'A18', 'A19', 'kelas_ekonomi', 'ses', 'A7N', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
 function personKey_(r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); return w ? 'wa:' + w : g ? 'ig:' + g : ''; }
 function peopleIndex_() {
   var rows = readAll_(), byKey = {}, igToKey = {}, names = {};
@@ -1533,6 +1553,7 @@ function adminPeople(f) {
     if (f.gender && p.profile.S2 !== f.gender) return false;
     if (f.age && p.profile.S1 !== f.age) return false;
     if (f.prov && p.profile.provinsi !== f.prov) return false;
+    if (f.ses && p.profile.ses !== f.ses) return false;
     if (f.valid && !p.valid) return false;
     if (f.aCol && f.aVal && !p.rows.some(function (r) { return r._v === f.aCol.v && has(r[f.aCol.col], f.aVal); })) return false;
     return true;
@@ -1546,7 +1567,7 @@ function adminPeople(f) {
     total: all.length, multi: all.filter(function (p) { return p.surveys.length >= 2; }).length, contact: all.filter(function (p) { return p.contact; }).length,
     avg: all.length ? Math.round(all.reduce(function (s, p) { return s + p.surveys.length; }, 0) / all.length * 10) / 10 : 0,
     list: list.slice(0, 2000), count: list.length, surveys: surveyList_().map(function (s) { return { v: s.v, name: s.name }; }),
-    options: { S1: opts('S1'), S2: opts('S2'), provinsi: opts('provinsi') }, answerCols: f.withCols ? answerCols_() : null
+    options: { S1: opts('S1'), S2: opts('S2'), provinsi: opts('provinsi'), ses: SES_HURUF.slice().reverse() }, answerCols: f.withCols ? answerCols_() : null
   };
 }
 /** Semua jawaban satu orang, dikelompokkan per survei. */
