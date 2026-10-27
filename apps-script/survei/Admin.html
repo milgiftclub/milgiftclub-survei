@@ -95,7 +95,7 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .modal .card{max-width:780px;width:100%}
 .detail dt{font-size:12px;color:var(--ink2);font-weight:600;margin-top:14px}
 .detail dd{margin:3px 0 0;font-weight:700}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:30px;font-weight:600;display:none;z-index:60}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:30px;font-weight:600;display:none;z-index:60}
 .page{display:none} .page.on{display:block}
 .loading{color:var(--ink2);padding:30px;text-align:center}
 .kv{display:grid;grid-template-columns:minmax(140px,200px) 1fr;gap:12px;align-items:center;margin:12px 0}
@@ -172,6 +172,10 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 #pm .card{max-width:1100px}
 #pm textarea{width:100%;min-height:340px;font:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:12px;padding:12px;resize:vertical}
 @media(max-width:900px){.pm-wrap{grid-template-columns:1fr}}
+.bbar{position:sticky;bottom:16px;z-index:5;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:20px;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:20px;padding:12px 16px;box-shadow:0 10px 30px rgba(20,26,46,.12)}
+#pub .card{max-width:520px}
+#pub label.row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#FAFBFE;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:16px 0;font-size:14px}
+#pub label.row small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
 .dirty{font-size:12px;font-weight:700;color:var(--amber);align-self:center}
 .lnk{display:flex;gap:8px;align-items:center;margin:10px 0}
 .lnk input{flex:1;font-size:12px;padding:8px 10px;min-width:0}
@@ -244,10 +248,17 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
   </div>
 </div></div>
 
+<div class="modal" id="pub"><div class="card">
+  <div class="eyebrow">Publish survei</div><h2 style="font-size:22px" id="pub-name"></h2>
+  <p class="muted" id="pub-desc">Survei langsung bisa diisi responden lewat link-nya dan muncul di menu Survei.</p>
+  <label class="row"><span><b>Buat gambar IG Story &amp; Feed + caption</b><small>Langsung siap diunduh untuk promosi di Instagram</small></span><span class="switch"><input type="checkbox" id="pub-img" checked><span></span></span></label>
+  <div class="toolbar" style="justify-content:flex-end;margin:0"><button class="btn sec" onclick="$('pub').classList.remove('on')">Batal</button><button class="btn" id="pub-go" onclick="bPublishGo()">Publish sekarang</button></div>
+</div></div>
+
 <!-- BUAT SURVEI -->
 <section class="page" id="p-build">
   <div class="svhead"><div><div class="eyebrow">Buat survei</div><h1 id="b-title">Survei baru</h1><p class="desc">Minta AI menyusun pertanyaan dari brief, atau tempel daftar pertanyaanmu sendiri. Rapikan, coba lewat pratinjau, lalu publish. Pembuka, giveaway, cek Instagram, profil, dan penutup ditambahkan otomatis.</p></div>
-    <div class="acts"><span class="dirty" id="b-dirty"></span><button class="btn soft sm" onclick="promoFromBuilder()">🖼 Gambar IG</button><button class="btn sec sm" onclick="bPreview()">Pratinjau</button><button class="btn sec sm" onclick="bSave(false)">Simpan draf</button><button class="btn sm" id="b-pub" onclick="bSave(true)">Publish</button></div></div>
+    <div class="acts"><span class="dirty" id="b-dirty"></span><button class="btn sec sm" onclick="bSave(false)">Simpan draf</button></div></div>
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
@@ -268,6 +279,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
       <div class="card"><div class="top" style="margin:0 0 12px"><div><h2>Pertanyaan <span class="muted" id="b-count"></span></h2><div class="muted">Muncul setelah profil responden, sebelum data kontak.</div></div><button class="btn sec sm" onclick="bAdd()">+ Tambah pertanyaan</button></div>
         <div id="b-qs"></div>
         <button class="btn sec sm" onclick="bAdd()" style="margin-top:4px">+ Tambah pertanyaan</button></div>
+      <div class="bbar"><button class="btn sec" onclick="bPreview()">Pratinjau</button><span style="flex:1"></span><button class="btn sec" onclick="bSave(false)">Simpan sebagai draf</button><button class="btn" id="b-pub" onclick="bPublish()">Publish</button></div>
     </div>
     <div class="bside">
       <div class="card" id="b-statecard" style="display:none"><h2>Status</h2><div id="b-state"></div></div>
@@ -373,6 +385,7 @@ var fmt = function (n) { return Number(n || 0).toLocaleString('id-ID'); };
 function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(e._t); e._t = setTimeout(function () { e.style.display = 'none'; }, 3000); }
 function closeM() { $('m').classList.remove('on'); }
 $('m').onclick = function (e) { if (e.target.id === 'm') closeM(); };
+$('pub').onclick = function (e) { if (e.target.id === 'pub') $('pub').classList.remove('on'); };
 function badge(st) {
   st = String(st || '');
   var c = /^Valid|^Menang|^Dibuka|^Aktif/.test(st) ? 'b-g' : /^Tidak valid|^Diblokir|^Gugur/.test(st) ? 'b-r' : /^Suspend/.test(st) ? 'b-y' : /^Duplikat/.test(st) ? 'b-b' : 'b-n';
@@ -655,7 +668,7 @@ function bFill() {
   $('b-g').checked = B.giveaway !== false; $('b-p').checked = B.profile !== false; $('b-ind').checked = B.screenIndustri !== false;
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
   $('b-period').value = B.periode || ''; hdRender();
-  $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan & tetap dibuka' : 'Publish';
+  $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan perubahan' : 'Publish';
   bState(); bRender();
 }
 function bRead() {
@@ -873,18 +886,27 @@ function bPayload() {
   if (!o.estimasi) o.estimasi = o.estimasiOtomatis;
   return o;
 }
-function bSave(publish, then) {
+function bSave(publish, then, withImg) {
   var e = bCheck(); if (e) { toast(e); return; }
-  if (publish && !(BMETA && BMETA.status === 'Dibuka') && !confirm('Publish survei "' + B.name + '"? Link langsung bisa diisi responden.')) return;
   toast('Menyimpan…');
   run('adminBuilderSave', bPayload(), !!publish).then(function (r) {
     B.id = r.id; BMETA = Object.assign(BMETA || { responses: 0 }, { id: r.id, status: r.status, link: r.link });
     markDirty(false); bFill(); loadHome();
     toast(publish ? 'Survei dipublish! Link siap dibagikan.' : 'Draf tersimpan');
-    if (publish) promoFromBuilder('Survei dipublish 🎉 · unduh gambar untuk promosi IG');
+    if (publish && withImg) promoFromBuilder('Survei dipublish 🎉 · unduh gambar untuk promosi IG');
     if (then) then(r);
   });
 }
+function bPublish() {
+  var e = bCheck(); if (e) { toast(e); return; }
+  var live = BMETA && BMETA.status === 'Dibuka';
+  $('pub-name').textContent = B.name;
+  $('pub-desc').textContent = live ? 'Survei ini sedang dibuka. Perubahan langsung berlaku untuk responden.' : 'Survei langsung bisa diisi responden lewat link-nya dan muncul di menu Survei.';
+  $('pub-go').textContent = live ? 'Simpan perubahan' : 'Publish sekarang';
+  $('pub-img').checked = !live;
+  $('pub').classList.add('on');
+}
+function bPublishGo() { $('pub').classList.remove('on'); bSave(true, null, $('pub-img').checked); }
 function bPreview() {
   var open = function (r) { window.open(r.link + (r.link.indexOf('?') >= 0 ? '&' : '?') + 'preview=1', '_blank'); };
   if (B.id && !bDirty && BMETA) return open(BMETA);
