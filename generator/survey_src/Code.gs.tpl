@@ -1166,7 +1166,9 @@ function autoCloseCustom_(c, s, col) {
 function getSurvey(id, preview) {
   var c = customById_(id);
   if (!c || c.status === 'Diarsipkan') throw new Error('Survei tidak ditemukan');
-  return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: c.schema,
+  var br = c.schema.brand && c.schema.brand.mode === 'client' ? JSON.parse(JSON.stringify(c.schema.brand)) : null;
+  if (br && br.logo) br.logoData = imageData_([br.logo])[br.logo] || '';
+  return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: c.schema, brand: br,
     giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
 }
 
@@ -1288,8 +1290,8 @@ function adminImageSave(dataUrl) {
   s.appendRow([id, new Date(), who].concat(parts));
   return id;
 }
-function adminImageGet(ids) {
-  requireAdmin_();
+function adminImageGet(ids) { requireAdmin_(); return imageData_(ids); }
+function imageData_(ids) {
   var s = sheet_(IMG_TAB), out = {}; ids = ids || [];
   if (!s || s.getLastRow() < 2 || !ids.length) return out;
   s.getRange(2, 1, s.getLastRow() - 1, s.getLastColumn()).getValues().forEach(function (r) { if (ids.indexOf(String(r[0])) >= 0) out[r[0]] = r.slice(3).join(''); });

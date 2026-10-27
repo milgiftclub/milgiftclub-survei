@@ -73,6 +73,26 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     });
   })();
 
+  function shade(hex, k) {   // k<0 lebih gelap, k>0 lebih terang
+    var m = String(hex || '').match(/^#?([0-9a-f]{6})$/i); if (!m) return hex;
+    var n = parseInt(m[1], 16), r = n >> 16, g = n >> 8 & 255, b = n & 255;
+    var f = function (x) { return Math.max(0, Math.min(255, Math.round(k < 0 ? x * (1 + k) : x + (255 - x) * k))); };
+    return '#' + [f(r), f(g), f(b)].map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+  }
+  function applyBrand(B) {
+    var root = document.documentElement.style, p = B.primary || '#F2575D', a = B.accent || '#F9C23C';
+    root.setProperty('--coral', p); root.setProperty('--coral-d', shade(p, -0.18)); root.setProperty('--yellow', a); root.setProperty('--yellow-l', shade(a, 0.75));
+    var h = String(B.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
+    CFG.ig = h; CFG.linkIg = h ? 'https://www.instagram.com/' + h.slice(1) + '/' : ''; CFG.tombolIg = h ? 'Follow ' + h + ' di Instagram' : '';
+    CFG.linkLain = ''; CFG.pesanPenutup = ''; CFG.periodeLabel = 'Giveaway ' + B.name;
+    CFG.langkah = (CFG.langkah || []).map(function (t) { return String(t).replace(/@milgift_club|@milgiftclub/gi, h || 'kami'); }).filter(function (t) { return h || !/follow/i.test(t); });
+    CFG.teksTidakEligible = 'Kamu belum termasuk kriteria survei ini. Terima kasih banyak atas waktumu!';
+    CFG.teksSudahIsi = 'Akun Instagram ini sudah pernah mengisi survei ini. Satu akun hanya bisa ikut satu kali. Terima kasih!';
+    CFG.teksMenolak = 'Tidak apa-apa kalau kamu belum ingin mengisi survei ini. Terima kasih!';
+    var lg = document.querySelector('header .logo'), tg = document.querySelector('header .tag');
+    lg.innerHTML = B.logoData ? '<img src="' + B.logoData + '" alt="' + esc(B.name) + '" style="max-height:64px;max-width:240px;object-fit:contain">' : esc(B.name);
+    tg.textContent = B.credit !== false ? 'BERSAMA MIL DIGITAL' : '';
+  }
   function start(D) {
     var S = D.schema || {};
     var G = S.giveaway !== false, PROF = S.profile !== false;
@@ -81,7 +101,9 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var HD = (S.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
     if (HD.length) { CFG.hadiahUtama = prize(HD[0]); CFG.hadiah = HD.slice(1).map(prize); }
     if (S.periode) CFG.periode = S.periode;
-    document.title = D.name + ' — MIL Gift Club';
+    var BR = D.brand && D.brand.mode === 'client' ? D.brand : null, ORG = BR ? BR.name : 'MIL Gift Club';
+    if (BR) applyBrand(BR);
+    document.title = D.name + ' — ' + ORG;
     if (!D.open) return finish('Survei telah ditutup', 'Terima kasih atas minat kamu. Pantau Instagram ' + CFG.ig + ' untuk survei dan giveaway berikutnya.', '', ctaButtons(true));
 
     // ---------- susun pertanyaan ----------
@@ -106,7 +128,9 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       (S.estimasi ? 'Survei ini membutuhkan waktu ±' + S.estimasi + ' menit. ' : '') + 'Jawaban Anda bersifat rahasia dan hanya digunakan untuk keperluan riset.' +
       (G ? ' Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.' : '');
     BY.O1.intro = intro;
-    if (BY.Z2) BY.Z2.text = BY.Z2.text.replace(/@milgift_club|@milgiftclub/g, CFG.ig);
+    if (BY.Z2) BY.Z2.text = BR ? 'Tuliskan username Instagram Anda (untuk verifikasi keikutsertaan giveaway' + (CFG.ig ? ' ' + CFG.ig : '') + ').' : BY.Z2.text.replace(/@milgift_club|@milgiftclub/g, CFG.ig);
+    if (BR && BY.Z1) BY.Z1.text = BY.Z1.text.replace(/MIL Gift Club/g, BR.name + ' dan MIL Digital');
+    if (BR && BR.credit !== false) BY.O1.intro += ' Survei ini diselenggarakan oleh MIL Digital untuk ' + BR.name + '.';
 
     var KEY = 'milc_' + ID + (PREVIEW ? '_p' : '');
     var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
@@ -390,8 +414,8 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       clearSave();
       var em = res.email || 'milgiftclub@gmail.com';
       var msg = res.state === 'suspend'
-        ? 'Akses akun ini ke survei MIL Gift Club ditutup sementara sampai ' + res.until + ' karena jawaban sebelumnya tidak lolos verifikasi kualitas.'
-        : 'Akses akun ini ke survei MIL Gift Club ditutup karena jawaban sebelumnya tidak lolos verifikasi kualitas. Untuk membuka kembali, kirim email ke ' + em + ' dengan menyertakan username Instagram dan nomor WhatsApp kamu.';
+        ? 'Akses akun ini ke survei ' + ORG + ' ditutup sementara sampai ' + res.until + ' karena jawaban sebelumnya tidak lolos verifikasi kualitas.'
+        : 'Akses akun ini ke survei ' + ORG + ' ditutup karena jawaban sebelumnya tidak lolos verifikasi kualitas. Untuk membuka kembali, kirim email ke ' + em + ' dengan menyertakan username Instagram dan nomor WhatsApp kamu.';
       finish('Akses survei ditutup', msg, '', CFG.linkIg ? '<div class="ctas"><a class="cta cta2" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || 'Follow Instagram') + '</a></div>' : '');
     }
     function done() {
