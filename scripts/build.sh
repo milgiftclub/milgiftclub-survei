@@ -6,6 +6,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/generator"
+# site/config.js boleh diedit langsung di GitHub (teks tampilan survei) -> jadi sumber utama
+[ -f "$ROOT/site/config.js" ] && cp "$ROOT/site/config.js" hosted_config.js
 python3 build_survey.py
 python3 build_hosted.py "$ROOT/site"
 for p in survei dashboard; do

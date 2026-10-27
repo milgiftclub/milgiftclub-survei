@@ -37,10 +37,18 @@ scripts/build.sh      membangun ulang site/ dan apps-script/ dari generator/
 
 ## Mengubah sesuatu
 
+**Teks tampilan survei** (hadiah, periode, tanggal pengumuman, teks pembuka/penutup, link tombol) bisa diedit langsung di GitHub:
+1. Buka file `site/config.js`, lalu klik ikon pensil (Edit).
+2. Ubah teks di antara tanda kutip `' '`.
+3. Klik **Commit changes**.
+
+Sekitar 1 menit kemudian, survei sudah memakai teks baru.
+
+**Perubahan lain:**
+
 1. Edit sumbernya di `generator/`:
    - pertanyaan: `questions.py`
    - tampilan survei: `survey_src/Index.html.tpl`
-   - teks halaman awal/akhir: `hosted_config.js`
    - dashboard: `survey_src/Admin.html`
    - server: `survey_src/Code.gs.tpl`
 2. Jalankan `./scripts/build.sh`.
