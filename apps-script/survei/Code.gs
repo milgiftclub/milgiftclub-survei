@@ -1186,7 +1186,7 @@ function adminBuilderGet(id) {
 }
 function adminBuilderDefaults() {
   requireAdmin_();
-  return { giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
+  return { giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH || [], periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP || [] }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
 }
 /** Simpan rancangan. publish=true -> status Dibuka & tab jawaban dibuat. */
 function adminBuilderSave(sch, publish) {

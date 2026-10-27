@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard MIL Gift Club</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{--bg:#F6F7FB;--card:#fff;--ink:#141A2E;--ink2:#5E6478;--muted:#8A90A2;--line:#E7E9F2;--navy:#25339A;--navy-d:#1C2678;--navy-l:#EEF0FB;--navy-m:#C9CFF2;--blue:#3D5BDB;--green:#2F8A57;--gl:#E7F5EC;--red:#C2362F;--rl:#FCEBEA;--amber:#B26A00;--al:#FFF3DD;--yl:#FFF8E1;--yellow:#F2C94C;--sh:0 1px 2px rgba(20,26,46,.04),0 6px 24px rgba(20,26,46,.05)}
@@ -161,6 +161,17 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 .tip code{background:var(--navy-l);color:var(--navy);padding:1px 6px;border-radius:6px}
 .empty{text-align:center;color:var(--ink2);padding:30px 10px;border:2px dashed var(--line);border-radius:18px;margin-bottom:14px}
 .sv-new.on{color:#fff!important;border-color:transparent!important}
+.hd-head,.hd-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 32px;gap:8px;align-items:center}
+.hd-head{font-size:12px;font-weight:700;color:var(--ink2);margin:8px 0 4px}
+.hd-row{margin:6px 0}
+.hd-row input{padding:8px 10px;border-radius:10px;min-width:0;width:100%}
+.hd-row:first-child input:first-child{font-weight:700}
+.pm-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.pm-prev{background:#F1F2F7;border-radius:16px;padding:14px;text-align:center}
+.pm-prev canvas{max-width:100%;max-height:62vh;border-radius:10px;box-shadow:0 6px 24px rgba(20,26,46,.15);background:#fff}
+#pm .card{max-width:1100px}
+#pm textarea{width:100%;min-height:340px;font:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:12px;padding:12px;resize:vertical}
+@media(max-width:900px){.pm-wrap{grid-template-columns:1fr}}
 .dirty{font-size:12px;font-weight:700;color:var(--amber);align-self:center}
 .lnk{display:flex;gap:8px;align-items:center;margin:10px 0}
 .lnk input{flex:1;font-size:12px;padding:8px 10px;min-width:0}
@@ -213,13 +224,25 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 <!-- SURVEI (per survei) -->
 <section class="page" id="p-survey">
   <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
-    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
     <div class="card"><h2 id="sv-qh">Kuota</h2><p class="muted" id="sv-qd">Jumlah valid dibanding target per kelompok.</p><div id="sv-quota"></div></div>
   </div>
 </section>
+
+<div class="modal" id="pm"><div class="card">
+  <div class="top" style="margin-bottom:10px"><div><div class="eyebrow">Materi promosi</div><h2 id="pm-title" style="font-size:22px">Gambar Instagram</h2></div><button class="btn sec sm" onclick="$('pm').classList.remove('on')">Tutup</button></div>
+  <div class="tabs" id="pm-tabs"><button data-f="story" class="on">IG Story (9:16)</button><button data-f="feed">IG Feed (4:5)</button></div>
+  <div class="pm-wrap">
+    <div class="pm-prev"><canvas id="pm-c"></canvas>
+      <div class="toolbar" style="justify-content:center;margin:12px 0 0"><button class="btn sm" onclick="pmDownload()">Unduh gambar (PNG)</button><button class="btn sec sm" onclick="pmOpenImg()">Buka di tab baru</button></div>
+      <p class="muted" id="pm-note"></p></div>
+    <div><h2>Caption</h2><p class="muted">Boleh diedit sebelum disalin.</p><textarea id="pm-cap"></textarea>
+      <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="pmCopy()">Salin caption</button></div></div>
+  </div>
+</div></div>
 
 <!-- BUAT SURVEI -->
 <section class="page" id="p-build">
@@ -262,9 +285,11 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
         <label class="row"><span>Attention check<small>Pertanyaan "pilih Biru" di tengah survei</small></span><span class="switch"><input type="checkbox" id="b-att" checked><span></span></span></label>
         <div class="kv"><label>Khusus responden</label><select id="b-gender"><option value="all">Semua gender</option><option value="Wanita">Wanita saja</option><option value="Pria">Pria saja</option></select></div>
       </div>
-      <div class="card"><h2>Hadiah <span class="muted">(opsional)</span></h2><p class="muted">Kosongkan untuk memakai hadiah &amp; periode yang sama dengan survei lain.</p>
-        <div class="kv"><label>Hadiah utama</label><input id="b-prize"></div>
-        <div class="kv"><label>Periode giveaway</label><input id="b-period"></div>
+      <div class="card"><h2>Hadiah</h2><p class="muted">Baris pertama = hadiah utama. Isi nilai bila berupa voucher/saldo.</p>
+        <div class="hd-head"><span>Hadiah</span><span>Nilai (Rp)</span><span></span></div>
+        <div id="b-hd"></div>
+        <button class="btn sec sm" onclick="hdAdd()" style="margin-top:6px">+ Tambah hadiah</button>
+        <div class="kv" style="margin-top:14px"><label>Periode giveaway</label><input id="b-period"></div>
       </div>
     </div>
   </div>
@@ -603,7 +628,7 @@ loadHome();
 var B = null, BMETA = null, BDEF = null, bDirty = false;
 var BTYPES = [['single', 'Pilih satu'], ['multi', 'Pilih beberapa'], ['dropdown', 'Dropdown (daftar panjang)'], ['scale', 'Skala'], ['number', 'Angka'], ['text', 'Isian singkat'], ['longtext', 'Isian panjang']];
 var HAS_OPT = { single: 1, multi: 1, dropdown: 1 };
-function bNew() { return { questions: [], target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all' }; }
+function bNew() { return { hadiah: defaultPrizes(), questions: [], target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all' }; }
 function markDirty(v) { bDirty = v !== false; $('b-dirty').textContent = bDirty ? '● Belum disimpan' : ''; }
 function openBuilder(id) {
   if ($('p-build').classList.contains('on') && bDirty && !confirm('Perubahan survei yang sedang diedit belum disimpan. Tinggalkan?')) return;
@@ -618,9 +643,10 @@ function openBuilder(id) {
 function editSurvey(id) { openBuilder(id); }
 function bDefaults() {
   var g = BDEF.giveaway || {};
-  $('b-prize').placeholder = g.hadiahUtama || ''; $('b-period').placeholder = g.periode || '';
+  $('b-period').placeholder = g.periode || '';
   $('b-ai-off').style.display = BDEF.ai ? 'none' : '';
   $('b-ai-btn').disabled = !BDEF.ai; $('b-ai2').disabled = !BDEF.ai;
+  if (B && !(B.hadiah || []).some(function (h) { return String(h.nama || '').trim(); })) { B.hadiah = defaultPrizes(); hdRender(); }
 }
 function bFill() {
   $('b-title').textContent = B.id ? 'Edit: ' + (B.name || B.id) : 'Survei baru';
@@ -628,7 +654,7 @@ function bFill() {
   $('b-target').value = B.target == null ? '' : B.target; $('b-auto').checked = B.autoClose !== false;
   $('b-g').checked = B.giveaway !== false; $('b-p').checked = B.profile !== false; $('b-ind').checked = B.screenIndustri !== false;
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
-  $('b-prize').value = B.hadiahUtama || ''; $('b-period').value = B.periode || '';
+  $('b-period').value = B.periode || ''; hdRender();
   $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan & tetap dibuka' : 'Publish';
   bState(); bRender();
 }
@@ -636,9 +662,9 @@ function bRead() {
   B.name = $('b-name').value.trim(); B.intro = $('b-intro').value.trim(); B.estimasi = Number($('b-est').value) || '';
   B.target = Number($('b-target').value) || 0; B.autoClose = $('b-auto').checked;
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
-  B.gender = $('b-gender').value; B.hadiahUtama = $('b-prize').value.trim(); B.periode = $('b-period').value.trim();
+  B.gender = $('b-gender').value; B.periode = $('b-period').value.trim();
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-prize', 'b-period'].forEach(function (id) {
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-period'].forEach(function (id) {
   var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); }); e.addEventListener('change', function () { bRead(); markDirty(); });
 });
 [].forEach.call($('b-src').children, function (b) {
@@ -863,6 +889,189 @@ function bPreview() {
   if (B.id && !bDirty && BMETA) return open(BMETA);
   bSave(false, open);
 }
+
+// =====================================================================
+// ---------- HADIAH (builder) ----------
+// =====================================================================
+function parsePrize(t) {
+  t = String(t || ''); var m = t.match(/Rp\s?([\d.]+)/i), n = m ? Number(m[1].replace(/\./g, '')) : '';
+  return { nama: t.replace(/\s*Rp\s?[\d.]+\s*/i, ' ').replace(/\s{2,}/g, ' ').trim(), nilai: n || '' };
+}
+function defaultPrizes() {
+  var g = (BDEF && BDEF.giveaway) || {};
+  return (g.hadiahUtama ? [{ nama: g.hadiahUtama, nilai: '' }] : []).concat((g.hadiah || []).map(parsePrize));
+}
+function hdRender() {
+  if (!B.hadiah || !B.hadiah.length) B.hadiah = defaultPrizes();
+  if (!B.hadiah.length) B.hadiah = [{ nama: '', nilai: '' }];
+  $('b-hd').innerHTML = B.hadiah.map(function (h, i) {
+    return '<div class="hd-row" data-i="' + i + '"><input data-k="nama" placeholder="' + (i ? 'mis. Voucher MAP untuk 3 pemenang' : 'Hadiah utama, mis. Apple AirPods 4') + '" value="' + esc(h.nama || '') + '">' +
+      '<input data-k="nilai" inputmode="numeric" placeholder="opsional" value="' + (h.nilai ? Number(h.nilai).toLocaleString('id-ID') : '') + '">' +
+      '<button class="ib del" title="Hapus">✕</button></div>';
+  }).join('');
+  [].forEach.call($('b-hd').children, function (row) {
+    var i = +row.dataset.i;
+    row.querySelector('[data-k=nama]').oninput = function (e) { B.hadiah[i].nama = e.target.value; markDirty(); };
+    row.querySelector('[data-k=nilai]').oninput = function (e) { var n = e.target.value.replace(/\D/g, ''); B.hadiah[i].nilai = n ? Number(n) : ''; markDirty(); };
+    row.querySelector('[data-k=nilai]').onblur = function (e) { e.target.value = B.hadiah[i].nilai ? Number(B.hadiah[i].nilai).toLocaleString('id-ID') : ''; };
+    row.querySelector('button').onclick = function () { B.hadiah.splice(i, 1); if (!B.hadiah.length) B.hadiah.push({ nama: '', nilai: '' }); markDirty(); hdRender(); };
+  });
+}
+function hdAdd() { B.hadiah.push({ nama: '', nilai: '' }); markDirty(); hdRender(); var r = $('b-hd').lastChild; if (r) r.querySelector('input').focus(); }
+
+// =====================================================================
+// ---------- MATERI PROMOSI (gambar IG Story / Feed + caption) ----------
+// =====================================================================
+var PM = null, PMF = 'story';
+var rp = function (n) { return 'Rp' + Number(n).toLocaleString('id-ID'); };
+function promoOpen(v) {
+  var s = SUM.surveys.filter(function (x) { return x.v === v; })[0]; if (!s) return;
+  $('pm').classList.add('on'); $('pm-title').textContent = s.name; $('pm-cap').value = 'Menyiapkan…';
+  var go = function (sch) {
+    var g = BDEF.giveaway || {}, hd = (sch && sch.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
+    if (!hd.length) hd = defaultPrizes();
+    PM = { name: s.name, link: s.link, hadiah: hd, periode: (sch && sch.periode) || g.periode || '', announce: g.announce || '', label: g.periodeLabel || '', ig: g.ig || '@milgiftclub',
+      langkah: g.langkah || [], estimasi: (sch && sch.estimasi) || (s.v === 'v1' ? 7 : s.v === 'v2' ? 7 : ''), giveaway: !sch || sch.giveaway !== false };
+    pmDraw();
+  };
+  var withDef = function () { if (s.custom) run('adminBuilderGet', v).then(function (d) { go(d.schema); }); else go(null); };
+  if (BDEF) withDef(); else run('adminBuilderDefaults').then(function (d) { BDEF = d; withDef(); });
+}
+[].forEach.call($('pm-tabs').children, function (b) { b.onclick = function () { PMF = b.dataset.f; [].forEach.call($('pm-tabs').children, function (x) { x.classList.toggle('on', x === b); }); pmDraw(); }; });
+$('pm').onclick = function (e) { if (e.target.id === 'pm') $('pm').classList.remove('on'); };
+
+function pmCaption() {
+  var P = PM, main = P.hadiah[0], rest = P.hadiah.slice(1), story = PMF === 'story';
+  var pz = function (h) { return h.nama + (h.nilai ? ' (' + rp(h.nilai) + ')' : ''); };
+  var steps = ['Isi survei lewat ' + (story ? 'link di Story ini' : 'link di bio ' + P.ig)].concat(P.langkah);
+  var num = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+  return '🎁 GIVEAWAY MIL GIFT CLUB' + (P.label ? '\n' + P.label.replace(/^Survei MIL Gift Club\s*·\s*/i, '') : '') + '\n\n' +
+    'Ada hadiah ' + (main ? main.nama : 'menarik') + ' buat kamu! 🎉 Cukup isi survei singkat "' + P.name + '"' + (P.estimasi ? ' (±' + P.estimasi + ' menit)' : '') + ', lalu ikuti langkahnya:\n\n' +
+    steps.map(function (t, i) { return (num[i] || '•') + ' ' + t.replace(/^❤️\s*/, ''); }).join('\n') + '\n\n' +
+    '🏆 Hadiah:\n' + P.hadiah.map(function (h, i) { return (i ? '• ' : '⭐ ') + pz(h); }).join('\n') + '\n\n' +
+    (P.periode ? '📅 Periode: ' + P.periode + '\n' : '') + (P.announce ? '📣 Pengumuman pemenang: ' + P.announce + ' di ' + P.ig + '\n' : '') +
+    (story ? '' : '🔗 Link survei: ' + P.link + '\n') +
+    '\nPemenang dipilih acak dari jawaban yang lolos verifikasi. 1 akun = 1 kesempatan per survei.\n' +
+    'Giveaway ini tidak disponsori, didukung, atau dikelola oleh Instagram/Meta.\n\n#MILGiftClub #Giveaway #GiveawayIndonesia #Survei #SurveiBerhadiah';
+}
+
+// ---- menggambar ----
+var PC = { cream: '#FBF1E1', coral: '#F2575D', coralD: '#D9444A', yellow: '#F9C23C', yellowL: '#FFF1C9', brown: '#4A2A1A', brown2: '#7A5440', blue: '#2F6FD6', line: '#EBD7B8', white: '#FFFFFF' };
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function blob(c, x, y, w, h, rot, col, a) { c.save(); c.globalAlpha = a || 1; c.translate(x, y); c.rotate(rot); c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2); c.fill(); c.restore(); }
+function wrap(c, text, maxW) {
+  var words = String(text).split(/\s+/), lines = [], cur = '';
+  words.forEach(function (w) { var t = cur ? cur + ' ' + w : w; if (c.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur); return lines;
+}
+function fitText(c, text, font, size, maxW, maxLines, minSize) {
+  var sz = size, lines;
+  do { c.font = font.replace('{s}', sz); lines = wrap(c, text, maxW); if (lines.length <= maxLines) break; sz -= 4; } while (sz > (minSize || 24));
+  return { size: sz, lines: lines.slice(0, maxLines) };
+}
+function pmDraw() {
+  var story = PMF === 'story', W = 1080, H = story ? 1920 : 1350, cv = $('pm-c'), c = cv.getContext('2d');
+  cv.width = W; cv.height = H; $('pm-cap').value = pmCaption();
+  $('pm-note').textContent = story ? 'Area putih bergaris di bawah untuk menempel stiker link survei di Instagram.' : 'Untuk postingan Feed, link survei ditaruh di bio Instagram.';
+  var fontsReady = document.fonts && document.fonts.load ? Promise.all(['700 60px Fredoka', '600 40px Fredoka', '800 30px Nunito', '700 30px Nunito'].map(function (f) { return document.fonts.load(f); })) : Promise.resolve();
+  fontsReady.then(function () { paint(c, W, H, story); }, function () { paint(c, W, H, story); });
+}
+function paint(c, W, H, story) {
+  var P = PM, cx = W / 2, padX = 90, cardW = W - 2 * padX;
+  c.fillStyle = PC.cream; c.fillRect(0, 0, W, H);
+  blob(c, 40, 30, 460, 380, -0.2, PC.yellow); blob(c, W - 20, 10, 420, 460, 0.35, PC.coral, .92);
+  blob(c, W - 10, H - 30, 480, 420, 0.1, PC.coral, .88); blob(c, 30, H - 10, 420, 380, 0.5, PC.yellow, .92);
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  var K = story ? 1 : 1.0, B = [];   // blok-blok konten: {h, draw(y)}
+
+  // logo
+  B.push({ h: 110, draw: function (y) {
+    c.font = '700 66px Fredoka'; var lw = c.measureText('MIL Gift Club').width;
+    c.fillStyle = PC.brown; c.textAlign = 'left'; c.fillText('MIL Gift Club', cx - lw / 2 - 8, y + 60);
+    c.fillStyle = PC.coral; c.fillText('.', cx + lw / 2 - 8, y + 60); c.textAlign = 'center';
+    c.font = '800 20px Nunito'; c.fillStyle = PC.brown2; c.letterSpacing = '6px'; c.fillText('INSIGHT · COMMUNITY · REWARDS', cx, y + 100); c.letterSpacing = '0px';
+  } });
+  // headline
+  var hs = story ? 86 : 78;
+  B.push({ h: hs * 2.15, draw: function (y) {
+    c.font = '700 ' + hs + 'px Fredoka'; c.fillStyle = PC.brown; c.fillText('Isi survei,', cx, y + hs);
+    c.fillStyle = PC.coral; c.fillText('menangkan hadiahnya!', cx, y + hs * 2.05);
+  } });
+  // banner nama survei
+  var ft = fitText(c, P.name, '700 {s}px Fredoka', story ? 56 : 52, W - 280, 2, 30), lh = ft.size * 1.16, bh = 52 + ft.lines.length * lh + 30;
+  B.push({ h: bh + 10, draw: function (y) {
+    c.save(); c.translate(cx, y + bh / 2); c.rotate(-0.025);
+    c.fillStyle = PC.brown; rr(c, -W / 2 + 92, -bh / 2 + 9, W - 172, bh, 26); c.fill();
+    c.fillStyle = PC.blue; rr(c, -W / 2 + 84, -bh / 2, W - 172, bh, 26); c.fill();
+    c.fillStyle = PC.yellow; c.font = '800 22px Nunito'; c.letterSpacing = '5px'; c.fillText('SURVEI', 0, -bh / 2 + 42); c.letterSpacing = '0px';
+    c.fillStyle = PC.white; c.font = '700 ' + ft.size + 'px Fredoka';
+    ft.lines.forEach(function (l, i) { c.fillText(l, 0, -bh / 2 + 52 + lh * (i + 1) - lh * 0.18); });
+    c.restore();
+  } });
+  // kartu hadiah
+  var main = P.hadiah[0] || { nama: '' }, rest = P.hadiah.slice(1, story ? 6 : 5);
+  var mt = fitText(c, main.nama, '700 {s}px Fredoka', story ? 68 : 64, cardW - 80, 2, 34), rowH = story ? 52 : 54, rf = story ? 31 : 30;
+  var cardH = 64 + mt.lines.length * mt.size * 1.12 + (main.nilai ? 48 : 0) + (rest.length ? 34 + rest.length * rowH : 0) + 34;
+  B.push({ h: cardH + 8, draw: function (y) {
+    c.fillStyle = PC.brown; rr(c, padX + 8, y + 8, cardW, cardH, 30); c.fill();
+    c.fillStyle = PC.white; rr(c, padX, y, cardW, cardH, 30); c.fill(); c.strokeStyle = PC.brown; c.lineWidth = 4; rr(c, padX, y, cardW, cardH, 30); c.stroke();
+    var yy = y + 58; c.fillStyle = PC.brown2; c.font = '800 28px Nunito'; c.letterSpacing = '3px'; c.fillText('🎁  HADIAH UTAMA', cx, yy); c.letterSpacing = '0px';
+    c.fillStyle = PC.coralD; c.font = '700 ' + mt.size + 'px Fredoka';
+    mt.lines.forEach(function (l) { yy += mt.size * 1.12; c.fillText(l, cx, yy); });
+    if (main.nilai) { yy += 48; c.fillStyle = PC.brown; c.font = '800 32px Nunito'; c.fillText('senilai ' + rp(main.nilai), cx, yy); }
+    if (rest.length) {
+      yy += 26; c.strokeStyle = PC.line; c.setLineDash([10, 8]); c.lineWidth = 3; c.beginPath(); c.moveTo(padX + 40, yy); c.lineTo(padX + cardW - 40, yy); c.stroke(); c.setLineDash([]);
+      yy -= rowH * 0.25;
+      rest.forEach(function (h) {
+        yy += rowH; c.textAlign = 'left'; c.fillStyle = PC.brown; c.font = '700 ' + rf + 'px Nunito';
+        var nm = '•  ' + h.nama, maxw = cardW - 100 - (h.nilai ? 210 : 0);
+        while (c.measureText(nm).width > maxw && nm.length > 6) nm = nm.slice(0, -2) + '…';
+        c.fillText(nm, padX + 44, yy);
+        if (h.nilai) { c.textAlign = 'right'; c.fillStyle = PC.coralD; c.font = '800 ' + rf + 'px Nunito'; c.fillText(rp(h.nilai), padX + cardW - 44, yy); }
+        c.textAlign = 'center';
+      });
+    }
+  } });
+  // periode
+  var per = [P.periode ? '📅 ' + P.periode : '', P.announce ? '🏆 Pengumuman ' + P.announce : ''].filter(String).join('      ');
+  if (per) B.push({ h: 50, draw: function (y) { c.font = '800 ' + (story ? 30 : 30) + 'px Nunito'; c.fillStyle = PC.brown; c.fillText(per, cx, y + 36); } });
+  if (story) {
+    // langkah (teks panjang dibungkus 2 baris)
+    c.font = '700 28px Nunito';
+    var steps = ['Isi survei (klik link di bawah)'].concat(P.langkah).slice(0, 6).map(function (t, i) { return wrap(c, (i + 1) + '.  ' + t.replace(/^❤️\s*/, ''), cardW - 90).slice(0, 2); });
+    var nl = steps.reduce(function (a, l) { return a + l.length; }, 0), sh = 70 + nl * 38 + steps.length * 8;
+    B.push({ h: sh, draw: function (y) {
+      c.fillStyle = PC.white; rr(c, padX, y, cardW, sh, 26); c.fill(); c.strokeStyle = PC.line; c.lineWidth = 3; rr(c, padX, y, cardW, sh, 26); c.stroke();
+      c.textAlign = 'left'; c.fillStyle = PC.coral; c.font = '800 25px Nunito'; c.letterSpacing = '3px'; c.fillText('CARA IKUT', padX + 40, y + 48); c.letterSpacing = '0px';
+      c.fillStyle = PC.brown; c.font = '700 28px Nunito'; var yy = y + 58;
+      steps.forEach(function (ls) { ls.forEach(function (l, k) { yy += 38; c.fillText(k ? '     ' + l : l, padX + 40, yy); }); yy += 8; });
+      c.textAlign = 'center';
+    } });
+    B.push({ h: 230, draw: function (y) {
+      c.fillStyle = 'rgba(255,255,255,.8)'; rr(c, 200, y, W - 400, 230, 30); c.fill();
+      c.strokeStyle = PC.brown2; c.lineWidth = 4; c.setLineDash([16, 12]); rr(c, 200, y, W - 400, 230, 30); c.stroke(); c.setLineDash([]);
+      c.fillStyle = PC.brown2; c.font = '800 28px Nunito'; c.fillText('👆 KLIK LINK DI SINI', cx, y + 126);
+    } });
+  } else {
+    B.push({ h: 130, draw: function (y) {
+      c.fillStyle = PC.brown; rr(c, padX + 8, y + 8, cardW, 120, 26); c.fill();
+      c.fillStyle = PC.yellow; rr(c, padX, y, cardW, 120, 26); c.fill();
+      c.fillStyle = PC.brown; c.font = '700 42px Fredoka'; c.fillText('Link survei ada di bio ' + P.ig, cx, y + 56);
+      c.font = '700 26px Nunito'; c.fillText('Follow · Like · Tag 3 teman · Share ke Story', cx, y + 96);
+    } });
+  }
+  // susun vertikal: sisa ruang dibagi rata sebagai jarak antar blok
+  var top = story ? 110 : 60, bottom = story ? 110 : 70, total = B.reduce(function (a, b) { return a + b.h; }, 0);
+  var gap = Math.max(18, Math.min(story ? 70 : 54, (H - top - bottom - total) / (B.length - 1)));
+  var y = top + Math.max(0, (H - top - bottom - total - gap * (B.length - 1)) / 2);
+  B.forEach(function (b) { b.draw(y); y += b.h + gap; });
+}
+function pmDownload() {
+  var name = 'IG_' + (PMF === 'story' ? 'Story' : 'Feed') + '_' + PM.name.replace(/[^\w]+/g, '_').slice(0, 40) + '.png';
+  $('pm-c').toBlob(function (b) { var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('Gambar diunduh. Kalau tidak muncul, pakai "Buka di tab baru" lalu simpan gambarnya.'); });
+}
+function pmOpenImg() { var w = window.open(''); if (!w) return toast('Pop-up diblokir browser'); w.document.write('<title>' + esc(PM.name) + '</title><body style="margin:0;background:#222;text-align:center"><img src="' + $('pm-c').toDataURL('image/png') + '" style="max-width:100%;height:auto"></body>'); }
+function pmCopy() { var t = $('pm-cap'); t.select(); try { navigator.clipboard.writeText(t.value); } catch (e) { document.execCommand('copy'); } toast('Caption disalin'); }
 
 (function () {
   var mail = ($('u-mail').textContent || '').trim(), nm = mail.split('@')[0].split(/[._-]/)[0] || 'Tim MIL';

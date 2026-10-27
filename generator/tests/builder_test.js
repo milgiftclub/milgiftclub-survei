@@ -44,7 +44,8 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
   await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
   await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
-  await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.route('https://fonts.googleapis.com/**', r => { let css = ''; try { const ff = (pkg, fam, w) => '@font-face{font-family:"' + fam + '";font-weight:' + w + ';src:url(https://fonts.gstatic.test/' + pkg + '/' + w + ')}'; css = [ff('fredoka', 'Fredoka', 600), ff('fredoka', 'Fredoka', 700), ff('nunito', 'Nunito', 700), ff('nunito', 'Nunito', 800)].join(''); } catch (e) {} r.fulfill({ body: css, contentType: 'text/css' }); });
+  await p.route('https://fonts.gstatic.test/**', r => { try { const [, pkg, w] = new URL(r.request().url()).pathname.split('/'); const dir = path.join(path.dirname(require.resolve('@fontsource/' + pkg + '/package.json')), 'files'); r.fulfill({ body: fs.readFileSync(path.join(dir, pkg + '-latin-' + w + '-normal.woff2')), contentType: 'font/woff2' }); } catch (e) { r.abort(); } });
   await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(1500);
   await p.click('nav.side .sv-new'); await p.waitForTimeout(500);
   await p.screenshot({ path: SP + 'bld_0_kosong.png' });
@@ -63,6 +64,8 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   await p.check('#b-append'); await p.click('#b-ai-btn'); await p.waitForTimeout(800);
   log('after AI:', await p.$$eval('#b-qs .bq', els => els.length), 'questions | AI prompt has brief:', /Kepuasan pengiriman/.test(JSON.parse(global.__aiReq.payload).messages[0].content));
   await p.screenshot({ path: SP + 'bld_1_editor.png', fullPage: true });
+  log('prize rows default:', await p.$$eval('#b-hd .hd-row input[data-k=nama]', e => e.map(x => x.value).join(' | ')));
+  await p.click('text=+ Tambah hadiah'); await p.fill('#b-hd .hd-row:last-child input[data-k=nama]', 'Saldo ShopeePay untuk 10 pemenang'); await p.fill('#b-hd .hd-row:last-child input[data-k=nilai]', '25000');
   await p.click('#b-pub'); await p.waitForTimeout(1200);
   await p.screenshot({ path: SP + 'bld_2_published.png' });
   const reg = sheets['Daftar Survei'].d;
@@ -141,6 +144,15 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   await p.click('#sv-edit'); await p.waitForTimeout(800);
   await p.screenshot({ path: SP + 'bld_5_edit.png' });
   log('edit loaded:', await p.$eval('#b-title', e => e.textContent), '| q count', await p.$$eval('#b-qs .bq', e => e.length));
+  // materi promosi
+  await p.click('#sv-list button[data-v="' + id + '"]'); await p.waitForTimeout(500);
+  await p.click('text=Gambar IG & caption'); await p.waitForTimeout(1500);
+  const save = async (n) => { const d = await p.$eval('#pm-c', c => c.toDataURL('image/png')); fs.writeFileSync(SP + n, Buffer.from(d.split(',')[1], 'base64')); };
+  await save('promo_story.png');
+  log('caption:', (await p.$eval('#pm-cap', e => e.value)).slice(0, 400).replace(/\n/g, ' / '));
+  await p.click('#pm-tabs button[data-f="feed"]'); await p.waitForTimeout(800); await save('promo_feed.png');
+  await p.screenshot({ path: SP + 'promo_modal.png' });
+  ctx.CUSTOM_MEMO_ = null; log('schema hadiah:', JSON.stringify(ctx.customById_(id).schema.hadiah));
   log('JS errors:', errs);
   // API ATLAS ikut memuat survei baru
   const api = JSON.parse(ctx.doGet({ parameter: { api: 'summary', key: ctx.set_('API_KEY') } }).getContent());

@@ -165,6 +165,9 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     var S = D.schema || {};
     var G = S.giveaway !== false, PROF = S.profile !== false;
     if (S.hadiahUtama) CFG.hadiahUtama = S.hadiahUtama;
+    var prize = function (h) { return String(h.nama || '').trim() + (Number(h.nilai) ? ' · Rp' + Number(h.nilai).toLocaleString('id-ID') : ''); };
+    var HD = (S.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
+    if (HD.length) { CFG.hadiahUtama = prize(HD[0]); CFG.hadiah = HD.slice(1).map(prize); }
     if (S.periode) CFG.periode = S.periode;
     document.title = D.name + ' — MIL Gift Club';
     if (!D.open) return finish('Survei telah ditutup', 'Terima kasih atas minat kamu. Pantau Instagram ' + CFG.ig + ' untuk survei dan giveaway berikutnya.', '', ctaButtons(true));
