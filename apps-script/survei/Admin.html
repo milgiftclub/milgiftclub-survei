@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard MIL Gift Club</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&family=Kalam:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{--bg:#F6F7FB;--card:#fff;--ink:#141A2E;--ink2:#5E6478;--muted:#8A90A2;--line:#E7E9F2;--navy:#25339A;--navy-d:#1C2678;--navy-l:#EEF0FB;--navy-m:#C9CFF2;--blue:#3D5BDB;--green:#2F8A57;--gl:#E7F5EC;--red:#C2362F;--rl:#FCEBEA;--amber:#B26A00;--al:#FFF3DD;--yl:#FFF8E1;--yellow:#F2C94C;--sh:0 1px 2px rgba(20,26,46,.04),0 6px 24px rgba(20,26,46,.05)}
@@ -161,7 +161,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 .tip code{background:var(--navy-l);color:var(--navy);padding:1px 6px;border-radius:6px}
 .empty{text-align:center;color:var(--ink2);padding:30px 10px;border:2px dashed var(--line);border-radius:18px;margin-bottom:14px}
 .sv-new.on{color:#fff!important;border-color:transparent!important}
-.hd-head,.hd-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 32px;gap:8px;align-items:center}
+.hd-head,.hd-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 40px 32px;gap:8px;align-items:center}
 .hd-head{font-size:12px;font-weight:700;color:var(--ink2);margin:8px 0 4px}
 .hd-row{margin:6px 0}
 .hd-row input{padding:8px 10px;border-radius:10px;min-width:0;width:100%}
@@ -286,7 +286,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
         <div class="kv"><label>Khusus responden</label><select id="b-gender"><option value="all">Semua gender</option><option value="Wanita">Wanita saja</option><option value="Pria">Pria saja</option></select></div>
       </div>
       <div class="card"><h2>Hadiah</h2><p class="muted">Baris pertama = hadiah utama. Isi nilai bila berupa voucher/saldo.</p>
-        <div class="hd-head"><span>Hadiah</span><span>Nilai (Rp)</span><span></span></div>
+        <div class="hd-head"><span>Hadiah</span><span>Nilai (Rp)</span><span>Foto</span><span></span></div>
         <div id="b-hd"></div>
         <button class="btn sec sm" onclick="hdAdd()" style="margin-top:6px">+ Tambah hadiah</button>
         <div class="kv" style="margin-top:14px"><label>Periode giveaway</label><input id="b-period"></div>
@@ -637,7 +637,7 @@ function openBuilder(id) {
   markDirty(false);
   if (id) {
     $('b-qs').innerHTML = '<p class="loading">Memuat survei…</p>';
-    run('adminBuilderGet', id).then(function (d) { BMETA = d; B = d.schema || bNew(); B.id = d.id; bFill(); });
+    run('adminBuilderGet', id).then(function (d) { BMETA = d; B = d.schema || bNew(); B.id = d.id; bFill(); loadPrizeImgs((B.hadiah || []).map(function (h) { return h.img; })).then(hdRender, function () {}); });
   } else { BMETA = null; B = bNew(); bFill(); }
 }
 function editSurvey(id) { openBuilder(id); }
@@ -907,6 +907,7 @@ function hdRender() {
   $('b-hd').innerHTML = B.hadiah.map(function (h, i) {
     return '<div class="hd-row" data-i="' + i + '"><input data-k="nama" placeholder="' + (i ? 'mis. Voucher MAP untuk 3 pemenang' : 'Hadiah utama, mis. Apple AirPods 4') + '" value="' + esc(h.nama || '') + '">' +
       '<input data-k="nilai" inputmode="numeric" placeholder="opsional" value="' + (h.nilai ? Number(h.nilai).toLocaleString('id-ID') : '') + '">' +
+      '<label class="ib hd-img" title="Foto hadiah untuk gambar IG (opsional)" style="display:grid;place-items:center;overflow:hidden;padding:0">' + (h.img && IMGCACHE[h.img] ? '<img src="' + IMGCACHE[h.img].src + '" style="width:100%;height:100%;object-fit:contain">' : '🖼') + '<input type="file" accept="image/*" style="display:none"></label>' +
       '<button class="ib del" title="Hapus">✕</button></div>';
   }).join('');
   [].forEach.call($('b-hd').children, function (row) {
@@ -914,8 +915,25 @@ function hdRender() {
     row.querySelector('[data-k=nama]').oninput = function (e) { B.hadiah[i].nama = e.target.value; markDirty(); };
     row.querySelector('[data-k=nilai]').oninput = function (e) { var n = e.target.value.replace(/\D/g, ''); B.hadiah[i].nilai = n ? Number(n) : ''; markDirty(); };
     row.querySelector('[data-k=nilai]').onblur = function (e) { e.target.value = B.hadiah[i].nilai ? Number(B.hadiah[i].nilai).toLocaleString('id-ID') : ''; };
+    row.querySelector('input[type=file]').onchange = function (e) { var f = e.target.files[0]; if (f) prizeUpload(f, i); };
     row.querySelector('button').onclick = function () { B.hadiah.splice(i, 1); if (!B.hadiah.length) B.hadiah.push({ nama: '', nilai: '' }); markDirty(); hdRender(); };
   });
+}
+function prizeUpload(file, i) {
+  toast('Mengunggah foto…');
+  var fr = new FileReader();
+  fr.onload = function () {
+    var im = new Image();
+    im.onload = function () {
+      var s = Math.min(1, 640 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.round(im.width * s); cv.height = Math.round(im.height * s);
+      var x = cv.getContext('2d'); x.drawImage(im, 0, 0, cv.width, cv.height);
+      var d = x.getImageData(0, 0, cv.width, cv.height).data, alpha = false; for (var k = 3; k < d.length; k += 16) if (d[k] < 250) { alpha = true; break; }
+      var url = alpha ? cv.toDataURL('image/png') : cv.toDataURL('image/jpeg', 0.85);
+      run('adminImageSave', url).then(function (id) { var im2 = new Image(); im2.onload = function () { IMGCACHE[id] = im2; B.hadiah[i].img = id; markDirty(); hdRender(); toast('Foto hadiah tersimpan. Klik Simpan supaya tercatat di survei.'); }; im2.src = url; });
+    };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(file);
 }
 function hdAdd() { B.hadiah.push({ nama: '', nilai: '' }); markDirty(); hdRender(); var r = $('b-hd').lastChild; if (r) r.querySelector('input').focus(); }
 
@@ -972,99 +990,178 @@ function fitText(c, text, font, size, maxW, maxLines, minSize) {
 function pmDraw() {
   var story = PMF === 'story', W = 1080, H = story ? 1920 : 1350, cv = $('pm-c'), c = cv.getContext('2d');
   cv.width = W; cv.height = H; $('pm-cap').value = pmCaption();
-  $('pm-note').textContent = story ? 'Area putih bergaris di bawah untuk menempel stiker link survei di Instagram.' : 'Untuk postingan Feed, link survei ditaruh di bio Instagram.';
-  var fontsReady = document.fonts && document.fonts.load ? Promise.all(['700 60px Fredoka', '600 40px Fredoka', '800 30px Nunito', '700 30px Nunito'].map(function (f) { return document.fonts.load(f); })) : Promise.resolve();
-  fontsReady.then(function () { paint(c, W, H, story); }, function () { paint(c, W, H, story); });
+  $('pm-note').textContent = (story ? 'Area putih bergaris di bawah untuk menempel stiker link survei di Instagram. ' : 'Untuk postingan Feed, link survei ditaruh di bio Instagram. ') + 'Foto hadiah bisa diganti lewat Edit survei → Hadiah → 🖼.';
+  c.fillStyle = '#FCF6E5'; c.fillRect(0, 0, W, H); c.fillStyle = '#4A2412'; c.font = '700 40px sans-serif'; c.textAlign = 'center'; c.fillText('Menyiapkan gambar…', W / 2, H / 2);
+  var fontsReady = document.fonts && document.fonts.load ? Promise.all(['700 60px Fredoka', '700 40px Kalam', '800 30px Nunito', '700 30px Nunito'].map(function (f) { return document.fonts.load(f); })) : Promise.resolve();
+  var ready = Promise.all([fontsReady.catch(function () {}), loadAssets(), loadPrizeImgs(PM.hadiah.map(function (h) { return h.img; })).catch(function () {})]);
+  ready.then(function () { paintPoster(c, W, H, story); }, function () { paintPoster(c, W, H, story); });
 }
-function paint(c, W, H, story) {
-  var P = PM, cx = W / 2, padX = 90, cardW = W - 2 * padX;
-  c.fillStyle = PC.cream; c.fillRect(0, 0, W, H);
-  blob(c, 40, 30, 460, 380, -0.2, PC.yellow); blob(c, W - 20, 10, 420, 460, 0.35, PC.coral, .92);
-  blob(c, W - 10, H - 30, 480, 420, 0.1, PC.coral, .88); blob(c, 30, H - 10, 420, 380, 0.5, PC.yellow, .92);
-  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
-  var K = story ? 1 : 1.0, B = [];   // blok-blok konten: {h, draw(y)}
-
-  // logo
-  B.push({ h: 110, draw: function (y) {
-    c.font = '700 66px Fredoka'; var lw = c.measureText('MIL Gift Club').width;
-    c.fillStyle = PC.brown; c.textAlign = 'left'; c.fillText('MIL Gift Club', cx - lw / 2 - 8, y + 60);
-    c.fillStyle = PC.coral; c.fillText('.', cx + lw / 2 - 8, y + 60); c.textAlign = 'center';
-    c.font = '800 20px Nunito'; c.fillStyle = PC.brown2; c.letterSpacing = '6px'; c.fillText('INSIGHT · COMMUNITY · REWARDS', cx, y + 100); c.letterSpacing = '0px';
-  } });
-  // headline
-  var hs = story ? 86 : 78;
-  B.push({ h: hs * 2.15, draw: function (y) {
-    c.font = '700 ' + hs + 'px Fredoka'; c.fillStyle = PC.brown; c.fillText('Isi survei,', cx, y + hs);
-    c.fillStyle = PC.coral; c.fillText('menangkan hadiahnya!', cx, y + hs * 2.05);
-  } });
-  // banner nama survei
-  var ft = fitText(c, P.name, '700 {s}px Fredoka', story ? 56 : 52, W - 280, 2, 30), lh = ft.size * 1.16, bh = 52 + ft.lines.length * lh + 30;
-  B.push({ h: bh + 10, draw: function (y) {
-    c.save(); c.translate(cx, y + bh / 2); c.rotate(-0.025);
-    c.fillStyle = PC.brown; rr(c, -W / 2 + 92, -bh / 2 + 9, W - 172, bh, 26); c.fill();
-    c.fillStyle = PC.blue; rr(c, -W / 2 + 84, -bh / 2, W - 172, bh, 26); c.fill();
-    c.fillStyle = PC.yellow; c.font = '800 22px Nunito'; c.letterSpacing = '5px'; c.fillText('SURVEI', 0, -bh / 2 + 42); c.letterSpacing = '0px';
-    c.fillStyle = PC.white; c.font = '700 ' + ft.size + 'px Fredoka';
-    ft.lines.forEach(function (l, i) { c.fillText(l, 0, -bh / 2 + 52 + lh * (i + 1) - lh * 0.18); });
-    c.restore();
-  } });
-  // kartu hadiah
-  var main = P.hadiah[0] || { nama: '' }, rest = P.hadiah.slice(1, story ? 6 : 5);
-  var mt = fitText(c, main.nama, '700 {s}px Fredoka', story ? 68 : 64, cardW - 80, 2, 34), rowH = story ? 52 : 54, rf = story ? 31 : 30;
-  var cardH = 64 + mt.lines.length * mt.size * 1.12 + (main.nilai ? 48 : 0) + (rest.length ? 34 + rest.length * rowH : 0) + 34;
-  B.push({ h: cardH + 8, draw: function (y) {
-    c.fillStyle = PC.brown; rr(c, padX + 8, y + 8, cardW, cardH, 30); c.fill();
-    c.fillStyle = PC.white; rr(c, padX, y, cardW, cardH, 30); c.fill(); c.strokeStyle = PC.brown; c.lineWidth = 4; rr(c, padX, y, cardW, cardH, 30); c.stroke();
-    var yy = y + 58; c.fillStyle = PC.brown2; c.font = '800 28px Nunito'; c.letterSpacing = '3px'; c.fillText('🎁  HADIAH UTAMA', cx, yy); c.letterSpacing = '0px';
-    c.fillStyle = PC.coralD; c.font = '700 ' + mt.size + 'px Fredoka';
-    mt.lines.forEach(function (l) { yy += mt.size * 1.12; c.fillText(l, cx, yy); });
-    if (main.nilai) { yy += 48; c.fillStyle = PC.brown; c.font = '800 32px Nunito'; c.fillText('senilai ' + rp(main.nilai), cx, yy); }
-    if (rest.length) {
-      yy += 26; c.strokeStyle = PC.line; c.setLineDash([10, 8]); c.lineWidth = 3; c.beginPath(); c.moveTo(padX + 40, yy); c.lineTo(padX + cardW - 40, yy); c.stroke(); c.setLineDash([]);
-      yy -= rowH * 0.25;
-      rest.forEach(function (h) {
-        yy += rowH; c.textAlign = 'left'; c.fillStyle = PC.brown; c.font = '700 ' + rf + 'px Nunito';
-        var nm = '•  ' + h.nama, maxw = cardW - 100 - (h.nilai ? 210 : 0);
-        while (c.measureText(nm).width > maxw && nm.length > 6) nm = nm.slice(0, -2) + '…';
-        c.fillText(nm, padX + 44, yy);
-        if (h.nilai) { c.textAlign = 'right'; c.fillStyle = PC.coralD; c.font = '800 ' + rf + 'px Nunito'; c.fillText(rp(h.nilai), padX + cardW - 44, yy); }
-        c.textAlign = 'center';
-      });
-    }
-  } });
-  // periode
-  var per = [P.periode ? '📅 ' + P.periode : '', P.announce ? '🏆 Pengumuman ' + P.announce : ''].filter(String).join('      ');
-  if (per) B.push({ h: 50, draw: function (y) { c.font = '800 ' + (story ? 30 : 30) + 'px Nunito'; c.fillStyle = PC.brown; c.fillText(per, cx, y + 36); } });
-  if (story) {
-    // langkah (teks panjang dibungkus 2 baris)
-    c.font = '700 28px Nunito';
-    var steps = ['Isi survei (klik link di bawah)'].concat(P.langkah).slice(0, 6).map(function (t, i) { return wrap(c, (i + 1) + '.  ' + t.replace(/^❤️\s*/, ''), cardW - 90).slice(0, 2); });
-    var nl = steps.reduce(function (a, l) { return a + l.length; }, 0), sh = 70 + nl * 38 + steps.length * 8;
-    B.push({ h: sh, draw: function (y) {
-      c.fillStyle = PC.white; rr(c, padX, y, cardW, sh, 26); c.fill(); c.strokeStyle = PC.line; c.lineWidth = 3; rr(c, padX, y, cardW, sh, 26); c.stroke();
-      c.textAlign = 'left'; c.fillStyle = PC.coral; c.font = '800 25px Nunito'; c.letterSpacing = '3px'; c.fillText('CARA IKUT', padX + 40, y + 48); c.letterSpacing = '0px';
-      c.fillStyle = PC.brown; c.font = '700 28px Nunito'; var yy = y + 58;
-      steps.forEach(function (ls) { ls.forEach(function (l, k) { yy += 38; c.fillText(k ? '     ' + l : l, padX + 40, yy); }); yy += 8; });
-      c.textAlign = 'center';
-    } });
-    B.push({ h: 230, draw: function (y) {
-      c.fillStyle = 'rgba(255,255,255,.8)'; rr(c, 200, y, W - 400, 230, 30); c.fill();
-      c.strokeStyle = PC.brown2; c.lineWidth = 4; c.setLineDash([16, 12]); rr(c, 200, y, W - 400, 230, 30); c.stroke(); c.setLineDash([]);
-      c.fillStyle = PC.brown2; c.font = '800 28px Nunito'; c.fillText('👆 KLIK LINK DI SINI', cx, y + 126);
-    } });
+// ---- gaya poster MIL Gift Club (mengikuti poster giveaway resmi) ----
+var ASSET_BASE = 'https://survei-milgiftclub.netlify.app/assets/promo/', ASSET = {}, IMGCACHE = {};
+var PP = { cream: '#FCF6E5', yellow: '#FDD23A', yellowL: '#FFE27A', blue: '#4FC0FC', blueD: '#2FA8EE', brown: '#4A2412', white: '#FFFFFF', red: '#E8343B' };
+function loadAssets() {
+  var names = ['logo', 'giveaway', 'airpods', 'crown', 'map', 'calendar'];
+  return Promise.all(names.map(function (n) {
+    if (ASSET[n]) return ASSET[n];
+    return new Promise(function (ok) { var im = new Image(); im.crossOrigin = 'anonymous'; im.onload = function () { ASSET[n] = im; ok(im); }; im.onerror = function () { ok(null); }; im.src = ASSET_BASE + n + '.png'; });
+  }));
+}
+function loadPrizeImgs(ids) {
+  ids = ids.filter(function (id) { return id && !IMGCACHE[id]; });
+  if (!ids.length) return Promise.resolve();
+  return run('adminImageGet', ids).then(function (m) {
+    return Promise.all(Object.keys(m || {}).map(function (id) { return new Promise(function (ok) { var im = new Image(); im.onload = function () { IMGCACHE[id] = im; ok(); }; im.onerror = ok; im.src = m[id]; }); }));
+  });
+}
+function star(c, x, y, r, col) { c.save(); c.translate(x, y); c.fillStyle = col || PP.yellow; c.strokeStyle = PP.brown; c.lineWidth = 2.5; c.beginPath(); for (var i = 0; i < 8; i++) { var a = i * Math.PI / 4, rr2 = i % 2 ? r * 0.32 : r; c.lineTo(Math.sin(a) * rr2, -Math.cos(a) * rr2); } c.closePath(); c.fill(); c.stroke(); c.restore(); }
+function dash(c, x, y, len, ang, w) { c.save(); c.translate(x, y); c.rotate(ang); c.strokeStyle = PP.yellow; c.lineCap = 'round'; c.lineWidth = w || 14; c.beginPath(); c.moveTo(0, 0); c.lineTo(len, 0); c.stroke(); c.restore(); }
+function arrow(c, x1, y1, cx1, cy1, x2, y2) {
+  c.save(); c.strokeStyle = PP.brown; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.quadraticCurveTo(cx1, cy1, x2, y2); c.stroke();
+  var a = Math.atan2(y2 - cy1, x2 - cx1); c.beginPath(); c.moveTo(x2, y2); c.lineTo(x2 - 18 * Math.cos(a - 0.5), y2 - 18 * Math.sin(a - 0.5)); c.moveTo(x2, y2); c.lineTo(x2 - 18 * Math.cos(a + 0.5), y2 - 18 * Math.sin(a + 0.5)); c.stroke(); c.restore();
+}
+function splitPrize(h) {
+  var n = String(h.nama || ''), m = n.match(/\s*(untuk\s+\d+\s+pemenang)\s*/i), sub = m ? m[1] : '';
+  return { title: n.replace(/\s*untuk\s+\d+\s+pemenang\s*/i, ' ').trim(), sub: sub, val: h.nilai ? rp(h.nilai) : '' };
+}
+function prizeKind(h) {
+  if (h.img && IMGCACHE[h.img]) return { img: IMGCACHE[h.img] };
+  var n = String(h.nama || '');
+  if (/airpods|earbuds|tws|earphone/i.test(n) && ASSET.airpods) return { img: ASSET.airpods };
+  if (/\bmap\b/i.test(n) && /voucher/i.test(n) && ASSET.map) return { img: ASSET.map };
+  if (/saldo|gopay|ovo|dana|shopeepay|e-?wallet|pulsa/i.test(n)) return { draw: 'wallet' };
+  if (/voucher|gift card|kupon|e-?voucher/i.test(n)) return { draw: 'voucher' };
+  return { draw: 'gift' };
+}
+function fitImg(c, im, x, y, w, h, rot) {
+  var s = Math.min(w / im.width, h / im.height), dw = im.width * s, dh = im.height * s;
+  c.save(); c.translate(x + w / 2, y + h / 2); c.rotate(rot || 0); c.drawImage(im, -dw / 2, -dh / 2, dw, dh); c.restore();
+}
+function drawPrizeArt(c, h, x, y, w, hh, rot) {
+  var k = prizeKind(h);
+  if (k.img) return fitImg(c, k.img, x, y, w, hh, rot);
+  var s = splitPrize(h), cw = Math.min(w, hh * 1.6), ch = cw / 1.6;
+  c.save(); c.translate(x + w / 2, y + hh / 2); c.rotate(rot || 0);
+  if (k.draw === 'wallet') {
+    c.fillStyle = '#BFE9FF'; rr(c, -cw / 2 - 8, -ch / 2 - 8, cw + 16, ch + 16, 26); c.fill();
+    c.fillStyle = PP.blueD; rr(c, -cw / 2, -ch / 2, cw, ch, 22); c.fill();
+    c.fillStyle = PP.white; rr(c, -cw / 2 + 24, -16, 46, 34, 8); c.fill(); c.fillStyle = PP.blueD; c.fillRect(-cw / 2 + 52, -6, 18, 14);
+    var brand = (s.title.match(/(?:saldo|e-?wallet)\s+(\S+)/i) || [0, s.title.split(' ')[0]])[1];
+    var fsz = Math.round(ch * 0.26); c.font = '700 ' + fsz + 'px Fredoka'; while (c.measureText(brand).width > cw - 110 && fsz > 14) { fsz -= 2; c.font = '700 ' + fsz + 'px Fredoka'; }
+    c.fillStyle = PP.white; c.textAlign = 'left'; c.fillText(brand, -cw / 2 + 86, Math.round(fsz * 0.38));
+  } else if (k.draw === 'voucher') {
+    c.fillStyle = PP.red; rr(c, -cw / 2 + 10, -ch / 2 + 12, cw, ch, 14); c.fill();
+    c.fillStyle = PP.white; rr(c, -cw / 2, -ch / 2, cw, ch, 14); c.fill(); c.strokeStyle = '#F3C5C5'; c.lineWidth = 2; c.stroke();
+    c.fillStyle = PP.red; c.fillRect(-cw / 2 + cw * 0.22, -ch / 2, 16, ch); c.fillRect(-cw / 2, -10, cw, 16);
+    c.beginPath(); c.ellipse(-cw / 2 + cw * 0.22 - 22, -2, 26, 15, -0.5, 0, Math.PI * 2); c.ellipse(-cw / 2 + cw * 0.22 + 38, -2, 26, 15, 0.5, 0, Math.PI * 2); c.fill();
+    var brand2 = s.title.replace(/^(e-?)?voucher\s*/i, '').split(/\s+/).slice(0, 2).join(' ') || 'VOUCHER';
+    c.textAlign = 'center'; c.fillStyle = PP.red; c.font = '700 ' + Math.round(ch * 0.2) + 'px Fredoka'; c.fillText(brand2.toUpperCase(), cw * 0.16, -ch * 0.12);
+    c.fillStyle = PP.brown; c.font = '800 ' + Math.round(ch * 0.1) + 'px Nunito'; c.fillText('GIFT VOUCHER', cw * 0.16, ch * 0.02 + 6);
+    if (s.val) { c.font = '800 ' + Math.round(ch * 0.17) + 'px Nunito'; c.fillText(s.val, cw * 0.16, ch * 0.3); }
   } else {
-    B.push({ h: 130, draw: function (y) {
-      c.fillStyle = PC.brown; rr(c, padX + 8, y + 8, cardW, 120, 26); c.fill();
-      c.fillStyle = PC.yellow; rr(c, padX, y, cardW, 120, 26); c.fill();
-      c.fillStyle = PC.brown; c.font = '700 42px Fredoka'; c.fillText('Link survei ada di bio ' + P.ig, cx, y + 56);
-      c.font = '700 26px Nunito'; c.fillText('Follow · Like · Tag 3 teman · Share ke Story', cx, y + 96);
-    } });
+    var b = Math.min(w, hh) * 0.62;
+    c.fillStyle = PP.red; rr(c, -b / 2, -b * 0.25, b, b * 0.75, 12); c.fill();
+    c.fillStyle = '#F25A5F'; rr(c, -b / 2 - 12, -b * 0.42, b + 24, b * 0.22, 10); c.fill();
+    c.fillStyle = PP.yellow; c.fillRect(-b * 0.08, -b * 0.42, b * 0.16, b * 0.92);
+    c.beginPath(); c.ellipse(-b * 0.18, -b * 0.5, b * 0.18, b * 0.1, -0.5, 0, Math.PI * 2); c.ellipse(b * 0.18, -b * 0.5, b * 0.18, b * 0.1, 0.5, 0, Math.PI * 2); c.fill();
   }
-  // susun vertikal: sisa ruang dibagi rata sebagai jarak antar blok
-  var top = story ? 110 : 60, bottom = story ? 110 : 70, total = B.reduce(function (a, b) { return a + b.h; }, 0);
-  var gap = Math.max(18, Math.min(story ? 70 : 54, (H - top - bottom - total) / (B.length - 1)));
-  var y = top + Math.max(0, (H - top - bottom - total - gap * (B.length - 1)) / 2);
-  B.forEach(function (b) { b.draw(y); y += b.h + gap; });
+  c.restore();
+}
+function labelBlob(c, x, y, h, size, rot) {
+  var s = splitPrize(h), lines = [{ t: s.title, f: '700 ' + size + 'px Kalam' }];
+  if (s.val) lines.push({ t: (s.sub ? 'senilai ' : '') + s.val, f: '700 ' + Math.round(size * 0.82) + 'px Kalam' });
+  if (s.sub) lines.push({ t: s.sub, f: '700 ' + Math.round(size * 0.72) + 'px Kalam' });
+  var lh = size * 0.98, w = 0;
+  lines.forEach(function (l) { c.font = l.f; w = Math.max(w, c.measureText(l.t).width); });
+  w = Math.min(w, 380); var bw = w + 70, bh = lines.length * lh + 44;
+  c.save(); c.translate(x, y); c.rotate(rot || -0.05);
+  c.fillStyle = PP.yellow; c.beginPath(); c.ellipse(0, 0, bw / 2, bh / 2, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = PP.brown; c.textAlign = 'center';
+  lines.forEach(function (l, i) { c.font = l.f; var t = l.t; while (c.measureText(t).width > 380 && t.length > 6) t = t.slice(0, -2) + '…'; c.fillText(t, 0, -bh / 2 + 22 + lh * (i + 0.82)); });
+  c.restore();
+  return { w: bw, h: bh };
+}
+function paintPoster(c, W, H, story) {
+  var S = story;
+  c.fillStyle = PP.cream; c.fillRect(0, 0, W, H);
+  blob(c, 20, 30, 360, 300, -0.3, PP.yellow); blob(c, W - 20, 40, 380, 300, 0.25, PP.blue);
+  blob(c, -40, H * 0.45, 200, 300, 0.1, PP.blue); blob(c, W + 30, H * 0.56, 220, 360, -0.1, PP.yellow);
+  blob(c, 40, H - 20, 380, 300, 0.3, PP.yellow); blob(c, W - 30, H - 10, 360, 280, -0.2, PP.blue);
+  // konten digambar di kanvas sementara, lalu dikecilkan bila tidak muat
+  var off = document.createElement('canvas'); off.width = W; off.height = 3200;
+  var oc = off.getContext('2d'), bottom = posterContent(oc, W, S);
+  var top = S ? 60 : 20, zoneH = S ? 300 : 0, avail = H - top - (S ? zoneH + 70 : 20);
+  var k = Math.min(1, avail / bottom), dw = W * k, dh = bottom * k, dy = top + (S ? Math.max(0, (avail - dh) / 2) : 0);
+  c.drawImage(off, 0, 0, W, bottom, (W - dw) / 2, dy, dw, dh);
+  if (S) {
+    var zy = H - zoneH - 70;
+    c.fillStyle = 'rgba(255,255,255,.85)'; rr(c, 190, zy, W - 380, zoneH, 30); c.fill();
+    c.strokeStyle = PP.brown; c.lineWidth = 4; c.setLineDash([16, 12]); rr(c, 190, zy, W - 380, zoneH, 30); c.stroke(); c.setLineDash([]);
+    c.textAlign = 'center'; c.fillStyle = '#9A7A66'; c.font = '700 28px Nunito'; c.fillText('(tempel stiker link di sini)', W / 2, zy + zoneH / 2 + 10);
+  }
+}
+function posterContent(c, W, S) {
+  var P = PM, cx = W / 2, y = 0;
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  if (ASSET.logo) { fitImg(c, ASSET.logo, cx - 200, y, 400, 128); y += 130; } else { c.font = '700 64px Fredoka'; c.fillStyle = PP.brown; c.fillText('MIL Gift Club', cx, y + 70); y += 100; }
+  if (ASSET.giveaway) { var gw = S ? 960 : 900, gh = gw * ASSET.giveaway.height / ASSET.giveaway.width; c.drawImage(ASSET.giveaway, cx - gw / 2, y, gw, gh); y += gh - 6; }
+  // banner nama survei
+  var bw = W - 192, ft = fitText(c, P.name, '700 {s}px Fredoka', S ? 62 : 56, bw - 90, 2, 30), bh = 58 + ft.lines.length * ft.size * 1.12 + 14;
+  c.save(); c.translate(cx, y + bh / 2); c.rotate(-0.012);
+  c.fillStyle = PP.brown; rr(c, -bw / 2 + 4, -bh / 2 + 10, bw, bh, 22); c.fill();
+  c.fillStyle = PP.blue; rr(c, -bw / 2, -bh / 2, bw, bh, 22); c.fill(); c.strokeStyle = PP.brown; c.lineWidth = 7; c.stroke();
+  c.fillStyle = PP.brown; c.font = '700 30px Kalam'; c.fillText('Survei khusus untuk kamu', 0, -bh / 2 + 42);
+  c.fillStyle = PP.white; c.strokeStyle = PP.brown; c.lineWidth = 3; c.font = '700 ' + ft.size + 'px Fredoka';
+  ft.lines.forEach(function (l, i) { var yy = -bh / 2 + 52 + ft.size * 1.12 * (i + 1) - 6; c.strokeText(l, 0, yy); c.fillText(l, 0, yy); });
+  c.restore(); y += bh + 16;
+  // hadiah utama
+  var main = P.hadiah[0] || { nama: '' }, rest = P.hadiah.slice(1, 5), py = y + 10, mw = S ? 380 : 330, mh = S ? 350 : 300;
+  if (ASSET.crown) fitImg(c, ASSET.crown, cx - 42, py, 84, 58);
+  dash(c, cx - 170, py + 40, 40, -2.0, 10); dash(c, cx + 175, py + 50, 40, -1.1, 10);
+  star(c, cx + 120, py + 40, 16); star(c, cx + 185, py + mh, 14); star(c, cx - 210, py + mh + 10, 12, '#9ED8FF');
+  drawPrizeArt(c, main, cx - mw / 2, py + 56, mw, mh, 0);
+  c.save(); c.translate(cx - (S ? 310 : 290), py + 130); c.rotate(-0.18); c.fillStyle = PP.brown; c.font = '700 ' + (S ? 46 : 42) + 'px Kalam'; c.fillText('Hadiah', 0, 0); c.fillText('utama!', 10, 46); c.restore();
+  arrow(c, cx - (S ? 300 : 280), py + 200, cx - 260, py + 270, cx - mw / 2 - 6, py + 230);
+  var lb = labelBlob(c, cx + (S ? 300 : 285), py + 130, main, S ? 46 : 42, -0.05);
+  arrow(c, cx + (S ? 270 : 260), py + 130 + lb.h / 2, cx + 250, py + 250, cx + mw / 2 + 10, py + 250);
+  y = py + 56 + mh;
+  // hadiah lainnya
+  var n = rest.length;
+  if (n) {
+    var ry = y + 30, colW = (W - 120) / n, iw = n === 1 ? 340 : n === 2 ? 300 : n === 3 ? 230 : 190, ih = iw * 0.62, maxB = ry;
+    rest.forEach(function (h, i) {
+      var x0 = 60 + colW * i + colW / 2, rot = i % 2 ? 0.06 : -0.08, yy = ry + (n === 2 && i === 1 ? 24 : 0);
+      drawPrizeArt(c, h, x0 - iw / 2, yy, iw, ih, rot);
+      star(c, x0 + iw / 2 + 6, yy + 8, 12); if (i === 0) star(c, x0 - iw / 2 - 14, yy + ih, 10);
+      var fs = n <= 2 ? 36 : n === 3 ? 30 : 26, ly = yy + ih + 18;
+      var dims = labelBlob(c, -9999, -9999, h, fs, 0);
+      labelBlob(c, x0, ly + dims.h / 2, h, fs, i % 2 ? 0.04 : -0.05);
+      maxB = Math.max(maxB, ly + dims.h);
+    });
+    y = maxB;
+  }
+  // periode
+  var per = P.periode || '', m = per.match(/(?:hingga|sampai)\s+(.+)$/i), small = m ? 'Periode pengisian dibuka sampai' : 'Periode giveaway', big = m ? m[1].replace(/\s+\d{4}$/, '') : per;
+  if (per) {
+    y += 30;
+    c.font = '700 ' + (S ? 66 : 60) + 'px Fredoka'; var tw = Math.max(c.measureText(big).width + 120, 460), ph = S ? 122 : 112, px0 = cx - tw / 2 + 55;
+    c.save(); c.translate(px0 + tw / 2, y + ph / 2); c.rotate(-0.02); c.fillStyle = PP.blueD;
+    c.beginPath(); c.moveTo(-tw / 2, -ph / 2 + 6); c.lineTo(tw / 2 - 10, -ph / 2); c.lineTo(tw / 2 + 6, ph / 2 - 10); c.lineTo(-tw / 2 + 12, ph / 2); c.closePath(); c.fill();
+    c.fillStyle = PP.white; c.font = '700 ' + (S ? 31 : 28) + 'px Kalam'; c.fillText(small, 0, -ph / 2 + 38);
+    c.fillStyle = PP.yellow; c.strokeStyle = PP.brown; c.lineWidth = 4; c.font = '700 ' + (S ? 66 : 60) + 'px Fredoka'; c.strokeText(big, 0, ph / 2 - 16); c.fillText(big, 0, ph / 2 - 16);
+    c.restore();
+    if (ASSET.calendar) fitImg(c, ASSET.calendar, px0 - 125, y, 115, 115);
+    y += ph;
+  }
+  // penutup
+  y += 28;
+  if (S) { c.fillStyle = PP.brown; c.font = '700 46px Kalam'; c.fillText('Klik link di bawah ini, ya!', cx, y + 46); y += 60; }
+  else {
+    c.font = '700 48px Kalam'; var t1 = 'Link survei ada di', t2 = 'bio ' + P.ig, w1 = c.measureText(t1).width, w2 = c.measureText(t2).width, gap = 24, tot = w1 + gap + w2 + 40, x1 = cx - tot / 2;
+    c.textAlign = 'left'; c.fillStyle = PP.brown; c.fillText(t1, x1, y + 48);
+    c.fillStyle = PP.yellow; rr(c, x1 + w1 + gap, y, w2 + 40, 68, 14); c.fill();
+    c.fillStyle = PP.brown; c.fillText(t2, x1 + w1 + gap + 20, y + 48); c.textAlign = 'center'; y += 72;
+  }
+  return y + 10;
 }
 function pmDownload() {
   var name = 'IG_' + (PMF === 'story' ? 'Story' : 'Feed') + '_' + PM.name.replace(/[^\w]+/g, '_').slice(0, 40) + '.png';

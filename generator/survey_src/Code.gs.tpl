@@ -1272,3 +1272,25 @@ function izinkanAkses() {
   try { UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true }); } catch (e) {}
   Logger.log('Akses diizinkan. Sheet: ' + ss_().getName() + ' (' + n + ' tab). Akun: ' + Session.getActiveUser().getEmail());
 }
+
+// ---- Foto hadiah (untuk gambar IG). Disimpan di tab "Gambar Hadiah", dipotong per sel. ----
+var IMG_TAB = 'Gambar Hadiah';
+function adminImageSave(dataUrl) {
+  var who = requireAdmin_();
+  dataUrl = String(dataUrl || '');
+  if (!/^data:image\/(png|jpeg|webp);base64,/.test(dataUrl)) throw new Error('Format gambar tidak dikenali');
+  if (dataUrl.length > 1500000) throw new Error('Gambar terlalu besar. Pakai gambar yang lebih kecil.');
+  var s = sheet_(IMG_TAB);
+  if (!s) { s = ss_().insertSheet(IMG_TAB); s.getRange(1, 1, 1, 4).setValues([['id', 'dibuat', 'oleh', 'data (bersambung ke kolom kanan)']]).setFontWeight('bold').setBackground('#FFFF00'); s.setFrozenRows(1); }
+  var id = 'img' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), parts = [];
+  for (var i = 0; i < dataUrl.length; i += SCHEMA_CHUNK) parts.push(dataUrl.slice(i, i + SCHEMA_CHUNK));
+  s.appendRow([id, new Date(), who].concat(parts));
+  return id;
+}
+function adminImageGet(ids) {
+  requireAdmin_();
+  var s = sheet_(IMG_TAB), out = {}; ids = ids || [];
+  if (!s || s.getLastRow() < 2 || !ids.length) return out;
+  s.getRange(2, 1, s.getLastRow() - 1, s.getLastColumn()).getValues().forEach(function (r) { if (ids.indexOf(String(r[0])) >= 0) out[r[0]] = r.slice(3).join(''); });
+  return out;
+}
