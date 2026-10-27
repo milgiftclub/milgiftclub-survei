@@ -7,3 +7,4 @@ generator/tests/screenout.json
 .clasprc.json
 *.png
 !site/**/*.png
+generator/tests/page.html
