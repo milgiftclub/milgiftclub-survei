@@ -54,7 +54,7 @@ Q = [
  ('Z2', T_OPEN, 'Tuliskan username Instagram Anda (untuk verifikasi keikutsertaan giveaway @milgift_club).', 'OA', ['@___'], 'Wajib diisi. Dicek ke data respons: jika username sudah pernah mengisi survei ini -> berhenti (screen out) dan diarahkan ke survei lainnya',
   'Verifikasi duplikasi & pengumuman pemenang. Syarat follow @milgift_club dicek saat undian'),
  ('PV', T_OPEN, 'Kamu sudah pernah mengisi survei MIL Gift Club sebelumnya. Supaya tidak perlu mengisi data diri lagi, masukkan 4 digit terakhir nomor WhatsApp yang kamu daftarkan.', 'OA', ['4 digit terakhir (opsional)'],
-  "Tampilkan HANYA jika username {Z2} ditemukan di jawaban survei lain. Jika 4 digit cocok -> semua pertanyaan profil yang sudah pernah dijawab ({S0}-{S3}, {A1}, {A4M}-{A17}) terisi otomatis dan dilewati; hanya yang belum ada yang ditanyakan. Kosong / 3x salah -> isi profil seperti biasa",
+  "Tampilkan HANYA jika username {Z2} ditemukan di jawaban survei lain. Jika 4 digit cocok -> semua pertanyaan profil yang sudah pernah dijawab ({S0}-{S3}, {A1}, {A4M}-{A16}) terisi otomatis dan dilewati; hanya yang belum ada yang ditanyakan. Kosong / 3x salah -> isi profil seperti biasa",
   'Responden lama melewati profil dasar. Verifikasi 4 digit mencegah orang lain memakai username IG seseorang'),
  ('PR', T_OPEN, 'Data diri kamu terakhir diperbarui lebih dari 6 bulan lalu. Apakah data berikut masih sesuai?', 'SA',
   ['Ya, masih sesuai', 'Ada yang berubah, saya mau isi ulang'],
@@ -120,8 +120,6 @@ Q = [
  ('A15', T_PROF, 'Apakah Anda mengenakan hijab dalam keseharian?', 'SA', ['Ya, setiap hari', 'Kadang-kadang', 'Tidak', 'Tidak ingin menjawab'],
   "Tampilkan HANYA jika {S2} = 'Wanita'", 'Targeting kategori fashion muslim / modest. Ada opsi tidak ingin menjawab'),
  ('A16', T_PROF, 'Kendaraan apa saja yang Anda miliki? (boleh pilih lebih dari satu)', 'MA', ['Mobil', 'Motor', 'Sepeda', 'Tidak memiliki kendaraan (eksklusif)'], '-', 'Proxy SES & targeting otomotif'),
- ('A17', T_PROF, 'Apakah Anda memelihara hewan? (boleh pilih lebih dari satu)', 'MA',
-  ['Kucing', 'Anjing', 'Ikan', 'Burung', 'Hewan lainnya', 'Tidak memelihara hewan (eksklusif)'], '-', 'Targeting kategori pet care'),
 
  # ---------------- PLATFORM ----------------
  ('B2', T_PLAT, 'Dari aplikasi/kanal yang Anda gunakan untuk berbelanja, mana yang PALING SERING Anda gunakan?', 'SA',

@@ -107,7 +107,7 @@ print('ok', OUT)
 # ---- halaman survei generik (survei yang dibuat dari Dashboard): /s/?id=... ----
 m = re.search(r'var SCHEMAS = (\{.*?\});\nvar VARIANT', src, re.S)
 schemas = json.loads(m.group(1))
-STD_IDS = ['O1', 'Z2', 'PV', 'PR', 'S0', 'S0B', 'S1', 'S2', 'S3', 'A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'QC1', 'Z1', 'Z3']
+STD_IDS = ['O1', 'Z2', 'PV', 'PR', 'S0', 'S0B', 'S1', 'S2', 'S3', 'A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'QC1', 'Z1', 'Z3']
 std = {q['id']: q for q in schemas['v1'] if q['id'] in STD_IDS}
 missing = [x for x in STD_IDS if x not in std]
 assert not missing, missing

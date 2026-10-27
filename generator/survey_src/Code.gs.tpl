@@ -57,13 +57,13 @@ var PANEL_COLS = [
   ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5'],
   ['tahun_lahir', 'S0'], ['status_pernikahan', 'A4M'], ['jumlah_anak', 'A4N'], ['usia_anak', 'A4K'], ['peran_belanja_rumah_tangga', 'A9'],
   ['media_sosial_harian', 'A10'], ['durasi_media_sosial', 'A11'], ['metode_pembayaran', 'A12'], ['jenis_hp', 'A13'], ['minat_hobi', 'A14'],
-  ['hijab', 'A15'], ['kendaraan', 'A16'], ['hewan_peliharaan', 'A17'], ['profil_diperbarui', 'profil_diperbarui'], ['pengalaman_live_shopping', 'D1']
+  ['hijab', 'A15'], ['kendaraan', 'A16'], ['profil_diperbarui', 'profil_diperbarui'], ['pengalaman_live_shopping', 'D1']
 ];
 var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
 var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
 var PROFILE_KEYS = ['S0', 'S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8',
-  'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'];
-var PROFILE_MULTI = ['S3', 'A4K', 'A10', 'A12', 'A14', 'A16', 'A17'];   // jawaban pilihan ganda (disimpan "a | b")
+  'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
+var PROFILE_MULTI = ['S3', 'A4K', 'A10', 'A12', 'A14', 'A16'];   // jawaban pilihan ganda (disimpan "a | b")
 var PROFILE_REFRESH_DAYS = 183;   // profil > 6 bulan -> responden diminta konfirmasi / isi ulang
 function respTab_(variant) {
   if (variant === 'v2') return SH.RESP2;
@@ -92,9 +92,47 @@ var SET_DEFAULTS = [
   ['API_KEY', '', 'Kunci API untuk ATLAS (buat dari Dashboard > API)'],
   ['LINK_SURVEI_BARU', SURVEY_URL + '?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
   ['ANTHROPIC_API_KEY', '', 'Kunci API Claude (console.anthropic.com) untuk fitur "Minta AI" di Buat Survei. Kosong = fitur AI mati'],
-  ['AI_MODEL', 'claude-sonnet-5-5', 'Model Claude yang dipakai untuk menyusun survei']
+  ['AI_MODEL', 'claude-sonnet-5-5', 'Model Claude yang dipakai untuk menyusun survei'],
+  ['TUTUP_V1', '2026-12-31T23:59', 'Survei Semua Kategori tutup otomatis pada tanggal & jam ini (WIB). Kosong = tanpa batas waktu'],
+  ['TUTUP_V2', '2026-12-31T23:59', 'Survei Fashion Wanita, Tas & Aksesori, Hijab tutup otomatis pada tanggal & jam ini (WIB)'],
+  ['PERIODE_KE', 1, 'Periode giveaway survei utama (angka)'],
+  ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama']
 ];
+
+// ---- tanggal tutup & periode giveaway ----
+var BULAN_ = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+/** '2026-12-31T23:59' (WIB) / Date -> Date; kosong / tidak valid -> null */
+function closeAt_(v) {
+  if (!v) return null;
+  if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v) ? null : v;
+  var m = String(v).trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2})[:.](\d{2}))?/);
+  if (!m) return null;
+  var d = new Date(m[1] + '-' + m[2] + '-' + m[3] + 'T' + ('0' + (m[4] || '23')).slice(-2) + ':' + (m[5] || '59') + ':00+07:00');
+  return isNaN(d) ? null : d;
+}
+function closed_(v) { var d = closeAt_(v); return !!d && new Date() > d; }
+/** '31 Desember 2026' (+ ', 17.00 WIB' bila jamnya bukan 23.59) */
+function fmtTutup_(v) {
+  var d = closeAt_(v); if (!d) return '';
+  var w = new Date(d.getTime() + 7 * 3600e3), hh = w.getUTCHours(), mm = w.getUTCMinutes();
+  return w.getUTCDate() + ' ' + BULAN_[w.getUTCMonth()] + ' ' + w.getUTCFullYear() + (hh === 23 && mm === 59 ? '' : ', ' + ('0' + hh).slice(-2) + '.' + ('0' + mm).slice(-2) + ' WIB');
+}
+function tutupText_(v) { var t = fmtTutup_(v); return t ? 'Hingga ' + t : ''; }
+function periodeText_(ke, th) { ke = Number(ke) || 0; th = Number(th) || 0; return ke ? 'Periode ' + ke + (th ? ' ' + th : '') : (th ? 'Periode ' + th : ''); }
+/** label & teks periode survei utama (v1/v2), dari Pengaturan */
+function mainPeriode_(variant) {
+  var p = periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN')), t = tutupText_(set_(variant === 'v2' ? 'TUTUP_V2' : 'TUTUP_V1'));
+  return { label: p ? 'Survei MIL Gift Club · ' + p : CONFIG.PERIODE_LABEL, periode: t || CONFIG.PERIODE_GIVEAWAY, periodeKe: Number(set_('PERIODE_KE')) || 1, tahun: Number(set_('PERIODE_TAHUN')) || new Date().getFullYear() };
+}
+/** label & teks periode survei buatan Dashboard */
+function customPeriode_(c) {
+  var sc = c.schema || {}, br = sc.brand && sc.brand.mode === 'client' ? sc.brand.name : '';
+  var p = periodeText_(sc.periodeKe, sc.tahun);
+  return { label: p ? (br ? 'Giveaway ' + br : 'Survei MIL Gift Club') + ' · ' + p : '', periode: tutupText_(sc.tutup) || sc.periode || '' };
+}
 var SET_MEMO_ = null;
+/** nilai tanggal untuk input datetime-local di Dashboard */
+function inputDate_(v) { var d = closeAt_(v); if (!d) return ''; var w = new Date(d.getTime() + 7 * 3600e3); return w.toISOString().slice(0, 16); }
 function settings_() {
   if (SET_MEMO_) return SET_MEMO_;
   var o = {}; SET_DEFAULTS.forEach(function (d) { o[d[0]] = d[1]; });
@@ -117,8 +155,8 @@ function bool_(v) { return typeof v === 'string' ? !/^(false|tidak|no|0|tutup)$/
 // true / 'true' / 'ya' = dibuka; false / 'false' / 'tidak' = ditutup (toleran salah ketik tanda kutip / huruf besar)
 function isOpen_(variant) {
   if (!bool_(CONFIG.SURVEY_OPEN)) return false;
-  if (variant && variant !== 'v1' && variant !== 'v2') { var c = customById_(variant); return !!c && c.status === 'Dibuka'; }
-  if (variant) return bool_(set_(variant === 'v2' ? 'SURVEY_OPEN_V2' : 'SURVEY_OPEN_V1'));
+  if (variant && variant !== 'v1' && variant !== 'v2') { var c = customById_(variant); return !!c && c.status === 'Dibuka' && !closed_(c.schema.tutup); }
+  if (variant) return bool_(set_(variant === 'v2' ? 'SURVEY_OPEN_V2' : 'SURVEY_OPEN_V1')) && !closed_(set_(variant === 'v2' ? 'TUTUP_V2' : 'TUTUP_V1'));
   return true;
 }
 
@@ -132,8 +170,8 @@ function publicConfig_(variant, src) {
     variant: String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1',
     funnelAll: CONFIG.FUNNEL_ALL_CATEGORIES,
     high: highList_(),
-    periodeLabel: CONFIG.PERIODE_LABEL || '',
-    periode: CONFIG.PERIODE_GIVEAWAY || '',
+    periodeLabel: mainPeriode_(variant).label || '',
+    periode: mainPeriode_(variant).periode || '',
     hadiahUtama: CONFIG.HADIAH_UTAMA || '',
     hadiah: CONFIG.HADIAH || [],
     ig: CONFIG.IG_HANDLE || '',
@@ -159,6 +197,8 @@ function doGet(e) {
   try { t = HtmlService.createTemplateFromFile(file); }
   catch (err) { t = HtmlService.createTemplateFromFile('Index'); t.cfgJson = JSON.stringify(publicConfig_(prm.survei, prm.src || prm.utm_source)); }
   t.search = JSON.stringify(q ? '?' + q : '').replace(/</g, '\\u003c');
+  var mp = cid ? null : mainPeriode_(sv === 'v2' ? 'v2' : 'v1');
+  t.ovr = JSON.stringify(mp ? { PERIODE_LABEL: mp.label, PERIODE_GIVEAWAY: mp.periode } : {}).replace(/</g, '\\u003c');
   var c = cid ? customById_(cid) : null;
   return t.evaluate()
     .setTitle(c ? c.name : 'Survei Belanja Online — MIL Gift Club')
@@ -897,9 +937,13 @@ function day_(v) { var d = v instanceof Date ? v : new Date(v); return isNaN(d) 
 function surveyList_() {
   return [['v1', 'Semua Kategori'], ['v2', 'Fashion Wanita, Tas & Aksesori, Hijab']].map(function (x) {
     var o = isOpen_(x[0]);
-    return { v: x[0], name: x[1], open: o, status: o ? 'Dibuka' : 'Ditutup', target: num_(x[0] === 'v2' ? 'TARGET_V2' : 'TARGET_V1'), link: set_(x[0] === 'v2' ? 'LINK_V2' : 'LINK_V1'), tab: respTab_(x[0]) };
+    var tk = x[0] === 'v2' ? 'TUTUP_V2' : 'TUTUP_V1';
+    return { v: x[0], name: x[1], open: o, status: o ? 'Dibuka' : 'Ditutup', target: num_(x[0] === 'v2' ? 'TARGET_V2' : 'TARGET_V1'), link: set_(x[0] === 'v2' ? 'LINK_V2' : 'LINK_V1'), tab: respTab_(x[0]),
+      tutup: inputDate_(set_(tk)), tutupText: fmtTutup_(set_(tk)), tutupLewat: closed_(set_(tk)), switchOn: bool_(set_(x[0] === 'v2' ? 'SURVEY_OPEN_V2' : 'SURVEY_OPEN_V1')) };
   }).concat(customSurveys_().filter(function (c) { return c.status !== 'Diarsipkan'; }).map(function (c) {
-    return { v: c.id, name: c.name, open: c.status === 'Dibuka', status: c.status, target: c.target, link: customLink_(c.id), tab: c.tab, custom: true, profile: c.schema.profile !== false };
+    var lewat = closed_(c.schema.tutup);
+    return { v: c.id, name: c.name, open: c.status === 'Dibuka' && !lewat, status: c.status === 'Dibuka' && lewat ? 'Ditutup' : c.status, target: c.target, link: customLink_(c.id), tab: c.tab, custom: true, profile: c.schema.profile !== false,
+      tutupText: fmtTutup_(c.schema.tutup), tutupLewat: lewat };
   }));
 }
 
@@ -1091,7 +1135,9 @@ function adminSaveSettings(obj) {
   Object.keys(obj || {}).forEach(function (k) {
     if (k === 'ADMIN_DOMAIN' && !String(obj[k]).trim()) return; // jangan sampai semua admin terkunci
     var i = keys.indexOf(k), v = obj[k];
-    if (i >= 0) s.getRange(i + 2, 2).setValue(v); else { s.appendRow([k, v, '']); keys.push(k); }
+    if (i < 0) { s.appendRow([k, '', '']); keys.push(k); i = keys.length - 1; }
+    var cell = s.getRange(i + 2, 2);
+    if (/^TUTUP_/.test(k)) cell.setNumberFormat('@').setValue(String(v || '')); else cell.setValue(v);
   });
   SET_MEMO_ = null;
   return adminSettings();
@@ -1216,8 +1262,10 @@ function getSurvey(id, preview) {
   if (!c || c.status === 'Diarsipkan') throw new Error('Survei tidak ditemukan');
   var br = c.schema.brand && c.schema.brand.mode === 'client' ? JSON.parse(JSON.stringify(c.schema.brand)) : null;
   if (br && br.logo) br.logoData = imageData_([br.logo])[br.logo] || '';
-  return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: c.schema, brand: br,
-    giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
+  var sch = JSON.parse(JSON.stringify(c.schema)), cp = customPeriode_(c);
+  sch.periode = cp.periode; if (cp.label) sch.periodeLabel = cp.label;
+  return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: sch, brand: br, tutupLewat: closed_(c.schema.tutup),
+    giveaway: { periodeLabel: mainPeriode_('v1').label, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: mainPeriode_('v1').periode, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
 }
 
 // ---- fungsi Dashboard (Buat survei) ----
@@ -1237,7 +1285,8 @@ function adminBuilderGet(id) {
 }
 function adminBuilderDefaults() {
   requireAdmin_();
-  return { giveaway: { periodeLabel: CONFIG.PERIODE_LABEL, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH || [], periode: CONFIG.PERIODE_GIVEAWAY, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP || [] }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
+  var mp = mainPeriode_('v1');
+  return { giveaway: { periodeLabel: mp.label, periodeKe: mp.periodeKe, tahun: mp.tahun, tutup: inputDate_(set_('TUTUP_V1')), hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH || [], periode: mp.periode, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP || [] }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
 }
 /** Simpan rancangan. publish=true -> status Dibuka & tab jawaban dibuat. */
 function adminBuilderSave(sch, publish) {
@@ -1434,7 +1483,7 @@ function adminReportCore_(v, opt) {
 // ====== DATABASE RESPONDEN (1 orang = 1 baris, gabungan semua survei) ======
 // Kunci orang: nomor WA (bila ada), selain itu username IG.
 // =====================================================================
-var PEOPLE_PROFILE = ['S0', 'S1', 'S2', 'A1', 'provinsi', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'];
+var PEOPLE_PROFILE = ['S0', 'S1', 'S2', 'A1', 'provinsi', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
 function personKey_(r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); return w ? 'wa:' + w : g ? 'ig:' + g : ''; }
 function peopleIndex_() {
   var rows = readAll_(), byKey = {}, igToKey = {}, names = {};

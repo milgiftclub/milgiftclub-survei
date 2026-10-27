@@ -106,6 +106,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     if (S.periode) CFG.periode = S.periode;
     var BR = D.brand && D.brand.mode === 'client' ? D.brand : null, ORG = BR ? BR.name : 'MIL Gift Club';
     if (BR) applyBrand(BR);
+    if (S.periodeLabel) CFG.periodeLabel = S.periodeLabel;
     document.title = D.name + ' — ' + ORG;
     if (!D.open) return finish('Survei telah ditutup', 'Terima kasih atas minat kamu. Pantau Instagram ' + CFG.ig + ' untuk survei dan giveaway berikutnya.', '', ctaButtons(true));
 
@@ -125,7 +126,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     if (PROF || G) { PRE.push(std('S0')); PRE.push(std('S0B')); BY.S0B.showIf = { q: 'S0', op: 'is', val: String(CY - 18) }; }
     if (PROF) {
       PRE.push(std('S2')); if (S.screenIndustri !== false) PRE.push(std('S3'));
-      ['A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'].forEach(function (x) { PRE.push(std(x)); });
+      ['A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'].forEach(function (x) { PRE.push(std(x)); });
       BY.A4N.showIf = { q: 'A4M', op: 'isnot', val: BY.A4M.options[0].t };
       BY.A4K.showIf = { q: 'A4N', op: 'isnot', val: BY.A4N.options[0].t };
     }

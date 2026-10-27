@@ -12,6 +12,8 @@ SHIM = '''<script>
 <script>
 // dijalankan di dalam Apps Script: parameter link diteruskan server, API lewat google.script.run
 window.__SEARCH = <?!= search ?>;
+// teks periode & tanggal tutup terbaru dari Pengaturan Dashboard (menimpa config.js)
+(function (o) { var C = window.SURVEI_CONFIG = window.SURVEI_CONFIG || {}, T = C.TAMPILAN = C.TAMPILAN || {}; for (var k in o) if (o[k]) T[k] = o[k]; })(<?!= ovr ?>);
 var __GSR = google.script.run;
 function __gsFetch(url, o) {
   var b = JSON.parse(o.body);

@@ -334,6 +334,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div class="kv"><label>Perkiraan waktu isi (menit)</label><input id="b-est" type="number" min="1" placeholder="dihitung otomatis"></div>
         <div class="kv"><label>Target respons valid</label><input id="b-target" type="number" min="0" value="300"></div>
         <label class="row"><span>Tutup otomatis saat target tercapai</span><span class="switch"><input type="checkbox" id="b-auto" checked><span></span></span></label>
+        <div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="b-tutup"><div class="muted">Survei tertutup sendiri di tanggal & jam ini, dan tanggalnya tampil di halaman survei & gambar IG. Kosongkan bila tanpa batas waktu.</div></div>
       </div>
       <div class="card"><h2>Fitur</h2>
         <label class="row"><span>Giveaway &amp; cek IG / WA<small>Halaman hadiah, cek IG ganda, daftar blokir, ikut undian</small></span><span class="switch"><input type="checkbox" id="b-g" checked><span></span></span></label>
@@ -346,7 +347,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div class="hd-head"><span>Hadiah</span><span>Nilai (Rp)</span><span>Foto</span><span></span></div>
         <div id="b-hd"></div>
         <button class="btn sec sm" onclick="hdAdd()" style="margin-top:6px">+ Tambah hadiah</button>
-        <div class="kv" style="margin-top:14px"><label>Periode giveaway</label><input id="b-period"></div>
+        <div class="kv" style="margin-top:14px"><label>Periode giveaway</label><div class="toolbar" style="margin:0">Periode ke-<input type="number" id="b-pke" min="1" style="width:70px">tahun<input type="number" id="b-pth" min="2024" style="width:90px"></div><div class="muted" id="b-per-prev" style="margin-top:6px"></div></div>
       </div>
     </div>
   </div>
@@ -546,7 +547,7 @@ function drawSurvey() {
   var s = SUM.surveys.filter(function (x) { return x.v === SV; })[0]; if (!s) return;
   var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
   $('sv-title').textContent = s.name;
-  $('sv-desc').innerHTML = '<span class="badge ' + (s.open ? 'b-open">Dibuka' : s.status === 'Draf' ? 'b-y">Draf' : 'b-closed">Ditutup') + '</span> &nbsp;' + (s.tab ? 'Data tersimpan di tab <b>' + esc(s.tab) + '</b>. ' : 'Belum dipublish. ') + 'Diperbarui ' + esc(SUM.generatedAt) + '.';
+  $('sv-desc').innerHTML = '<span class="badge ' + (s.open ? 'b-open">Dibuka' : s.status === 'Draf' ? 'b-y">Draf' : 'b-closed">Ditutup') + '</span> &nbsp;' + (s.tab ? 'Data tersimpan di tab <b>' + esc(s.tab) + '</b>. ' : 'Belum dipublish. ') + (s.tutupText ? (s.tutupLewat ? 'Tertutup otomatis sejak ' : 'Tutup otomatis ') + '<b>' + esc(s.tutupText) + '</b>. ' : '') + 'Diperbarui ' + esc(SUM.generatedAt) + '.';
   $('sv-edit').style.display = s.custom ? '' : 'none';
   $('sv-link').href = s.link || '#';
   $('sv-toggle').textContent = s.open ? 'Tutup survei' : s.status === 'Draf' ? 'Publish survei' : 'Buka survei untuk responden';
@@ -681,27 +682,37 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY'];
+var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN'];
 function loadSet() {
   run('adminSettings').then(function (d) {
     SET = d;
     $('s-surveys').innerHTML = d.surveys.filter(function (s) { return !s.custom; }).map(function (s) {
       var k = s.v.toUpperCase();
       return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
-        '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (s.open ? ' checked' : '') + '><span></span></label></div>' +
+        '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (s.switchOn ? ' checked' : '') + '><span></span></label>' + (s.tutupLewat && s.switchOn ? '<div class="muted" style="color:var(--red);font-weight:700">Tertutup otomatis: tanggal tutup sudah lewat. Ubah tanggal di bawah untuk membuka lagi.</div>' : '') + '</div>' +
+        '<div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="tut-' + k + '" value="' + esc(s.tutup || '') + '"><div class="muted">Kosongkan bila tanpa batas waktu. Tampil di survei sebagai "Hingga …"</div></div>' +
         '<div class="kv"><label>Target respons valid</label><input type="number" id="tgt-' + k + '" value="' + s.target + '"></div>' +
         '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link) + '"></div>' +
         '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab) + '</span></div>' +
         '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> <a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a></div>';
-    }).join('');
+    }).join('') + (function () {
+      var v = {}; d.list.forEach(function (x) { v[x.key] = x.val; });
+      return '<div class="card"><h2>Periode giveaway survei utama</h2><p class="muted">Tampil di halaman survei, mis. "Survei MIL Gift Club · Periode 1 2026".</p>' +
+        '<div class="kv"><label>Periode ke-</label><input type="number" min="1" id="per-ke" value="' + esc(v.PERIODE_KE || 1) + '"></div>' +
+        '<div class="kv"><label>Tahun</label><input type="number" min="2024" id="per-th" value="' + esc(v.PERIODE_TAHUN || new Date().getFullYear()) + '"></div>' +
+        '<button class="btn sm" onclick="savePeriode()">Simpan</button></div>';
+    })();
     $('s-form').innerHTML = d.list.filter(function (x) { return HIDE_SET.indexOf(x.key) < 0; }).map(function (x) {
       return '<div class="kv"><label><b>' + esc(x.key) + '</b><div class="muted">' + esc(x.note) + '</div></label><input data-k="' + x.key + '"' + (/KEY/.test(x.key) ? ' type="password" autocomplete="off"' : '') + ' value="' + esc(x.val) + '"></div>';
     }).join('');
   });
 }
 function saveSurvey(k) {
-  var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value;
+  var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value; o['TUTUP_' + k] = $('tut-' + k).value;
   run('adminSaveSettings', o).then(function () { toast('Tersimpan. Berlaku langsung untuk responden.'); loadHome(); });
+}
+function savePeriode() {
+  run('adminSaveSettings', { PERIODE_KE: +$('per-ke').value || 1, PERIODE_TAHUN: +$('per-th').value || new Date().getFullYear() }).then(function () { toast('Periode tersimpan. Berlaku langsung di survei.'); loadSet(); });
 }
 function saveSet() {
   var o = {}; [].forEach.call(document.querySelectorAll('#s-form input'), function (i) { o[i.dataset.k] = i.value; });
@@ -744,7 +755,7 @@ function openBuilder(id) {
 function editSurvey(id) { openBuilder(id); }
 function bDefaults() {
   var g = BDEF.giveaway || {};
-  $('b-period').placeholder = g.periode || '';
+
   $('b-ai-off').style.display = BDEF.ai ? 'none' : '';
   $('b-ai-btn').disabled = !BDEF.ai; $('b-ai2').disabled = !BDEF.ai;
   if (B && !(B.hadiah || []).some(function (h) { return String(h.nama || '').trim(); })) { B.hadiah = defaultPrizes(); hdRender(); }
@@ -755,15 +766,32 @@ function bFill() {
   $('b-target').value = B.target == null ? '' : B.target; $('b-auto').checked = B.autoClose !== false;
   $('b-g').checked = B.giveaway !== false; $('b-p').checked = B.profile !== false; $('b-ind').checked = B.screenIndustri !== false;
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
-  $('b-period').value = B.periode || ''; hdRender(); brandFill();
+  var g = (BDEF && BDEF.giveaway) || {};
+  $('b-pke').value = B.periodeKe || g.periodeKe || 1; $('b-pth').value = B.tahun || g.tahun || new Date().getFullYear();
+  $('b-tutup').value = B.tutup != null ? B.tutup : (B.id ? '' : g.tutup || '');
+  perPrev(); hdRender(); brandFill();
   $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan perubahan' : 'Publish';
   bState(); bRender();
+}
+var BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+/** '2026-12-31T23:59' -> '31 Desember 2026' (jam ditulis bila bukan 23.59) */
+function tglID(v) {
+  var m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/); if (!m) return '';
+  var t = m[4] && !(m[4] === '23' && m[5] === '59') ? ', ' + m[4] + '.' + m[5] + ' WIB' : '';
+  return +m[3] + ' ' + BULAN[+m[2] - 1] + ' ' + m[1] + t;
+}
+function perPrev() {
+  var t = $('b-tutup').value, lewat = t && new Date(t + ':00+07:00') < new Date();
+  $('b-per-prev').innerHTML = 'Tampil di survei: <b>Periode ' + esc($('b-pke').value || 1) + ' ' + esc($('b-pth').value || '') + '</b>' + (t ? ' · <b>Hingga ' + esc(tglID(t)) + '</b>' : '') +
+    (lewat ? '<br><span style="color:var(--red);font-weight:700">Tanggal tutup sudah lewat — survei akan tertutup.</span>' : '');
 }
 function bRead() {
   B.name = $('b-name').value.trim(); B.intro = $('b-intro').value.trim(); B.estimasi = Number($('b-est').value) || '';
   B.target = Number($('b-target').value) || 0; B.autoClose = $('b-auto').checked;
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
-  B.gender = $('b-gender').value; B.periode = $('b-period').value.trim();
+  B.gender = $('b-gender').value;
+  B.periodeKe = Number($('b-pke').value) || 1; B.tahun = Number($('b-pth').value) || new Date().getFullYear(); B.tutup = $('b-tutup').value || '';
+  B.periode = B.tutup ? 'Hingga ' + tglID(B.tutup) : ''; B.periodeLabel = 'Periode ' + B.periodeKe + ' ' + B.tahun;
   var cl = $('b-brand-mode').querySelector('.on').dataset.m === 'client';
   B.brand = cl ? { mode: 'client', name: $('b-br-name').value.trim(), logo: (B.brand && B.brand.logo) || '', primary: $('b-br-p').value, accent: $('b-br-a').value, ig: $('b-br-ig').value.trim(), ink: $('b-br-k').value, bg: shadeHex($('b-br-p').value, 0.94) } : { mode: 'mil', logo: (B.brand && B.brand.logo) || '' };
 }
@@ -818,8 +846,8 @@ function imageUpload(file, maxPx, done) {
   };
   fr.readAsDataURL(file);
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-period', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
-  var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); }); e.addEventListener('change', function () { bRead(); markDirty(); });
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-pke', 'b-pth', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
+  var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); perPrev(); }); e.addEventListener('change', function () { bRead(); markDirty(); perPrev(); });
 });
 [].forEach.call($('b-src').children, function (b) {
   b.onclick = function () {
@@ -1126,7 +1154,7 @@ var rp = function (n) { return 'Rp' + Number(n).toLocaleString('id-ID'); };
 function pmShow(data, note) {
   var g = (BDEF && BDEF.giveaway) || {}, hd = (data.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
   if (!hd.length) hd = defaultPrizes();
-  PM = { name: data.name || 'Survei baru', link: data.link || '', hadiah: hd, periode: data.periode || g.periode || '', announce: g.announce || '', label: g.periodeLabel || '', ig: g.ig || '@milgiftclub',
+  PM = { name: data.name || 'Survei baru', link: data.link || '', hadiah: hd, periode: data.periode || g.periode || '', announce: g.announce || '', label: data.label || g.periodeLabel || '', perLabel: data.label || '', ig: g.ig || '@milgiftclub',
     langkah: g.langkah || [], estimasi: data.estimasi || '', giveaway: data.giveaway !== false };
   brandPM(data.brand);
   $('pm').classList.add('on'); $('pm-title').textContent = PM.name;
@@ -1134,7 +1162,7 @@ function pmShow(data, note) {
   return pmDraw();
 }
 function promoFromBuilder(note) {
-  var go = function () { bRead(); pmShow({ name: B.name, link: BMETA && BMETA.link, hadiah: B.hadiah, periode: B.periode, estimasi: B.estimasi || bPayload().estimasi, giveaway: B.giveaway, brand: B.brand }, note); };
+  var go = function () { bRead(); pmShow({ name: B.name, link: BMETA && BMETA.link, hadiah: B.hadiah, periode: B.periode, label: B.periodeLabel, estimasi: B.estimasi || bPayload().estimasi, giveaway: B.giveaway, brand: B.brand }, note); };
   if (BDEF) go(); else run('adminBuilderDefaults').then(function (d) { BDEF = d; go(); });
 }
 function promoOpen(v) {
@@ -1143,7 +1171,7 @@ function promoOpen(v) {
   var go = function (sch) {
     var g = BDEF.giveaway || {}, hd = (sch && sch.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
     if (!hd.length) hd = defaultPrizes();
-    PM = { name: s.name, link: s.link, hadiah: hd, periode: (sch && sch.periode) || g.periode || '', announce: g.announce || '', label: g.periodeLabel || '', ig: g.ig || '@milgiftclub',
+    PM = { name: s.name, link: s.link, hadiah: hd, periode: (sch && sch.periode) || g.periode || '', announce: g.announce || '', label: (sch && sch.periodeLabel) || g.periodeLabel || '', perLabel: (sch && sch.periodeLabel) || '', ig: g.ig || '@milgiftclub',
       langkah: g.langkah || [], estimasi: (sch && sch.estimasi) || (s.v === 'v1' ? 7 : s.v === 'v2' ? 7 : ''), giveaway: !sch || sch.giveaway !== false };
     brandPM(sch && sch.brand);
     pmDraw();
@@ -1158,7 +1186,7 @@ function brandPM(b) {
   PM.brand = b && b.mode === 'client' && b.name ? b : null;
   if (!PM.brand) return;
   var h = String(b.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
-  PM.ig = h || b.name; PM.label = '';
+  PM.ig = h || b.name; PM.label = PM.perLabel || '';
   PM.langkah = PM.langkah.map(function (t) { return String(t).replace(/@milgift_club|@milgiftclub/gi, h || b.name); }).filter(function (t) { return h || !/follow/i.test(t); });
 }
 function pmCaption() {
@@ -1624,7 +1652,7 @@ function pplLoad(first) {
 function pplDetail(key) {
   $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
   run('adminPerson', key).then(function (d) {
-    var pr = d.profile, lab = { S0: 'Tahun lahir', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan', A17: 'Peliharaan' };
+    var pr = d.profile, lab = { S0: 'Tahun lahir', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan' };
     $('m-body').innerHTML = '<div class="top" style="margin-bottom:6px"><div><div class="eyebrow">Database Responden</div><h2 style="font-size:24px">' + esc(d.ig || d.wa) + '</h2><div class="muted">' + esc(d.wa) + ' · ikut ' + d.surveys.length + ' survei · pertama ' + esc(d.first) + ' · terakhir ' + esc(d.last) + (d.contact ? ' · ✅ bersedia dihubungi' : '') + '</div></div><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
       '<div class="stats" style="margin:10px 0 6px">' + Object.keys(lab).filter(function (k) { return pr[k]; }).map(function (k) { return '<div>' + lab[k] + '<b>' + esc(pr[k]) + '</b></div>'; }).join('') + '</div>' +
       d.surveys.map(function (s, i) {

@@ -33,7 +33,9 @@ async function respondent(browser, i, scenario) {
   if (process.env.APPS) {
     // halaman Web_*.html seperti disajikan Apps Script (parameter link lewat window.__SEARCH, API lewat google.script.run)
     const f = path.join(__dirname, 'apps_page.html');
-    fs.writeFileSync(f, fs.readFileSync(path.join(__dirname, '../survey_out/' + (V2 ? 'Web_v2.html' : 'Web_v1.html')), 'utf8').replace('<?!= search ?>', JSON.stringify('?src=ig_bio')));
+    global.__viewer = 'robert@mildigital.id'; ctx.adminSaveSettings({ PERIODE_KE: 2, PERIODE_TAHUN: 2027, TUTUP_V1: '2027-01-15T20:00' }); global.__viewer = '';
+    const ovr = ctx.doGet({ parameter: { survei: V2 ? 'v2' : 'v1' }, queryString: '' }).vars.ovr;
+    fs.writeFileSync(f, fs.readFileSync(path.join(__dirname, '../survey_out/' + (V2 ? 'Web_v2.html' : 'Web_v1.html')), 'utf8').replace('<?!= search ?>', JSON.stringify('?src=ig_bio')).replace('<?!= ovr ?>', () => ovr));
     await page.exposeFunction('gsCall', (fn, args) => JSON.stringify(ctx[fn](...JSON.parse(args))));
     await page.addInitScript(MOCK);
     await page.route('https://fonts.googleapis.com/**', r => r.abort());
