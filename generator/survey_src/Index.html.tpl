@@ -120,9 +120,9 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
 
 (function () {
   var BY = {}; SCHEMA.forEach(function (q) { BY[q.id] = q; });
-  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A4M','A4N','A4K','A4','A5','A6','A7','A8','B2','B4','C1','C2'];
+  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A4M','A4N','A4K','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13','A14','A15','A16','A17','B2','B4','C1','C2'];
   var LOOP = SCHEMA.filter(function (q) { return q.loop; }).map(function (q) { return q.id; });
-  var POST = ['D0','D1','D4','D5','A9','A10','A11','A12','A13','A14','A15','A16','A17','Z1','Z3'];
+  var POST = ['D0','D1','D4','D5','Z1','Z3'];
   var CY = new Date().getFullYear();
   var MAIN_PLAT = ['Shopee', 'TikTok Shop', 'Tokopedia'];
   var MKT = ['Shopee', 'TikTok Shop', 'Tokopedia', 'Lazada', 'Blibli'];

@@ -125,18 +125,16 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     if (PROF || G) { PRE.push(std('S0')); PRE.push(std('S0B')); BY.S0B.showIf = { q: 'S0', op: 'is', val: String(CY - 18) }; }
     if (PROF) {
       PRE.push(std('S2')); if (S.screenIndustri !== false) PRE.push(std('S3'));
-      ['A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8'].forEach(function (x) { PRE.push(std(x)); });
+      ['A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'].forEach(function (x) { PRE.push(std(x)); });
       BY.A4N.showIf = { q: 'A4M', op: 'isnot', val: BY.A4M.options[0].t };
       BY.A4K.showIf = { q: 'A4N', op: 'isnot', val: BY.A4N.options[0].t };
     }
     else if (S.gender && S.gender !== 'all') PRE.push(std('S2'));
-    // profil gaya hidup: ditanyakan di akhir (sebelum data kontak), dilewati bila sudah ada di database
-    var LIFE = PROF ? ['A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'].map(std) : [];
     if (BY.A15) BY.A15.showIf = { q: 'S2', op: 'is', val: 'Wanita' };
     var S1O = STD.S1.options.map(function (o) { return o.t; });
     var MAIN = custom.slice();
     if (S.attention !== false && MAIN.length) { std('QC1'); MAIN.splice(Math.ceil(MAIN.length / 2), 0, 'QC1'); }
-    var POST = LIFE.concat(G ? [std('Z1'), std('Z3')] : []);
+    var POST = G ? [std('Z1'), std('Z3')] : [];
     var intro = (S.intro ? S.intro.trim().replace(/([^.!?])$/, '$1.') + ' ' : 'Terima kasih telah berpartisipasi dalam survei ' + D.name + '. ') +
       (S.estimasi ? 'Survei ini membutuhkan waktu ±' + S.estimasi + ' menit. ' : '') + 'Jawaban Anda bersifat rahasia dan hanya digunakan untuk keperluan riset.' +
       (G ? ' Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.' : '');
