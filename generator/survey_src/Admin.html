@@ -272,7 +272,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
         <div id="b-m-paste" style="display:none">
           <textarea class="bwide" id="b-paste" rows="9" placeholder="1. Seberapa sering Anda belanja skincare online? (pilih satu)&#10;- Setiap minggu&#10;- 2–3 kali sebulan&#10;- Sebulan sekali&#10;- Lebih jarang&#10;&#10;2. Platform apa saja yang Anda pakai? (boleh lebih dari satu)&#10;- Shopee&#10;- TikTok Shop&#10;- Lainnya, sebutkan&#10;&#10;3. Apa alasan utama Anda memilih brand tersebut? (isian)"></textarea>
           <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><button class="btn soft sm" id="b-ai2" onclick="bAi('parse')">✨ Rapikan dengan AI</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
-          <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Pilihan "Lainnya" otomatis bisa diisi. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
+          <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Logika: tulis <code>(tampilkan jika no. 2 = TikTok Shop)</code> atau <code>(jika no. 2 bukan Shopee)</code> di belakang pertanyaan. Pilihan "Lainnya" otomatis bisa diisi; tambahkan <code>(tidak lolos)</code> di belakang pilihan yang membuat responden berhenti. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
         </div>
         <div id="b-m-blank" style="display:none"><p class="muted">Mulai dari nol dengan tombol <b>+ Tambah pertanyaan</b> di bawah.</p></div>
       </div>
@@ -811,11 +811,16 @@ function optFrom(t) {
 function parseText(txt) {
   var out = [], q = null;
   var QRE = /^\s*(?:(?:Q|P|No\.?)\s*)?(\d{1,3})\s*[.):]\s+(.+)$/i, ORE = /^\s*(?:[-•*·▪○●◦☐□]|\[\s?\]|\(\s?\)|[a-zA-Z][.)])\s+(.+)$/;
+  // logika: "(tampilkan jika no. 2 = TikTok Shop)" di teks pertanyaan, atau baris sendiri "→ Tampilkan jika no. 2 = TikTok Shop"
+  var LRE = /[(\[]?\s*(?:→|->|=>)?\s*(?:tampilkan|munculkan|muncul|tanyakan|tanya)?\s*(?:hanya\s+)?(?:jika|kalau|bila)\s+(?:no\.?|nomor|pertanyaan|Q)?\s*(\d{1,3})\s*(==|=|≠|!=|bukan|tidak memilih|memilih|menjawab|dijawab)\s*["“'‘]?(.+?)["”'’]?\s*[)\]]?\s*$/i;
+  var cond = function (mm) { return { num: +mm[1], op: /≠|!=|bukan|tidak/i.test(mm[2]) ? 'isnot' : 'is', val: mm[3].trim() }; };
   var push = function () { if (q && q.text.trim()) out.push(q); };
   txt.split(/\r?\n/).forEach(function (line) {
     if (!line.trim()) return;
+    var lm = line.match(LRE);
+    if (lm && q && !/^\s*(?:Q|P|No\.?)?\s*\d{1,3}\s*[.):]\s+\S/i.test(line.replace(/^\s*[(\[]/, ''))) { q.cond = cond(lm); return; }
     var m = line.match(QRE), o = line.match(ORE);
-    if (m && !(o && q)) { push(); q = { text: m[2].trim(), options: [] }; return; }
+    if (m && !(o && q)) { push(); q = { text: m[2].trim(), options: [], num: +m[1] }; var im = q.text.match(/\s*[(\[]\s*(?:tampilkan|munculkan|muncul|tanyakan|tanya)?\s*(?:hanya\s+)?(?:jika|kalau|bila)\s+[^)\]]+[)\]]/i); if (im) { var lm2 = im[0].trim().match(LRE); if (lm2) q.cond = cond(lm2); q.text = q.text.replace(im[0], ' ').trim(); } return; }
     if (!q) { q = { text: line.trim(), options: [] }; return; }
     if (o) q.options.push(o[1].trim());
     else if (/^\s*\d+\s*=\s*\S/.test(line)) q.options.push(line.trim());
@@ -823,6 +828,7 @@ function parseText(txt) {
     else q.options.push(line.trim());
   });
   push();
+  var pos = {}; out.forEach(function (x, i) { if (x.num && !pos[x.num]) pos[x.num] = i + 1; });
   return out.map(function (x) {
     var t = x.text, type = x.options.length ? 'single' : 'text', sc = null, m;
     if (/\((?:boleh |bisa )?(?:pilih )?(?:lebih dari satu|beberapa|semua yang sesuai)[^)]*\)|\((?:MA|multi)\)/i.test(t)) type = 'multi';
@@ -836,6 +842,7 @@ function parseText(txt) {
       q2.scale = sc;
       x.options.forEach(function (op) { var mm = op.match(/^(\d+)\s*[=:-]\s*(.+)$/); if (mm && +mm[1] === sc.min) sc.minLabel = mm[2]; if (mm && +mm[1] === sc.max) sc.maxLabel = mm[2]; });
     }
+    if (x.cond && pos[x.cond.num]) q2.showIf = { q: pos[x.cond.num], op: x.cond.op, val: x.cond.val };
     return q2;
   });
 }
@@ -852,7 +859,15 @@ function bTake(list, append, meta) {
     B.questions.push(n); idx.push(n.id);
   });
   // showIf dari AI memakai nomor urut (1 = pertanyaan pertama hasil AI)
-  B.questions.forEach(function (n) { if (n._if) { var ref = typeof n._if.q === 'number' ? idx[n._if.q - 1] : n._if.q; if (ref && ref !== n.id) n.showIf = { q: ref, op: n._if.op === 'isnot' ? 'isnot' : 'is', val: n._if.val }; delete n._if; } });
+  B.questions.forEach(function (n) {
+    if (!n._if) return;
+    var ref = typeof n._if.q === 'number' ? idx[n._if.q - 1] : n._if.q, src = B.questions.filter(function (p) { return p.id === ref; })[0];
+    if (src && ref !== n.id) {
+      var v = String(n._if.val || '').trim(), hit = srcOpts(src).filter(function (o) { return o.t.toLowerCase() === v.toLowerCase(); })[0] || srcOpts(src).filter(function (o) { return o.t.toLowerCase().indexOf(v.toLowerCase()) === 0; })[0];
+      n.showIf = { q: ref, op: n._if.op === 'isnot' ? 'isnot' : 'is', val: hit ? hit.t : v };
+    }
+    delete n._if;
+  });
   if (meta) { if (meta.name && !$('b-name').value) $('b-name').value = meta.name; if (meta.intro && !$('b-intro').value) $('b-intro').value = meta.intro; if (meta.estimasi && !$('b-est').value) $('b-est').value = meta.estimasi; bRead(); }
   markDirty(); bRender(); toast(list.length + ' pertanyaan ditambahkan. Cek dan rapikan sebelum publish.');
 }
