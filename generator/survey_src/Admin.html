@@ -176,6 +176,32 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 #pub .card{max-width:520px}
 #pub label.row{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#FAFBFE;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:16px 0;font-size:14px}
 #pub label.row small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
+.rep-bar{margin-bottom:16px;padding:16px 20px}
+.rep-bar select{max-width:320px}
+.rep-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
+.rep-kpi div{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--sh)}
+.rep-kpi b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.rep-kpi span{font-size:13px;color:var(--ink2);font-weight:600}
+.rq{margin-bottom:18px;break-inside:avoid}
+.rq-h{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.rq-n{display:inline-block;font-weight:800;color:var(--navy);background:var(--navy-l);border-radius:10px;padding:3px 10px;font-size:12px;margin-right:6px}
+.rq-t{font-size:16px;font-weight:700;line-height:1.45;margin:6px 0 4px}
+.rq-m{font-size:13px;color:var(--ink2)}
+.rq-sw{display:inline-flex;gap:2px;background:#F1F2F7;border-radius:20px;padding:3px}
+.rq-sw button{border:0;background:none;border-radius:20px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer}
+.rq-sw button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(20,26,46,.12)}
+.rq-body{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}
+.rq-chart{position:relative;min-height:120px}
+.rq table{font-size:13px}
+.rq td.num,.rq th.num{text-align:right;white-space:nowrap}
+.rq .pbar{height:8px;background:#EEF0F6;border-radius:6px;overflow:hidden;margin-top:5px;min-width:60px}
+.rq .pbar i{display:block;height:100%;background:var(--navy);border-radius:6px}
+.rq .txt li{padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink)}
+.rq .stat{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.rq .stat span{background:var(--navy-l);color:var(--navy);border-radius:12px;padding:6px 12px;font-weight:700;font-size:13px}
+.rq-topic{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:26px 4px 10px}
+@media(max-width:1000px){.rq-body{grid-template-columns:1fr}}
+@media print{nav.side,.topbar,.rep-bar,.svhead .acts,.rq-sw,.toast{display:none!important}.content{padding:0!important}.page{display:none!important}#p-report{display:block!important}.card{box-shadow:none!important}}
 .dirty{font-size:12px;font-weight:700;color:var(--amber);align-self:center}
 .lnk{display:flex;gap:8px;align-items:center;margin:10px 0}
 .lnk input{flex:1;font-size:12px;padding:8px 10px;min-width:0}
@@ -193,6 +219,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
   <button class="sv-new" data-p="build" onclick="newSurvey()"><span>+</span>Survei baru</button>
   <div class="grp">DATA</div>
   <button data-p="resp"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Jawaban</button>
+  <button data-p="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Laporan</button>
   <button data-p="panel"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .4 5.5 2.8 5.5 5.8"/></svg>Panel Responden</button>
   <div class="grp">OPERASIONAL</div>
   <button data-p="draw"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z"/></svg>Undian Pemenang</button>
@@ -228,7 +255,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 <!-- SURVEI (per survei) -->
 <section class="page" id="p-survey">
   <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
-    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
@@ -305,6 +332,25 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
       </div>
     </div>
   </div>
+</section>
+
+<!-- LAPORAN -->
+<section class="page" id="p-report">
+  <div class="svhead"><div><div class="eyebrow">Data survei</div><h1>Laporan</h1><p class="desc">Grafik otomatis untuk setiap pertanyaan: jumlah dan persentase jawaban. Pilih survei, saring responden, lalu unduh grafik atau seluruh laporan.</p></div>
+    <div class="acts"><button class="btn sec sm" onclick="repCsv()">Unduh tabel (CSV)</button><button class="btn sm" onclick="window.print()">Cetak / simpan PDF</button></div></div>
+  <div class="card rep-bar">
+    <div class="toolbar" style="margin:0">
+      <select id="rp-v" onchange="repLoad(true)"></select>
+      <select id="rp-st" onchange="repLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
+      <span class="muted">Saring:</span>
+      <select id="rp-fc" onchange="repFilterVals()"><option value="">Semua responden</option></select>
+      <select id="rp-fv" onchange="repLoad()" style="display:none"></select>
+      <span style="flex:1"></span>
+      <span class="muted" id="rp-meta"></span>
+    </div>
+  </div>
+  <div class="rep-kpi" id="rp-kpi"></div>
+  <div id="rp-list"><p class="loading">Memuat laporan…</p></div>
 </section>
 
 <!-- JAWABAN -->
@@ -421,7 +467,7 @@ function bindNav(b) {
     if ($('p-build').classList.contains('on')) markDirty(false);
     showPage(b.dataset.p, b);
     if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
-    var f = { home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    var f = { report: function () { repInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
     if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
   };
 }
@@ -1265,6 +1311,128 @@ function pmDownloadAll() {
 }
 function pmOpenImg() { var w = window.open(''); if (!w) return toast('Pop-up diblokir browser'); w.document.write('<title>' + esc(PM.name) + '</title><body style="margin:0;background:#222;text-align:center"><img src="' + $('pm-c').toDataURL('image/png') + '" style="max-width:100%;height:auto"></body>'); }
 function pmCopy() { var t = $('pm-cap'); t.select(); try { navigator.clipboard.writeText(t.value); } catch (e) { document.execCommand('copy'); } toast('Caption disalin'); }
+
+// =====================================================================
+// ---------- LAPORAN (grafik per pertanyaan) ----------
+// =====================================================================
+var REP = null, repCharts = [], repObs = null;
+var REP_COL = ['#25339A', '#2BA7E0', '#F2C94C', '#E8833A', '#2F8A57', '#7B61FF', '#C2367A', '#0F9BB5', '#B26A00', '#8A90A2', '#5E6478', '#C9CFF2'];
+function repInit() {
+  if (!SUM) return loadHome();
+  var e = $('rp-v'), cur = e.value || (SV || 'v1');
+  e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
+  if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+  repLoad(true);
+}
+function repOpen(v) { navTo('report'); $('rp-v').value = v; repLoad(true); }
+function repFilterVals() {
+  var c = $('rp-fc').value, f = (REP && REP.filterable || []).filter(function (x) { return x.col === c; })[0];
+  $('rp-fv').style.display = f ? '' : 'none';
+  $('rp-fv').innerHTML = f ? f.values.map(function (v) { return '<option>' + esc(v) + '</option>'; }).join('') : '';
+  repLoad();
+}
+function repLoad(reset) {
+  if (reset) { $('rp-fc').value = ''; $('rp-fv').style.display = 'none'; }
+  $('rp-list').innerHTML = '<p class="loading">Menghitung laporan…</p>';
+  var opt = { status: $('rp-st').value, col: $('rp-fc').value, val: $('rp-fc').value ? $('rp-fv').value : '' };
+  run('adminReport', $('rp-v').value, opt).then(function (d) { REP = d; repDraw(reset); });
+}
+function pct(n, d) { return d ? Math.round(n / d * 1000) / 10 : 0; }
+function repDraw(reset) {
+  var d = REP;
+  if (reset || $('rp-fc').options.length <= 1) {
+    var keep = $('rp-fc').value;
+    $('rp-fc').innerHTML = '<option value="">Semua responden</option>' + d.filterable.map(function (f) { return '<option value="' + esc(f.col) + '">' + esc(f.col + ' · ' + f.text.slice(0, 60)) + '</option>'; }).join('');
+    $('rp-fc').value = keep;
+  }
+  var flt = $('rp-fc').value ? ' · disaring: ' + $('rp-fc').value + ' = ' + $('rp-fv').value : '';
+  $('rp-meta').textContent = 'Diperbarui ' + d.generatedAt;
+  $('rp-kpi').innerHTML = '<div><span>Responden dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
+    '<div><span>Total jawaban masuk</span><b>' + fmt(d.all) + '</b><span>termasuk tidak valid & duplikat</span></div>' +
+    '<div><span>Median waktu isi</span><b>' + d.medianMin + ' <small style="font-size:15px">mnt</small></b><span>responden dalam laporan</span></div>' +
+    '<div><span>Pertanyaan</span><b>' + d.questions.length + '</b><span>dengan jawaban</span></div>';
+  repCharts.forEach(function (c) { c.destroy(); }); repCharts = [];
+  if (!d.questions.length) { $('rp-list').innerHTML = '<div class="card empty">Belum ada jawaban untuk ditampilkan.</div>'; return; }
+  var lastTopic = null, h = '';
+  d.questions.forEach(function (q, i) {
+    if (q.topic && q.topic !== lastTopic) { lastTopic = q.topic; h += '<div class="rq-topic">' + esc(q.topic) + '</div>'; }
+    var chartable = q.kind === 'single' || q.kind === 'multi' || q.kind === 'number' || q.kind === 'matrix';
+    var def = q.kind === 'matrix' ? 'stack' : (q.kind === 'single' && q.items.length <= 6 ? 'pie' : 'bar');
+    var meta = q.kind === 'matrix' ? 'Dijawab ' + fmt(q.answered) + ' responden · ' + q.rows.length + ' baris' :
+      'Dijawab ' + fmt(q.answered) + ' · Dilewati ' + fmt(q.skipped) + (q.kind === 'multi' ? ' · boleh pilih lebih dari satu (persen dari yang menjawab)' : '');
+    h += '<div class="card rq" data-i="' + i + '"><div class="rq-h"><div style="flex:1;min-width:260px"><span class="rq-n">' + esc(q.id) + '</span><div class="rq-t">' + esc(q.text) + '</div><div class="rq-m">' + meta + '</div></div>' +
+      (chartable && q.kind !== 'matrix' && q.kind !== 'number' ? '<div class="rq-sw"><button data-t="bar"' + (def === 'bar' ? ' class="on"' : '') + '>Batang</button><button data-t="pie"' + (def === 'pie' ? ' class="on"' : '') + '>Lingkaran</button><button data-t="png">⬇ PNG</button></div>' : chartable ? '<div class="rq-sw"><button data-t="png">⬇ PNG</button></div>' : '') +
+      '</div><div class="rq-body" data-def="' + def + '"></div></div>';
+  });
+  $('rp-list').innerHTML = h;
+  if (repObs) repObs.disconnect();
+  var render = function (el) { if (el.dataset.done) return; el.dataset.done = 1; repCard(el, +el.dataset.i, el.querySelector('.rq-body').dataset.def); };
+  if ('IntersectionObserver' in window) {
+    repObs = new IntersectionObserver(function (en) { en.forEach(function (x) { if (x.isIntersecting) render(x.target); }); }, { rootMargin: '400px' });
+    [].forEach.call(document.querySelectorAll('#rp-list .rq'), function (el) { repObs.observe(el); });
+  } else [].forEach.call(document.querySelectorAll('#rp-list .rq'), render);
+  window.onbeforeprint = function () { [].forEach.call(document.querySelectorAll('#rp-list .rq'), render); };
+}
+var barLabels = { id: 'barLabels', afterDatasetsDraw: function (ch) {
+  if (ch.config.type !== 'bar' || ch.options.indexAxis !== 'y' || ch.options.plugins.stackPct) return;
+  var c = ch.ctx, ds = ch.data.datasets[0], meta = ch.getDatasetMeta(0);
+  c.save(); c.font = '700 12px "Plus Jakarta Sans", sans-serif'; c.fillStyle = '#141A2E'; c.textBaseline = 'middle';
+  meta.data.forEach(function (b, k) { c.fillText(ds.data[k] + '%', b.x + 6, b.y); });
+  c.restore();
+} };
+function repCard(el, i, type) {
+  var q = REP.questions[i], body = el.querySelector('.rq-body');
+  [].forEach.call(el.querySelectorAll('.rq-sw button'), function (b) {
+    b.onclick = function () {
+      if (b.dataset.t === 'png') { var cv = body.querySelector('canvas'); if (!cv) return; var a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = q.id + '_' + String(q.text).replace(/[^\w]+/g, '_').slice(0, 40) + '.png'; a.click(); return; }
+      [].forEach.call(el.querySelectorAll('.rq-sw button[data-t="bar"],.rq-sw button[data-t="pie"]'), function (x) { x.classList.toggle('on', x === b); });
+      repCard(el, i, b.dataset.t);
+    };
+  });
+  var old = body._chart; if (old) { old.destroy(); repCharts = repCharts.filter(function (c) { return c !== old; }); }
+  if (q.kind === 'text') {
+    body.style.gridTemplateColumns = '1fr';
+    body.innerHTML = '<ul class="list txt">' + q.samples.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul><p class="muted">Menampilkan ' + q.samples.length + ' jawaban terbaru dari ' + fmt(q.answered) + '. Unduh semua kolom di halaman Jawaban untuk daftar lengkap.</p>';
+    return;
+  }
+  var d = q.answered || 1, tbl = '', chartH;
+  if (q.kind === 'matrix') {
+    tbl = '<div class="tw"><table><thead><tr><th>Baris</th>' + q.cols.map(function (c) { return '<th class="num">' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      q.rows.map(function (r) { return '<tr><td>' + esc(r.label) + '</td>' + q.cols.map(function (c) { return '<td class="num">' + pct(r.counts[c] || 0, r.n) + '%</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    chartH = Math.max(160, q.rows.length * 34 + 70);
+  } else {
+    tbl = '<table><thead><tr><th>Pilihan</th><th class="num">Jumlah</th><th class="num">%</th></tr></thead><tbody>' +
+      q.items.map(function (it) { var p = pct(it[1], d); return '<tr><td>' + esc(it[0]) + '<div class="pbar"><i style="width:' + Math.min(100, p) + '%"></i></div></td><td class="num">' + fmt(it[1]) + '</td><td class="num"><b>' + p + '%</b></td></tr>'; }).join('') +
+      '</tbody></table>' + (q.stats ? '<div class="stat">' + Object.keys(q.stats).map(function (k) { return '<span>' + ({ mean: 'Rata-rata', median: 'Median', min: 'Min', max: 'Maks' }[k] || k) + ': ' + q.stats[k] + '</span>'; }).join('') + '</div>' : '') +
+      (q.others ? '<p class="muted" style="margin-top:12px"><b>Isian "Lainnya":</b> ' + q.others.map(esc).join(' · ') + '</p>' : '');
+    chartH = type === 'pie' ? 260 : Math.max(120, q.items.length * 30 + 40);
+  }
+  body.innerHTML = '<div class="rq-chart" style="height:' + chartH + 'px"><canvas></canvas></div><div>' + tbl + '</div>';
+  if (q.kind === 'matrix') body.style.gridTemplateColumns = '1fr';
+  if (!window.Chart) return;
+  var cv = body.querySelector('canvas'), cfg;
+  var short = function (t) { t = String(t); return t.length > 38 ? t.slice(0, 36) + '…' : t; };
+  if (q.kind === 'matrix') {
+    cfg = { type: 'bar', data: { labels: q.rows.map(function (r) { return short(r.label); }), datasets: q.cols.map(function (c, k) { return { label: c, data: q.rows.map(function (r) { return pct(r.counts[c] || 0, r.n); }), backgroundColor: REP_COL[k % REP_COL.length], borderRadius: 3 }; }) },
+      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { stackPct: true, legend: { position: 'bottom', labels: { boxWidth: 12 } }, tooltip: { callbacks: { label: function (x) { return x.dataset.label + ': ' + x.raw + '%'; } } } }, scales: { x: { stacked: true, max: q.cols.length > 1 ? undefined : 100, ticks: { callback: function (v) { return v + '%'; } } }, y: { stacked: true, grid: { display: false } } } } };
+  } else if (type === 'pie') {
+    cfg = { type: 'doughnut', data: { labels: q.items.map(function (it) { return short(it[0]); }), datasets: [{ data: q.items.map(function (it) { return it[1]; }), backgroundColor: q.items.map(function (_, k) { return REP_COL[k % REP_COL.length]; }), borderWidth: 2, borderColor: '#fff' }] },
+      options: { maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, generateLabels: function (ch) { var base = Chart.overrides.doughnut.plugins.legend.labels.generateLabels(ch); base.forEach(function (l, k) { l.text = l.text + '  ' + pct(q.items[k][1], d) + '%'; }); return base; } } }, tooltip: { callbacks: { label: function (x) { return x.label + ': ' + x.raw + ' (' + pct(x.raw, d) + '%)'; } } } } } };
+  } else {
+    cfg = { type: 'bar', data: { labels: q.items.map(function (it) { return short(it[0]); }), datasets: [{ data: q.items.map(function (it) { return pct(it[1], d); }), backgroundColor: '#25339A', borderRadius: 6, maxBarThickness: 22 }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, layout: { padding: { right: 44 } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (x) { return q.items[x.dataIndex][1] + ' responden (' + x.raw + '%)'; } } } }, scales: { x: { beginAtZero: true, suggestedMax: 100, ticks: { callback: function (v) { return v + '%'; } }, grid: { color: '#EEF0F6' } }, y: { grid: { display: false } } } }, plugins: [barLabels] };
+  }
+  var ch = new Chart(cv, cfg); body._chart = ch; repCharts.push(ch);
+}
+function repCsv() {
+  if (!REP) return;
+  var rows = [];
+  REP.questions.forEach(function (q) {
+    if (q.kind === 'matrix') q.rows.forEach(function (r) { q.cols.forEach(function (c) { rows.push([q.id, q.text, r.label + ' → ' + c, r.counts[c] || 0, pct(r.counts[c] || 0, r.n) + '%']); }); });
+    else if (q.items) q.items.forEach(function (it) { rows.push([q.id, q.text, it[0], it[1], pct(it[1], q.answered || 1) + '%']); });
+  });
+  csv('laporan_' + $('rp-v').value, ['Kode', 'Pertanyaan', 'Pilihan', 'Jumlah', 'Persen'], rows);
+}
 
 (function () {
   var mail = ($('u-mail').textContent || '').trim(), nm = mail.split('@')[0].split(/[._-]/)[0] || 'Tim MIL';

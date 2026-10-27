@@ -40,7 +40,8 @@ var CONFIG = {
 
 // ====== DATA (dihasilkan dari draft kuesioner) ======
 var CATEGORIES = __CATEGORIES__;   // [kelompok, kategori, prioritas]
-var DICTIONARY = __DICTIONARY__;   // [id, no, topik, pertanyaan]
+var DICTIONARY = __DICTIONARY__;
+var QOPTS = __QOPTS__;         // urutan pilihan jawaban per pertanyaan (untuk laporan)   // [id, no, topik, pertanyaan]
 
 var SH = { SET: 'Pengaturan', WIN: 'Pemenang', KAT: 'Kategori', RESP: 'Responses', RESP1: 'Jawaban - Semua Kategori', RESP2: 'Jawaban - Fashion Tas Hijab', BLOK: 'Daftar Blokir', SCR: 'Screenout', REKAP: 'Rekap', DICT: 'Kamus Kolom', UNDIAN: 'Eligible Undian', PANEL: 'Panel', CARI: 'Cari Panel', HASIL: 'Hasil Pencarian', SURV: 'Daftar Survei' };
 
@@ -1293,4 +1294,87 @@ function adminImageGet(ids) {
   if (!s || s.getLastRow() < 2 || !ids.length) return out;
   s.getRange(2, 1, s.getLastRow() - 1, s.getLastColumn()).getValues().forEach(function (r) { if (ids.indexOf(String(r[0])) >= 0) out[r[0]] = r.slice(3).join(''); });
   return out;
+}
+
+
+// =====================================================================
+// ====== LAPORAN (grafik per pertanyaan) ======
+// =====================================================================
+var REPORT_SKIP = ['O1', 'Z2', 'Z3', 'PV', 'QC1', 'Z1', 'tipe_wilayah', 'jabodetabek', 'kategori_ditugaskan', 'A1'];
+function reportMeta_(v) {
+  var meta = {}, c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
+  DICTIONARY.forEach(function (d) { meta[d[0]] = { text: d[3], topic: d[2], opts: QOPTS[d[0]] || null }; });
+  if (c) (c.schema.questions || []).forEach(function (q) {
+    var o = (q.options || []).map(function (x) { return x.t; }).filter(String);
+    if (q.type === 'scale') { o = []; var sc = q.scale || {}; for (var n = Number(sc.min == null ? 1 : sc.min); n <= Number(sc.max || 5); n++) o.push(String(n)); }
+    meta[q.id] = { text: q.text, topic: c.name, opts: o.length ? o : null, type: q.type };
+  });
+  meta.provinsi = { text: 'Provinsi (otomatis dari kota)', topic: 'Profil' };
+  meta.kategori_1 = { text: 'Kategori yang dibahas di modul belanja', topic: 'Belanja terakhir' };
+  return meta;
+}
+/** Ringkasan semua pertanyaan satu survei, siap digambar sebagai grafik. opt: {status:'Valid'|'all', col, val} */
+function adminReport(v, opt) {
+  requireAdmin_(); opt = opt || {};
+  var all = readAll_().filter(function (r) { return r._v === v; });
+  var rows = all.filter(function (r) { return opt.status === 'all' || r.status === 'Valid'; });
+  var has = function (val, x) { return String(val == null ? '' : val).split(' | ').indexOf(String(x)) >= 0; };
+  if (opt.col && opt.val) rows = rows.filter(function (r) { return has(r[opt.col], opt.val); });
+  var s = sheet_(respTab_(v)), header = s && s.getLastColumn() ? s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0] : [];
+  var meta = reportMeta_(v), out = [], groups = {}, filterable = [];
+  var base = function (col) { return col.replace(/^L\d_/, ''); };
+  header.forEach(function (col) {
+    if (!col || META.indexOf(col) >= 0 || /_lainnya$/.test(col) || REPORT_SKIP.indexOf(base(col).split(': ')[0]) >= 0) return;
+    var mx = col.match(/^(.+?): (.+)$/);
+    if (mx) { var g = groups[mx[1]]; if (!g) { g = groups[mx[1]] = { id: mx[1], kind: 'matrix', rows: [] }; out.push(g); } g.rows.push({ label: mx[2], col: col }); return; }
+    out.push({ id: col, kind: '?' });
+  });
+  var natural = function (a, b) { var na = parseFloat(String(a).replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')), nb = parseFloat(String(b).replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')); return (isNaN(na) || isNaN(nb)) ? 0 : na - nb; };
+  var res = out.map(function (q) {
+    var m = meta[base(q.id)] || {}, loop = /^L\d_/.test(q.id) ? ' (modul kategori)' : '';
+    var item = { id: q.id, text: (m.text || q.id) + loop, topic: m.topic || '', total: rows.length };
+    if (q.kind === 'matrix') {
+      var colsSet = {};
+      item.kind = 'matrix';
+      item.rows = q.rows.map(function (rw) {
+        var cnt = {}, n = 0;
+        rows.forEach(function (r) { var val = r[rw.col]; if (val === '' || val == null) return; n++; String(val).split(' | ').forEach(function (x) { cnt[x] = (cnt[x] || 0) + 1; colsSet[x] = 1; }); });
+        return { label: rw.label, n: n, counts: cnt };
+      }).filter(function (r) { return r.n; });
+      var order = (m.opts || []).filter(function (x) { return colsSet[x]; });
+      Object.keys(colsSet).forEach(function (x) { if (order.indexOf(x) < 0) order.push(x); });
+      item.cols = order; item.answered = item.rows.length ? Math.max.apply(null, item.rows.map(function (r) { return r.n; })) : 0;
+      return item;
+    }
+    var vals = rows.map(function (r) { return r[q.id]; }).filter(function (x) { return x !== '' && x != null; });
+    item.answered = vals.length; item.skipped = rows.length - vals.length;
+    var multi = vals.some(function (x) { return String(x).indexOf(' | ') >= 0; }) || (m.type === 'multi');
+    var nums = vals.filter(function (x) { return String(x).trim() !== '' && !isNaN(Number(x)); });
+    var distinct = {}; vals.forEach(function (x) { distinct[x] = 1; }); var nd = Object.keys(distinct).length;
+    var others = rows.map(function (r) { return r[q.id + '_lainnya']; }).filter(function (x) { return x; });
+    if (others.length) item.others = others.slice(-15).reverse();
+    if (!multi && vals.length && nums.length === vals.length && (nd > 12 || m.type === 'number') && !(m.opts)) {
+      var a = nums.map(Number).sort(function (x, y) { return x - y; }), sum = a.reduce(function (p, x) { return p + x; }, 0);
+      item.kind = 'number'; item.stats = { mean: Math.round(sum / a.length * 100) / 100, median: a[Math.floor(a.length / 2)], min: a[0], max: a[a.length - 1] };
+      var lo = a[0], hi = a[a.length - 1], bins = 8, w = (hi - lo) / bins || 1, hist = [];
+      for (var b = 0; b < bins; b++) hist.push([String(Math.round(lo + b * w)) + '–' + String(Math.round(lo + (b + 1) * w)), 0]);
+      a.forEach(function (x) { hist[Math.min(bins - 1, Math.floor((x - lo) / w))][1]++; });
+      item.items = hist; return item;
+    }
+    if (!multi && !m.opts && nd > 40 && nd / Math.max(1, vals.length) > 0.4) { item.kind = 'text'; item.samples = vals.slice(-40).reverse().map(String); return item; }
+    var cnt = {};
+    vals.forEach(function (x) { (multi ? String(x).split(' | ') : [String(x)]).forEach(function (y) { cnt[y] = (cnt[y] || 0) + 1; }); });
+    var keys = Object.keys(cnt), ord = (m.opts || []).filter(function (x) { return cnt[x] != null; });
+    var isScale = !multi && nums.length === vals.length && nd <= 12;
+    keys.forEach(function (k) { if (ord.indexOf(k) < 0) ord.push(k); });
+    if (!(m.opts && m.opts.length)) ord.sort(isScale ? natural : function (a, b) { return cnt[b] - cnt[a]; });
+    item.kind = multi ? 'multi' : 'single';
+    item.items = ord.map(function (k) { return [k, cnt[k]]; });
+    if (isScale && nums.length) item.stats = { mean: Math.round(nums.reduce(function (p, x) { return p + Number(x); }, 0) / nums.length * 100) / 100 };
+    if (!multi && ord.length >= 2 && ord.length <= 20) filterable.push({ col: q.id, text: item.text, values: ord });
+    return item;
+  }).filter(function (q) { return q.answered || (q.rows && q.rows.length); });
+  var durs = rows.map(function (r) { return Number(r.durasi_detik) || 0; }).filter(Boolean).sort(function (a, b) { return a - b; });
+  return { survey: (surveyList_().filter(function (x) { return x.v === v; })[0] || {}).name, total: rows.length, all: all.length,
+    medianMin: durs.length ? Math.round(durs[Math.floor(durs.length / 2)] / 6) / 10 : 0, generatedAt: iso_(new Date()), questions: res, filterable: filterable };
 }

@@ -14,7 +14,7 @@ for (let d = 25; d >= 0; d--) {
     const v = Math.random() < 0.4 ? 'v2' : 'v1', c = pick(CITY), cat = pick(v === 'v2' ? CAT2 : CAT1), i = n++;
     const bad = Math.random() < 0.05;
     ctx.submitResponse({ sid: 's' + i, variant: v, durasi: 300 + Math.floor(Math.random() * 400), src: pick(['linktree','ig_story','langsung','ig_bio']), cats: [cat],
-      answers: { QC1: bad ? 'Merah' : 'Biru', Z2: '@user' + i, Z3: '0812' + String(30000000 + i), Z1: Math.random() < .6 ? 'Ya, bersedia' : 'Tidak', S1: pick(AGE), S2: v === 'v2' ? 'Wanita' : pick(['Pria','Wanita']), A1: c[0], provinsi: c[1], jabodetabek: c[2], B2: pick(['Shopee','Shopee','TikTok Shop','Tokopedia']), L1_PT1: (PROD[cat] ? pick(PROD[cat]) : 'Lainnya'), L1_PT2: pick(['Rp50.001 – Rp75.000','Rp75.001 – Rp100.000','Rp100.001 – Rp125.000']) } });
+      answers: { QC1: bad ? 'Merah' : 'Biru', Z2: '@user' + i, Z3: '0812' + String(30000000 + i), Z1: Math.random() < .6 ? 'Ya, bersedia' : 'Tidak', S1: pick(AGE), S2: v === 'v2' ? 'Wanita' : pick(['Pria','Wanita']), A1: c[0], provinsi: c[1], jabodetabek: c[2], B2: pick(['Shopee','Shopee','TikTok Shop','Tokopedia']), L1_PT1: (PROD[cat] ? pick(PROD[cat]) : 'Lainnya'), S4: ['Shopee', 'TikTok Shop', 'Tokopedia', 'Lazada'].filter(() => Math.random() < .6), B4: { 'Harga paling murah': pick(['Shopee', 'TikTok Shop', 'Tokopedia']), 'Gratis ongkir': pick(['Shopee', 'TikTok Shop']), 'Banyak promo': pick(['Shopee', 'Tokopedia']) }, D3: String(Math.floor(Math.random() * 11)), Z4: pick(['Karena harganya murah dan cepat sampai', 'Suka promo live', 'Pengiriman cepat', 'Kualitas bagus']) + ' ' + i, L1_PT2: pick(['Rp50.001 – Rp75.000','Rp75.001 – Rp100.000','Rp100.001 – Rp125.000']) } });
     const T = sheets[v === 'v2' ? 'Jawaban - Fashion Tas Hijab' : 'Jawaban - Semua Kategori'].d; T[T.length - 1][0] = new Date(Date.now() - d * 864e5 - Math.random() * 3e7);
   }
 }
@@ -45,6 +45,13 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await nav('Daftar Blokir', async () => { const btn = p.locator('#bk-t button', { hasText: 'Buka akses' }).first(); if (await btn.count()) { await btn.click(); await p.waitForTimeout(700); } });
   await nav('Survei &', async () => { await p.locator('#open-V2').evaluate(e => e.click()); await p.locator('#p-set button', { hasText: 'Simpan' }).first().click(); await p.waitForTimeout(500); });
   await nav('API', async () => { await p.click('#p-api button:has-text("Tampilkan")'); });
+  await p.locator('nav.side button', { hasText: 'Laporan' }).click(); await p.waitForTimeout(2500);
+  await p.screenshot({ path: SP + 'adm_laporan.png', fullPage: false });
+  await p.evaluate(() => window.scrollTo(0, 1400)); await p.waitForTimeout(1200); await p.screenshot({ path: SP + 'adm_laporan2.png' });
+  await p.selectOption('#rp-v', 'v1'); await p.waitForTimeout(2000);
+  await p.evaluate(() => { const q = [...document.querySelectorAll('#rp-list .rq')].find(e => /B4|matrix/i.test(e.innerText) || e.querySelector('.rq-n').textContent === 'B4'); if (q) q.scrollIntoView(); }); await p.waitForTimeout(1500); await p.screenshot({ path: SP + 'adm_laporan3.png' });
+  await p.evaluate(() => { const q = [...document.querySelectorAll('#rp-list .rq')].find(e => e.querySelector('.rq-n').textContent === 'S4'); if (q) q.scrollIntoView(); window.scrollBy(0, -80); }); await p.waitForTimeout(1500); await p.screenshot({ path: SP + 'adm_laporan4.png' });
+  await p.selectOption('#rp-fc', { index: 1 }); await p.waitForTimeout(800); await p.waitForTimeout(1500); console.log('report filtered meta:', await p.$eval('#rp-kpi', e => e.innerText.replace(/\n/g, ' ')));
   console.log('JS errors:', errs);
   console.log('V2 open after toggle:', ctx.isOpen_('v2'), '| winners rows:', sheets['Pemenang'].d.length - 1, '| blok:', sheets['Daftar Blokir'].d.slice(1).map(r => r[5]).join(','));
   // API test

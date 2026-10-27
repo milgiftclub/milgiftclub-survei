@@ -77,7 +77,12 @@ cats=[[c[0],c[1],'High' if c[1] in HIGH else 'Low'] for c in CATS]
 dic=[[q[0],num[q[0]],q[1].split('\n')[0],re.sub(r'\{(\w+)\}',lambda m:'Q%d'%num[m.group(1)],q[2])] for q in Q if q[0] not in ('X1','Z5')]
 num2={q[0]:i+1 for i,q in enumerate(variant_v2())}
 dic.append(['SC1','v2:'+str(num2['SC1']),'Screening (v2)','Dalam 1 bulan terakhir, apakah Anda pernah membeli produk dari kategori fokus (Fashion wanita, Tas & aksesori, Fashion muslim / modest) secara online?'])
-gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False))
+qopts={}
+for sch in (S1, S2):
+    for q in sch:
+        o=[x['t'] for x in q.get('options',[]) if isinstance(x,dict) and x.get('t')] or q.get('cols') or []
+        if o and q['id'] not in qopts: qopts[q['id']]=o
+gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False))
 open('survey_out/Code.gs','w').write(gs)
 print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 
