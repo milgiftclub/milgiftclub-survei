@@ -72,6 +72,9 @@ function respTab_(variant) {
 }
 var META = ['timestamp', 'survei', 'varian', 'versi_kuesioner', 'session_id', 'status', 'durasi_detik', 'kategori_1', 'kategori_2', 'attention_check', 'wa_normal', 'ig_normal', 'profil_dari_survei_sebelumnya', 'profil_diperbarui', 'sumber', 'device_fp', 'user_agent'];
 
+// Link survei publik (deployment Apps Script proyek survei; dari apps-script/deployments.json)
+var SURVEY_URL = 'https://script.google.com/macros/s/__SURVEY_DEPLOY__/exec';
+
 // ====== PENGATURAN (tab "Pengaturan", diubah dari Dashboard) ======
 var SET_DEFAULTS = [
   ['SURVEY_OPEN_V1', true, 'Survei Semua Kategori dibuka (TRUE) / ditutup (FALSE)'],
@@ -84,10 +87,10 @@ var SET_DEFAULTS = [
   ['EMAIL_BUKA_AKSES', 'milgiftclub@gmail.com', 'Email permohonan buka akses (ditampilkan ke peserta yang diblokir)'],
   ['ADMIN_DOMAIN', 'mildigital.id', 'Domain email yang boleh membuka Dashboard'],
   ['ADMIN_EMAIL_TAMBAHAN', '', 'Email lain yang boleh membuka Dashboard (pisahkan dengan koma)'],
-  ['LINK_V1', 'https://survei-milgiftclub.netlify.app/', 'Link survei Semua Kategori'],
-  ['LINK_V2', 'https://survei-milgiftclub.netlify.app/fokus/', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
+  ['LINK_V1', SURVEY_URL + '?survei=v1', 'Link survei Semua Kategori'],
+  ['LINK_V2', SURVEY_URL + '?survei=v2', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
   ['API_KEY', '', 'Kunci API untuk ATLAS (buat dari Dashboard > API)'],
-  ['LINK_SURVEI_BARU', 'https://survei-milgiftclub.netlify.app/s/?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
+  ['LINK_SURVEI_BARU', SURVEY_URL + '?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
   ['ANTHROPIC_API_KEY', '', 'Kunci API Claude (console.anthropic.com) untuk fitur "Minta AI" di Buat Survei. Kosong = fitur AI mati'],
   ['AI_MODEL', 'claude-sonnet-5-5', 'Model Claude yang dipakai untuk menyusun survei']
 ];
@@ -101,7 +104,12 @@ function settings_() {
   } catch (e) {}
   SET_MEMO_ = o; return o;
 }
-function set_(k) { return settings_()[k]; }
+function set_(k) {
+  var v = settings_()[k];
+  // link lama Netlify (kredit habis) -> otomatis diarahkan ke link Apps Script
+  if (/^LINK_(V1|V2|SURVEI_BARU)$/.test(k) && /netlify\.app/.test(String(v || ''))) v = SET_DEFAULTS.filter(function (d) { return d[0] === k; })[0][1];
+  return v;
+}
 function num_(k) { return Number(set_(k)) || 0; }
 function bool_(v) { return typeof v === 'string' ? !/^(false|tidak|no|0|tutup)$/i.test(v.trim()) : v !== false && v !== 0; }
 
@@ -142,14 +150,24 @@ function doGet(e) {
   // (Google kadang membuang ?page=admin saat pindah akun/login, jadi jangan bergantung pada parameter saja)
   var path = String((e && e.pathInfo) || '').toLowerCase();
   if (prm.page === 'admin' || path === 'admin') return adminPage_();
-  if (prm.page !== 'survei' && !prm.survei && isAdmin_()) return adminPage_();
-  var t = HtmlService.createTemplateFromFile('Index');
-  t.cfgJson = JSON.stringify(publicConfig_(prm.survei, prm.src || prm.utm_source));
+  if (prm.page !== 'survei' && !prm.survei && !prm.id && isAdmin_()) return adminPage_();
+  // halaman survei = versi website (Web_*.html), disajikan langsung dari link Apps Script
+  var sv = String(prm.survei || '').toLowerCase(), cid = prm.id || (sv && sv !== 'v1' && sv !== 'v2' ? prm.survei : '');
+  var file = cid ? 'Web_s' : sv === 'v2' ? 'Web_v2' : 'Web_v1', q = (e && e.queryString) || '';
+  if (cid && !prm.id) q += '&id=' + encodeURIComponent(cid);
+  var t;
+  try { t = HtmlService.createTemplateFromFile(file); }
+  catch (err) { t = HtmlService.createTemplateFromFile('Index'); t.cfgJson = JSON.stringify(publicConfig_(prm.survei, prm.src || prm.utm_source)); }
+  t.search = JSON.stringify(q ? '?' + q : '').replace(/</g, '\\u003c');
+  var c = cid ? customById_(cid) : null;
   return t.evaluate()
-    .setTitle('Survei Belanja Online — MIL Gift Club')
+    .setTitle(c ? c.name : 'Survei Belanja Online — MIL Gift Club')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+
+/** Dipanggil halaman survei (Web_*.html) lewat google.script.run; isi sama dengan doPost. */
+function webApi(fn, args) { return doPost({ postData: { contents: JSON.stringify({ fn: fn, args: args || [] }) } }).getContent(); }
 
 // API untuk tampilan yang di-hosting di luar Google (Netlify, dll.)
 function doPost(e) {

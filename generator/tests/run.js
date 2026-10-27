@@ -30,7 +30,16 @@ async function respondent(browser, i, scenario) {
   const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
-  if (process.env.HOSTED) {
+  if (process.env.APPS) {
+    // halaman Web_*.html seperti disajikan Apps Script (parameter link lewat window.__SEARCH, API lewat google.script.run)
+    const f = path.join(__dirname, 'apps_page.html');
+    fs.writeFileSync(f, fs.readFileSync(path.join(__dirname, '../survey_out/' + (V2 ? 'Web_v2.html' : 'Web_v1.html')), 'utf8').replace('<?!= search ?>', JSON.stringify('?src=ig_bio')));
+    await page.exposeFunction('gsCall', (fn, args) => JSON.stringify(ctx[fn](...JSON.parse(args))));
+    await page.addInitScript(MOCK);
+    await page.route('https://fonts.googleapis.com/**', r => r.abort());
+    await page.goto('file://' + f);
+    await page.waitForFunction(() => window.__ST, null, { timeout: 10000 });
+  } else if (process.env.HOSTED) {
     const root = path.join(__dirname, '../../site');
     await page.route('https://survei.test/**', r => { let u = new URL(r.request().url()).pathname; if (u.endsWith('/')) u += 'index.html'; const f = path.join(root, u); let body = fs.readFileSync(f, 'utf8'); if (u.endsWith('config.js')) body = body.replace(/https:\/\/script[^']*/g, 'https://api.test/exec'); r.fulfill({ body, contentType: u.endsWith('.js') ? 'application/javascript' : 'text/html' }); });
     await page.route('https://api.test/**', async r => { if (process.env.SLOW && /lookupIg|verifyProfile/.test(r.request().postData())) { await new Promise(z => setTimeout(z, 1500)); const m = /lookupIg|verifyProfile/.exec(r.request().postData())[0]; await page.screenshot({ path: (process.env.SHOTS || require('os').tmpdir() + '/') + 'wait_' + m + '.png' }); } if (process.env.FAILSUBMIT && /submitResponse/.test(r.request().postData())) return r.fulfill({ body: '<html>Script function not found: doPost</html>', contentType: 'text/html', headers: { 'access-control-allow-origin': '*' } }); const out = ctx.doPost({ postData: { contents: r.request().postData() } }); r.fulfill({ body: out.getContent(), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }); });

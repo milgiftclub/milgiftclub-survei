@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Survei MIL Gift Club</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF1E1; --cream2:#F6E6CC; --coral:#F2575D; --coral-d:#D9444A; --yellow:#F9C23C; --yellow-l:#FFF1C9;
+    --brown:#4A2A1A; --brown2:#7A5440; --line:#EBD7B8; --white:#FFFFFF; --err:#C62828;
+    --display:"Fredoka","Nunito",system-ui,sans-serif; --body:"Nunito",-apple-system,"Segoe UI",Roboto,Arial,sans-serif; --hand:"Caveat","Comic Sans MS",cursive;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--cream);color:var(--brown);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+  body{min-height:100vh;position:relative;overflow-x:hidden}
+  .blob{position:fixed;z-index:0;pointer-events:none;border-radius:58% 42% 63% 37% / 45% 55% 45% 55%}
+  .b1{width:230px;height:200px;background:var(--yellow);top:-90px;left:-110px;transform:rotate(-12deg)}
+  .b2{width:210px;height:230px;background:var(--coral);top:-110px;right:-120px;transform:rotate(20deg);opacity:.9}
+  .b3{width:240px;height:220px;background:var(--coral);bottom:-150px;right:-130px;opacity:.85}
+  .b4{width:200px;height:190px;background:var(--yellow);bottom:-140px;left:-120px;transform:rotate(30deg);opacity:.9}
+  header,main,nav{position:relative;z-index:1}
+  header{padding:18px 16px 6px;text-align:center}
+  .logo{font-family:var(--display);font-weight:700;color:var(--brown);font-size:26px;line-height:1;letter-spacing:.01em}
+  .logo .dot{color:var(--coral)}
+  .tag{font-size:10px;letter-spacing:.28em;color:var(--brown2);margin-top:6px;font-weight:700}
+  .bar{max-width:520px;margin:14px auto 0;height:10px;background:var(--white);border:2px solid var(--line);border-radius:10px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--yellow),var(--coral));border-radius:8px;transition:width .3s}
+  main{max-width:560px;margin:0 auto;padding:16px 16px 130px}
+  .section{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--coral);text-transform:uppercase;margin-bottom:6px}
+  .catpill{display:inline-block;background:var(--yellow);color:var(--brown);font-size:13px;font-weight:800;padding:5px 14px;border-radius:999px;margin-bottom:10px;transform:rotate(-1.5deg);box-shadow:2px 2px 0 var(--brown)}
+  h1{font-family:var(--display);font-weight:600;font-size:22px;line-height:1.3;margin:0 0 8px;color:var(--brown)}
+  .intro{font-size:15px;color:var(--brown2);margin:0 0 14px;background:var(--white);border-radius:16px;padding:14px 16px;border:2px dashed var(--line)}
+  .hint{font-size:14px;font-weight:700;color:var(--coral-d);margin:0 0 12px;line-height:1.4}
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{display:flex;gap:12px;align-items:flex-start;background:var(--white);border:2px solid var(--line);border-radius:16px;padding:13px 15px;cursor:pointer;user-select:none;min-height:50px;font-weight:600;transition:transform .08s,border-color .15s,background .15s}
+  .opt:active{transform:scale(.99)}
+  .opt input{margin:2px 0 0;accent-color:var(--coral);width:20px;height:20px;flex:none}
+  .opt.on{border-color:var(--coral);background:var(--yellow-l);box-shadow:3px 3px 0 var(--coral)}
+  .opt.dis{opacity:.45;cursor:not-allowed}
+  .opt small{font-weight:600}
+  .grp{font-family:var(--display);font-size:14px;font-weight:600;color:var(--coral-d);margin:14px 0 2px}
+  .other{margin:4px 0 0 32px}
+  input[type=text],input[type=tel],select,textarea{width:100%;font:inherit;font-weight:600;padding:13px 15px;border:2px solid var(--line);border-radius:16px;background:var(--white);color:var(--brown);outline:none}
+  input:focus,select:focus,textarea:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(242,87,93,.15)}
+  textarea{min-height:110px;resize:vertical}
+  .mrow{background:var(--white);border:2px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px}
+  .mrow.miss{border-color:var(--err)}
+  .mrow .lbl{font-weight:800;font-size:15px;margin-bottom:9px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{border:2px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:700;cursor:pointer;background:var(--cream);user-select:none;color:var(--brown)}
+  .chip.on{background:var(--coral);border-color:var(--coral);color:var(--white)}
+  .nps{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+  .nps button{font-family:var(--display);font-size:16px;font-weight:600;padding:12px 0;border:2px solid var(--line);border-radius:12px;background:var(--white);cursor:pointer;color:var(--brown)}
+  .nps button.on{background:var(--coral);color:var(--white);border-color:var(--coral)}
+  .npsl{display:flex;justify-content:space-between;font-size:12px;color:var(--brown2);margin-top:6px;font-weight:600}
+  .wait{display:none;align-items:center;gap:12px;margin-top:12px;padding:14px 16px;border-radius:14px;background:#EEF6FF;color:#1F3B73;font-size:14px;font-weight:700;line-height:1.45}
+  .wait.on{display:flex}
+  .wait i{flex:0 0 20px;width:20px;height:20px;border:3px solid #BFD6F6;border-top-color:#2F6FD6;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:var(--err);font-size:14px;font-weight:700;margin-top:12px;min-height:20px}
+  nav{position:fixed;left:0;right:0;bottom:0;background:rgba(251,241,225,.94);backdrop-filter:blur(6px);border-top:2px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:5}
+  nav div{max-width:560px;margin:0 auto;display:flex;gap:10px}
+  nav button{font-family:var(--display);font-size:17px;font-weight:600;border-radius:999px;padding:13px;cursor:pointer;border:0}
+  #back{background:var(--white);color:var(--brown);border:2px solid var(--brown);flex:0 0 110px}
+  #next{background:var(--coral);color:var(--white);flex:1;box-shadow:0 4px 0 var(--coral-d)}
+  #next:active{transform:translateY(2px);box-shadow:0 2px 0 var(--coral-d)}
+  #next[disabled]{opacity:.6;cursor:wait}
+  .end{text-align:center;padding-top:30px}
+  .end .big{font-size:56px}
+  .end .note{margin-top:14px;background:var(--yellow-l);border:2px solid var(--yellow);border-radius:16px;padding:12px 16px;font-weight:800;font-size:15px;color:var(--brown);line-height:1.4}
+  .end .note:before{content:'✨ '}
+  .end .ctas{margin-top:16px}
+  .end .cta2{background:var(--white)!important;color:var(--coral-d)!important;border:2px solid var(--coral);box-shadow:none!important}
+  .end .cta{display:block;margin:12px 0 0;background:var(--coral);color:#fff;text-decoration:none;font-weight:800;font-size:16px;border-radius:16px;padding:14px 18px;box-shadow:0 4px 0 var(--coral-d)}
+  .ver{font-size:11px;color:var(--brown2);opacity:.6;text-align:center;margin-top:18px}
+  .links{font-size:14px;margin:10px 0 0;font-weight:700}
+  .promo{background:var(--white);border:2px solid var(--line);border-radius:18px;padding:14px 16px;margin:0 0 16px;font-size:14.5px;color:var(--brown2)}
+  .promo .pr-l{display:inline-block;background:var(--yellow-l);color:var(--brown);font-weight:800;font-size:12.5px;border-radius:20px;padding:4px 10px;margin-bottom:8px}
+  .promo .pr-u{display:flex;flex-direction:column;margin-bottom:8px}
+  .promo .pr-u span{font-weight:700;font-size:13px}
+  .promo .pr-u b{font-family:var(--display);font-size:22px;color:var(--coral-d);line-height:1.2}
+  .pr-s{font-weight:800;color:var(--brown);margin:2px 0 4px}
+  .steps{text-align:left;background:var(--white);border:2px solid var(--line);border-radius:18px;padding:14px 16px;margin:14px 0 0;font-size:15px;color:var(--brown)}
+  .steps ol{margin:4px 0 0;padding-left:22px}
+  .steps li{margin:6px 0}
+  .steps li.ok{color:var(--brown2)}
+  .promo ul{margin:0 0 10px;padding-left:20px}
+  .promo li{margin:2px 0;font-weight:700;color:var(--brown)}
+  .promo .pr-r{display:flex;justify-content:space-between;gap:10px;border-top:1px dashed var(--line);padding:7px 0}
+  .promo .pr-r span{white-space:nowrap}
+  .promo .pr-r b{color:var(--brown);text-align:right}
+  .promo .pr-f{font-size:12.5px;opacity:.8;margin-top:4px}
+  .links a{color:var(--coral-d)}
+  @media (max-width:380px){.nps{grid-template-columns:repeat(6,1fr)} h1{font-size:20px}}
+</style>
+<style>
+  .scale{display:flex;gap:6px;flex-wrap:wrap}
+  .scale button{flex:1 1 44px;font-family:var(--display);font-size:17px;font-weight:600;padding:12px 0;border:2px solid var(--line);border-radius:12px;background:var(--white);cursor:pointer;color:var(--brown)}
+  .scale button.on{background:var(--coral);color:var(--white);border-color:var(--coral)}
+  .pvw{background:#2F6FD6;color:#fff;font-weight:800;font-size:13px;text-align:center;padding:8px 12px;border-radius:12px;margin-bottom:12px}
+  .loading{text-align:center;padding:60px 10px;font-weight:700;color:var(--brown2)}
+  .loading i{display:block;margin:0 auto 14px;width:30px;height:30px;border:4px solid var(--line);border-top-color:var(--coral);border-radius:50%;animation:spin .8s linear infinite}
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>
+<header>
+  <div class="logo">MIL Gift Club<span class="dot">.</span></div>
+  <div class="tag">INSIGHT · COMMUNITY · REWARDS</div>
+  <div class="bar"><i id="prog"></i></div>
+</header>
+<main id="app"><div class="loading"><i></i>Memuat survei…</div></main>
+<nav id="nav" style="display:none"><div><button id="back" type="button">Kembali</button><button id="next" type="button">Lanjut</button></div></nav>
+<script>
+// ==========================================================
+//  PENGATURAN WEBSITE SURVEI MIL GIFT CLUB
+//  Buka file ini dengan TextEdit, ubah teks DI ANTARA tanda kutip ' ',
+//  simpan, lalu upload ulang folder ke Netlify (tab Deploys).
+//  Jangan hapus tanda kutip, koma, atau kurung.
+// ==========================================================
+window.SURVEI_CONFIG = {
+
+  // ---- 1. Alamat Apps Script (JANGAN diubah kecuali deployment berganti) ----
+  API_V1: 'https://script.google.com/macros/s/AKfycbzfKRzS_qZhPjaH9CrXr-l-afFfX-7QCerSDxc5aIDemYNpuHWA5xWVmaMwxGQUZ9IaoQ/exec',
+  API_V2: 'https://script.google.com/macros/s/AKfycbzfKRzS_qZhPjaH9CrXr-l-afFfX-7QCerSDxc5aIDemYNpuHWA5xWVmaMwxGQUZ9IaoQ/exec',  // sama dengan API_V1: kedua survei tersimpan di satu Sheet
+
+  // ---- 2. Teks yang tampil di survei (boleh diubah) ----
+  TAMPILAN: {
+    // Halaman pertama: paragraf pembuka (kotak bergaris) dan pertanyaan persetujuan
+    TEKS_PEMBUKA: 'Terima kasih telah berpartisipasi dalam survei tentang kebiasaan belanja online. Survei ini membutuhkan waktu ±7 menit. Jawaban Anda bersifat rahasia dan hanya digunakan untuk keperluan riset. Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.',
+    PERTANYAAN_PEMBUKA: 'Apakah Anda bersedia mengikuti survei ini?',
+
+    PERIODE_LABEL: 'Survei MIL Gift Club · Periode 1 2026',
+    HADIAH_UTAMA: 'Apple AirPods 4',
+    HADIAH: [
+      'Voucher MAP Rp500.000 untuk 3 pemenang',
+      'Saldo GoPay Rp50.000 untuk 5 pemenang'
+    ],
+    PERIODE_GIVEAWAY: 'Hingga 31 Desember 2026',
+    PENGUMUMAN_PEMENANG: '4 Januari 2027',
+    IG_HANDLE: '@milgiftclub',
+    LANGKAH_PENUTUP: [
+      'Follow Instagram @milgiftclub',
+      '❤️ Like postingan giveaway ini',
+      'Tag 3 teman kamu di kolom komentar',
+      'Share postingan ini ke Instagram Story kamu dan tag @milgiftclub',
+      'Nantikan pengumuman pemenangnya!'
+    ],
+    PESAN_PENUTUP: 'Isi survei lainnya untuk memperbesar kesempatan kamu menang!',
+
+    // Halaman penutup bila responden tidak lolos kriteria / menolak ikut (kedua survei; kecuali usia < 18)
+    TEKS_TIDAK_ELIGIBLE: 'Kamu belum termasuk kriteria survei ini. Tapi jangan khawatir, kamu masih bisa memenangkan hadiah dengan mengisi survei lainnya.',
+    TEKS_SUDAH_ISI: 'Akun Instagram ini sudah pernah mengisi survei ini. Satu akun hanya bisa ikut satu kali. Tapi jangan khawatir, kamu masih bisa memenangkan hadiah dengan mengisi survei lainnya.',
+    TEKS_MENOLAK: 'Tidak apa-apa kalau kamu belum ingin mengisi survei ini. Kamu masih bisa memenangkan hadiah dengan mengisi survei lainnya.',
+    TOMBOL_SURVEI_LAIN: 'Isi survei lainnya',
+    LINK_SURVEI_LAIN: 'https://linktr.ee/milgiftclub',
+
+    // Tombol Instagram di halaman penutup (terima kasih, tidak lolos, survei ditutup)
+    TOMBOL_INSTAGRAM: 'Follow @milgiftclub di Instagram',
+    LINK_INSTAGRAM: 'https://www.instagram.com/milgiftclub/',
+
+    PRIVACY_URL: '',   // link Kebijakan Privasi (kosong = tidak ditampilkan)
+    TNC_URL: ''        // link Syarat & Ketentuan giveaway (kosong = tidak ditampilkan)
+  }
+};
+
+</script>
+<script>
+// dijalankan di dalam Apps Script: parameter link diteruskan server, API lewat google.script.run
+window.__SEARCH = <?!= search ?>;
+var __GSR = google.script.run;
+function __gsFetch(url, o) {
+  var b = JSON.parse(o.body);
+  return new Promise(function (res, rej) {
+    __GSR.withSuccessHandler(function (t) { res({ status: 200, text: function () { return Promise.resolve(t); } }); })
+      .withFailureHandler(function (e) { rej(e); }).webApi(b.fn, b.args);
+  });
+}
+</script>
+<script>
+var VERSION = '27 Okt 2026 · v30 · survei baru';
+var STD = {"O1": {"id": "O1", "topic": "Selamat datang", "type": "sa", "loop": false, "intro": "Terima kasih telah berpartisipasi dalam survei tentang kebiasaan belanja online. Survei ini membutuhkan waktu ±7 menit. Jawaban Anda bersifat rahasia dan hanya digunakan untuk keperluan riset. Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.", "text": "Apakah Anda bersedia mengikuti survei ini?", "options": [{"t": "Ya, saya setuju dan bersedia mengikuti survei"}, {"t": "Tidak bersedia"}]}, "Z2": {"id": "Z2", "topic": "Selamat datang", "type": "oa", "loop": false, "text": "Tuliskan username Instagram Anda (untuk verifikasi keikutsertaan giveaway @milgift_club).", "options": [], "placeholder": "@namaanda"}, "PV": {"id": "PV", "topic": "Selamat datang", "type": "oa", "loop": false, "text": "Kamu sudah pernah mengisi survei MIL Gift Club sebelumnya. Supaya tidak perlu mengisi data diri lagi, masukkan 4 digit terakhir nomor WhatsApp yang kamu daftarkan.", "options": [], "placeholder": "Contoh: 7890", "hint": "Kosongkan lalu klik Lanjut jika ingin mengisi data diri dari awal", "optional": true}, "PR": {"id": "PR", "topic": "Selamat datang", "type": "sa", "loop": false, "text": "Data diri kamu terakhir diperbarui lebih dari 6 bulan lalu. Apakah data berikut masih sesuai?", "options": [{"t": "Ya, masih sesuai"}, {"t": "Ada yang berubah, saya mau isi ulang"}]}, "S0": {"id": "S0", "topic": "Tentang kamu", "type": "dropdown", "loop": false, "text": "Tahun berapa Anda lahir?", "options": [{"t": "2010"}, {"t": "2009"}, {"t": "2008"}, {"t": "2007"}, {"t": "2006"}, {"t": "2005"}, {"t": "2004"}, {"t": "2003"}, {"t": "2002"}, {"t": "2001"}, {"t": "2000"}, {"t": "1999"}, {"t": "1998"}, {"t": "1997"}, {"t": "1996"}, {"t": "1995"}, {"t": "1994"}, {"t": "1993"}, {"t": "1992"}, {"t": "1991"}, {"t": "1990"}, {"t": "1989"}, {"t": "1988"}, {"t": "1987"}, {"t": "1986"}, {"t": "1985"}, {"t": "1984"}, {"t": "1983"}, {"t": "1982"}, {"t": "1981"}, {"t": "1980"}, {"t": "1979"}, {"t": "1978"}, {"t": "1977"}, {"t": "1976"}, {"t": "1975"}, {"t": "1974"}, {"t": "1973"}, {"t": "1972"}, {"t": "1971"}, {"t": "1970"}, {"t": "1969"}, {"t": "1968"}, {"t": "1967"}, {"t": "1966"}, {"t": "1965"}, {"t": "1964"}, {"t": "1963"}, {"t": "1962"}, {"t": "1961"}, {"t": "1960"}, {"t": "1959"}, {"t": "1958"}, {"t": "1957"}, {"t": "1956"}, {"t": "1955"}, {"t": "1954"}, {"t": "1953"}, {"t": "1952"}, {"t": "1951"}, {"t": "1950"}, {"t": "1949"}, {"t": "1948"}, {"t": "1947"}, {"t": "1946"}, {"t": "1945 atau sebelumnya"}]}, "S0B": {"id": "S0B", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Apakah usia Anda saat ini sudah genap 18 tahun?", "options": [{"t": "Ya, sudah 18 tahun"}, {"t": "Belum"}]}, "S1": {"id": "S1", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Berapa usia Anda saat ini?", "options": [{"t": "Di bawah 18 tahun"}, {"t": "18-24 tahun"}, {"t": "25-34 tahun"}, {"t": "35-44 tahun"}, {"t": "45-54 tahun"}, {"t": "55 tahun ke atas"}]}, "S2": {"id": "S2", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Apa jenis kelamin Anda?", "options": [{"t": "Pria"}, {"t": "Wanita"}]}, "S3": {"id": "S3", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Apakah Anda atau anggota keluarga inti Anda bekerja di salah satu bidang berikut?", "options": [{"t": "Agensi pemasaran / periklanan / digital marketing"}, {"t": "Perusahaan riset pasar"}, {"t": "Perusahaan e-commerce / marketplace"}, {"t": "Tidak satu pun dari pilihan di atas", "ex": true}], "rnd": true}, "A1": {"id": "A1", "topic": "Tentang kamu", "type": "city", "loop": false, "text": "Di kota/kabupaten mana Anda tinggal saat ini?", "options": []}, "A4M": {"id": "A4M", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Apa status pernikahan Anda saat ini?", "options": [{"t": "Belum menikah"}, {"t": "Menikah"}, {"t": "Cerai / berpisah"}]}, "A4N": {"id": "A4N", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Berapa jumlah anak Anda?", "options": [{"t": "Belum / tidak memiliki anak"}, {"t": "1 anak"}, {"t": "2 anak"}, {"t": "3 anak"}, {"t": "4 anak atau lebih"}]}, "A4K": {"id": "A4K", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Berapa usia anak-anak Anda saat ini?", "options": [{"t": "Di bawah 2 tahun (bayi)"}, {"t": "2-5 tahun (balita)"}, {"t": "6-12 tahun (usia SD)"}, {"t": "13-17 tahun (remaja)"}, {"t": "18 tahun ke atas"}]}, "A5": {"id": "A5", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Apa pekerjaan utama Anda saat ini?", "options": [{"t": "Pelajar / mahasiswa"}, {"t": "Karyawan swasta"}, {"t": "PNS / BUMN / TNI / Polri"}, {"t": "Wiraswasta / pemilik usaha"}, {"t": "Pekerja lepas / freelancer"}, {"t": "Ibu rumah tangga"}, {"t": "Tidak bekerja / pensiun"}, {"t": "Lainnya"}], "rnd": true}, "A6": {"id": "A6", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Apa pendidikan terakhir Anda?", "options": [{"t": "SD / SMP"}, {"t": "SMA / SMK sederajat"}, {"t": "Diploma (D1-D3)"}, {"t": "Sarjana (S1 / D4)"}, {"t": "Pascasarjana (S2 / S3)"}]}, "A7": {"id": "A7", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Berapa total pengeluaran rumah tangga Anda per bulan (di luar cicilan rumah/kendaraan)?", "options": [{"t": "Di bawah Rp2.000.000"}, {"t": "Rp2.000.000 - Rp3.000.000"}, {"t": "Rp3.000.001 - Rp5.000.000"}, {"t": "Rp5.000.001 - Rp7.500.000"}, {"t": "Rp7.500.001 - Rp10.000.000"}, {"t": "Rp10.000.001 - Rp15.000.000"}, {"t": "Di atas Rp15.000.000"}]}, "A8": {"id": "A8", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Berapa rata-rata total belanja online pribadi Anda per bulan?", "options": [{"t": "Di bawah Rp100.000"}, {"t": "Rp100.000 - Rp250.000"}, {"t": "Rp250.001 - Rp500.000"}, {"t": "Rp500.001 - Rp1.000.000"}, {"t": "Rp1.000.001 - Rp2.000.000"}, {"t": "Di atas Rp2.000.000"}]}, "A9": {"id": "A9", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Siapa yang biasanya memutuskan belanja kebutuhan rumah tangga di rumah Anda?", "options": [{"t": "Saya sendiri"}, {"t": "Saya bersama pasangan / anggota keluarga lain"}, {"t": "Orang lain, tetapi saya ikut memberi masukan"}, {"t": "Orang lain, saya tidak terlibat"}]}, "A10": {"id": "A10", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Media sosial apa saja yang Anda buka setiap hari?", "options": [{"t": "Instagram"}, {"t": "TikTok"}, {"t": "YouTube"}, {"t": "Facebook"}, {"t": "X (Twitter)"}, {"t": "Threads"}, {"t": "Pinterest"}, {"t": "LinkedIn"}, {"t": "Lainnya"}, {"t": "Tidak ada", "ex": true}]}, "A11": {"id": "A11", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Berapa lama total waktu Anda bermain media sosial dalam sehari?", "options": [{"t": "Kurang dari 1 jam"}, {"t": "1-2 jam"}, {"t": "2-4 jam"}, {"t": "4-6 jam"}, {"t": "Lebih dari 6 jam"}]}, "A12": {"id": "A12", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Metode pembayaran apa saja yang Anda gunakan untuk belanja online dalam 3 bulan terakhir?", "options": [{"t": "E-wallet (GoPay, OVO, DANA, ShopeePay, dll.)"}, {"t": "QRIS"}, {"t": "Transfer bank / virtual account"}, {"t": "Kartu debit"}, {"t": "Kartu kredit"}, {"t": "Paylater / cicilan"}, {"t": "Bayar di tempat (COD)"}, {"t": "Bayar di gerai (Indomaret / Alfamart)"}, {"t": "Lainnya"}]}, "A13": {"id": "A13", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "HP apa yang Anda gunakan sehari-hari?", "options": [{"t": "Android"}, {"t": "iPhone"}, {"t": "Keduanya"}]}, "A14": {"id": "A14", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Apa minat atau hobi utama Anda?", "max": 3, "options": [{"t": "Kuliner / wisata makanan"}, {"t": "Traveling"}, {"t": "Olahraga / fitness"}, {"t": "Fashion & kecantikan"}, {"t": "Gaming"}, {"t": "Musik / konser"}, {"t": "Film / series / drama"}, {"t": "Membaca"}, {"t": "Otomotif"}, {"t": "Gadget & teknologi"}, {"t": "Parenting / keluarga"}, {"t": "Memasak / baking"}, {"t": "Investasi / keuangan"}, {"t": "Berkebun / tanaman"}, {"t": "Hewan peliharaan"}, {"t": "Seni & kerajinan tangan"}, {"t": "K-pop / budaya Korea & Jepang"}, {"t": "Lainnya"}]}, "A15": {"id": "A15", "topic": "Tentang kamu", "type": "sa", "loop": false, "text": "Apakah Anda mengenakan hijab dalam keseharian?", "options": [{"t": "Ya, setiap hari"}, {"t": "Kadang-kadang"}, {"t": "Tidak"}, {"t": "Tidak ingin menjawab"}]}, "A16": {"id": "A16", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Kendaraan apa saja yang Anda miliki?", "options": [{"t": "Mobil"}, {"t": "Motor"}, {"t": "Sepeda"}, {"t": "Tidak memiliki kendaraan", "ex": true}]}, "A17": {"id": "A17", "topic": "Tentang kamu", "type": "ma", "loop": false, "text": "Apakah Anda memelihara hewan?", "options": [{"t": "Kucing"}, {"t": "Anjing"}, {"t": "Ikan"}, {"t": "Burung"}, {"t": "Hewan lainnya"}, {"t": "Tidak memelihara hewan", "ex": true}]}, "QC1": {"id": "QC1", "topic": "Cek sebentar", "type": "sa", "loop": false, "text": "Untuk memastikan Anda membaca setiap pertanyaan dengan saksama, silakan pilih jawaban \"Biru\" pada pertanyaan ini.", "options": [{"t": "Merah"}, {"t": "Hijau"}, {"t": "Biru"}, {"t": "Kuning"}], "rnd": true}, "Z1": {"id": "Z1", "topic": "Hampir selesai!", "type": "sa", "loop": false, "text": "Apakah Anda bersedia data profil Anda disimpan dan dihubungi kembali oleh MIL Gift Club untuk survei atau riset berikutnya (dengan kesempatan mendapatkan hadiah)?", "options": [{"t": "Ya, bersedia"}, {"t": "Tidak"}]}, "Z3": {"id": "Z3", "topic": "Hampir selesai!", "type": "oa", "loop": false, "text": "Tuliskan nomor HP / WhatsApp aktif Anda. Nomor ini digunakan untuk menghubungi Anda apabila terpilih secara acak sebagai pemenang hadiah.", "options": [], "placeholder": "08xxxxxxxxxx"}};          // pertanyaan standar (pembuka, IG, profil, attention check, penutup)
+var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Tenggara", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Timur", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Tengah", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Barat", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Besar", "Aceh", "Kabupaten", "Tidak"], ["Kab. Pidie", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Utara", "Aceh", "Kabupaten", "Tidak"], ["Kab. Simeulue", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Singkil", "Aceh", "Kabupaten", "Tidak"], ["Kab. Bireuen", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Barat Daya", "Aceh", "Kabupaten", "Tidak"], ["Kab. Gayo Lues", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Jaya", "Aceh", "Kabupaten", "Tidak"], ["Kab. Nagan Raya", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh Tamiang", "Aceh", "Kabupaten", "Tidak"], ["Kab. Bener Meriah", "Aceh", "Kabupaten", "Tidak"], ["Kab. Pidie Jaya", "Aceh", "Kabupaten", "Tidak"], ["Kota Banda Aceh", "Aceh", "Kota", "Tidak"], ["Kota Sabang", "Aceh", "Kota", "Tidak"], ["Kota Lhokseumawe", "Aceh", "Kota", "Tidak"], ["Kota Langsa", "Aceh", "Kota", "Tidak"], ["Kota Subulussalam", "Aceh", "Kota", "Tidak"], ["Kab. Tapanuli Tengah", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Tapanuli Utara", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Tapanuli Selatan", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Nias", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Langkat", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Karo", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Deli Serdang", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Simalungun", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Asahan", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Labuhanbatu", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Dairi", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Toba", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Mandailing Natal", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Nias Selatan", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Pakpak Bharat", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Humbang Hasundutan", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Samosir", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Serdang Bedagai", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Batu Bara", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Padang Lawas Utara", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Padang Lawas", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Labuhanbatu Selatan", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Labuhanbatu Utara", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Nias Utara", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kab. Nias Barat", "Sumatera Utara", "Kabupaten", "Tidak"], ["Kota Medan", "Sumatera Utara", "Kota", "Tidak"], ["Kota Pematangsiantar", "Sumatera Utara", "Kota", "Tidak"], ["Kota Sibolga", "Sumatera Utara", "Kota", "Tidak"], ["Kota Tanjungbalai", "Sumatera Utara", "Kota", "Tidak"], ["Kota Binjai", "Sumatera Utara", "Kota", "Tidak"], ["Kota Tebing Tinggi", "Sumatera Utara", "Kota", "Tidak"], ["Kota Padangsidimpuan", "Sumatera Utara", "Kota", "Tidak"], ["Kota Gunungsitoli", "Sumatera Utara", "Kota", "Tidak"], ["Kab. Pesisir Selatan", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Solok", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Sijunjung", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Tanah Datar", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Padang Pariaman", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Agam", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Lima Puluh Kota", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Pasaman", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Kepulauan Mentawai", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Dharmasraya", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Solok Selatan", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kab. Pasaman Barat", "Sumatera Barat", "Kabupaten", "Tidak"], ["Kota Padang", "Sumatera Barat", "Kota", "Tidak"], ["Kota Solok", "Sumatera Barat", "Kota", "Tidak"], ["Kota Sawahlunto", "Sumatera Barat", "Kota", "Tidak"], ["Kota Padang Panjang", "Sumatera Barat", "Kota", "Tidak"], ["Kota Bukittinggi", "Sumatera Barat", "Kota", "Tidak"], ["Kota Payakumbuh", "Sumatera Barat", "Kota", "Tidak"], ["Kota Pariaman", "Sumatera Barat", "Kota", "Tidak"], ["Kab. Kampar", "Riau", "Kabupaten", "Tidak"], ["Kab. Indragiri Hulu", "Riau", "Kabupaten", "Tidak"], ["Kab. Bengkalis", "Riau", "Kabupaten", "Tidak"], ["Kab. Indragiri Hilir", "Riau", "Kabupaten", "Tidak"], ["Kab. Pelalawan", "Riau", "Kabupaten", "Tidak"], ["Kab. Rokan Hulu", "Riau", "Kabupaten", "Tidak"], ["Kab. Rokan Hilir", "Riau", "Kabupaten", "Tidak"], ["Kab. Siak", "Riau", "Kabupaten", "Tidak"], ["Kab. Kuantan Singingi", "Riau", "Kabupaten", "Tidak"], ["Kab. Kepulauan Meranti", "Riau", "Kabupaten", "Tidak"], ["Kota Pekanbaru", "Riau", "Kota", "Tidak"], ["Kota Dumai", "Riau", "Kota", "Tidak"], ["Kab. Kerinci", "Jambi", "Kabupaten", "Tidak"], ["Kab. Merangin", "Jambi", "Kabupaten", "Tidak"], ["Kab. Sarolangun", "Jambi", "Kabupaten", "Tidak"], ["Kab. Batanghari", "Jambi", "Kabupaten", "Tidak"], ["Kab. Muaro Jambi", "Jambi", "Kabupaten", "Tidak"], ["Kab. Tanjung Jabung Barat", "Jambi", "Kabupaten", "Tidak"], ["Kab. Tanjung Jabung Timur", "Jambi", "Kabupaten", "Tidak"], ["Kab. Bungo", "Jambi", "Kabupaten", "Tidak"], ["Kab. Tebo", "Jambi", "Kabupaten", "Tidak"], ["Kota Jambi", "Jambi", "Kota", "Tidak"], ["Kota Sungai Penuh", "Jambi", "Kota", "Tidak"], ["Kab. Ogan Komering Ulu", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Ogan Komering Ilir", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Muara Enim", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Lahat", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Musi Rawas", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Musi Banyuasin", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Banyuasin", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Ogan Komering Ulu Timur", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Ogan Komering Ulu Selatan", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Ogan Ilir", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Empat Lawang", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Penukal Abab Lematang Ilir", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kab. Musi Rawas Utara", "Sumatera Selatan", "Kabupaten", "Tidak"], ["Kota Palembang", "Sumatera Selatan", "Kota", "Tidak"], ["Kota Pagar Alam", "Sumatera Selatan", "Kota", "Tidak"], ["Kota Lubuk Linggau", "Sumatera Selatan", "Kota", "Tidak"], ["Kota Prabumulih", "Sumatera Selatan", "Kota", "Tidak"], ["Kab. Bengkulu Selatan", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Rejang Lebong", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Bengkulu Utara", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Kaur", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Seluma", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Mukomuko", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Lebong", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Kepahiang", "Bengkulu", "Kabupaten", "Tidak"], ["Kab. Bengkulu Tengah", "Bengkulu", "Kabupaten", "Tidak"], ["Kota Bengkulu", "Bengkulu", "Kota", "Tidak"], ["Kab. Lampung Selatan", "Lampung", "Kabupaten", "Tidak"], ["Kab. Lampung Tengah", "Lampung", "Kabupaten", "Tidak"], ["Kab. Lampung Utara", "Lampung", "Kabupaten", "Tidak"], ["Kab. Lampung Barat", "Lampung", "Kabupaten", "Tidak"], ["Kab. Tulang Bawang", "Lampung", "Kabupaten", "Tidak"], ["Kab. Tanggamus", "Lampung", "Kabupaten", "Tidak"], ["Kab. Lampung Timur", "Lampung", "Kabupaten", "Tidak"], ["Kab. Way Kanan", "Lampung", "Kabupaten", "Tidak"], ["Kab. Pesawaran", "Lampung", "Kabupaten", "Tidak"], ["Kab. Pringsewu", "Lampung", "Kabupaten", "Tidak"], ["Kab. Mesuji", "Lampung", "Kabupaten", "Tidak"], ["Kab. Tulang Bawang Barat", "Lampung", "Kabupaten", "Tidak"], ["Kab. Pesisir Barat", "Lampung", "Kabupaten", "Tidak"], ["Kota Bandar Lampung", "Lampung", "Kota", "Tidak"], ["Kota Metro", "Lampung", "Kota", "Tidak"], ["Kab. Bangka", "Kepulauan Bangka Belitung", "Kabupaten", "Tidak"], ["Kab. Belitung", "Kepulauan Bangka Belitung", "Kabupaten", "Tidak"], ["Kab. Bangka Selatan", "Kepulauan Bangka Belitung", "Kabupaten", "Tidak"], ["Kab. Bangka Tengah", "Kepulauan Bangka Belitung", "Kabupaten", "Tidak"], ["Kab. Bangka Barat", "Kepulauan Bangka Belitung", "Kabupaten", "Tidak"], ["Kab. Belitung Timur", "Kepulauan Bangka Belitung", "Kabupaten", "Tidak"], ["Kota Pangkal Pinang", "Kepulauan Bangka Belitung", "Kota", "Tidak"], ["Kab. Bintan", "Kepulauan Riau", "Kabupaten", "Tidak"], ["Kab. Karimun", "Kepulauan Riau", "Kabupaten", "Tidak"], ["Kab. Natuna", "Kepulauan Riau", "Kabupaten", "Tidak"], ["Kab. Lingga", "Kepulauan Riau", "Kabupaten", "Tidak"], ["Kab. Kepulauan Anambas", "Kepulauan Riau", "Kabupaten", "Tidak"], ["Kota Batam", "Kepulauan Riau", "Kota", "Tidak"], ["Kota Tanjung Pinang", "Kepulauan Riau", "Kota", "Tidak"], ["Kab. Kepulauan Seribu", "DKI Jakarta", "Kabupaten", "Ya"], ["Kota Jakarta Pusat", "DKI Jakarta", "Kota", "Ya"], ["Kota Jakarta Utara", "DKI Jakarta", "Kota", "Ya"], ["Kota Jakarta Barat", "DKI Jakarta", "Kota", "Ya"], ["Kota Jakarta Selatan", "DKI Jakarta", "Kota", "Ya"], ["Kota Jakarta Timur", "DKI Jakarta", "Kota", "Ya"], ["Kab. Bogor", "Jawa Barat", "Kabupaten", "Ya"], ["Kab. Sukabumi", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Cianjur", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Bandung", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Garut", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Tasikmalaya", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Ciamis", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Kuningan", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Cirebon", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Majalengka", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Sumedang", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Indramayu", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Subang", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Purwakarta", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Karawang", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Bekasi", "Jawa Barat", "Kabupaten", "Ya"], ["Kab. Bandung Barat", "Jawa Barat", "Kabupaten", "Tidak"], ["Kab. Pangandaran", "Jawa Barat", "Kabupaten", "Tidak"], ["Kota Bogor", "Jawa Barat", "Kota", "Ya"], ["Kota Sukabumi", "Jawa Barat", "Kota", "Tidak"], ["Kota Bandung", "Jawa Barat", "Kota", "Tidak"], ["Kota Cirebon", "Jawa Barat", "Kota", "Tidak"], ["Kota Bekasi", "Jawa Barat", "Kota", "Ya"], ["Kota Depok", "Jawa Barat", "Kota", "Ya"], ["Kota Cimahi", "Jawa Barat", "Kota", "Tidak"], ["Kota Tasikmalaya", "Jawa Barat", "Kota", "Tidak"], ["Kota Banjar", "Jawa Barat", "Kota", "Tidak"], ["Kab. Cilacap", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Banyumas", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Purbalingga", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Banjarnegara", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Kebumen", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Purworejo", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Wonosobo", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Magelang", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Boyolali", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Klaten", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Sukoharjo", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Wonogiri", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Karanganyar", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Sragen", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Grobogan", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Blora", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Rembang", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Pati", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Kudus", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Jepara", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Demak", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Semarang", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Temanggung", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Kendal", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Batang", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Pekalongan", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Pemalang", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Tegal", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kab. Brebes", "Jawa Tengah", "Kabupaten", "Tidak"], ["Kota Magelang", "Jawa Tengah", "Kota", "Tidak"], ["Kota Surakarta", "Jawa Tengah", "Kota", "Tidak"], ["Kota Salatiga", "Jawa Tengah", "Kota", "Tidak"], ["Kota Semarang", "Jawa Tengah", "Kota", "Tidak"], ["Kota Pekalongan", "Jawa Tengah", "Kota", "Tidak"], ["Kota Tegal", "Jawa Tengah", "Kota", "Tidak"], ["Kab. Kulon Progo", "DI Yogyakarta", "Kabupaten", "Tidak"], ["Kab. Bantul", "DI Yogyakarta", "Kabupaten", "Tidak"], ["Kab. Gunungkidul", "DI Yogyakarta", "Kabupaten", "Tidak"], ["Kab. Sleman", "DI Yogyakarta", "Kabupaten", "Tidak"], ["Kota Yogyakarta", "DI Yogyakarta", "Kota", "Tidak"], ["Kab. Pacitan", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Ponorogo", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Trenggalek", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Tulungagung", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Blitar", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Kediri", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Malang", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Lumajang", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Jember", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Banyuwangi", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Bondowoso", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Situbondo", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Probolinggo", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Pasuruan", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Sidoarjo", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Mojokerto", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Jombang", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Nganjuk", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Madiun", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Magetan", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Ngawi", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Bojonegoro", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Tuban", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Lamongan", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Gresik", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Bangkalan", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Sampang", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Pamekasan", "Jawa Timur", "Kabupaten", "Tidak"], ["Kab. Sumenep", "Jawa Timur", "Kabupaten", "Tidak"], ["Kota Kediri", "Jawa Timur", "Kota", "Tidak"], ["Kota Blitar", "Jawa Timur", "Kota", "Tidak"], ["Kota Malang", "Jawa Timur", "Kota", "Tidak"], ["Kota Probolinggo", "Jawa Timur", "Kota", "Tidak"], ["Kota Pasuruan", "Jawa Timur", "Kota", "Tidak"], ["Kota Mojokerto", "Jawa Timur", "Kota", "Tidak"], ["Kota Madiun", "Jawa Timur", "Kota", "Tidak"], ["Kota Surabaya", "Jawa Timur", "Kota", "Tidak"], ["Kota Batu", "Jawa Timur", "Kota", "Tidak"], ["Kab. Pandeglang", "Banten", "Kabupaten", "Tidak"], ["Kab. Lebak", "Banten", "Kabupaten", "Tidak"], ["Kab. Tangerang", "Banten", "Kabupaten", "Ya"], ["Kab. Serang", "Banten", "Kabupaten", "Tidak"], ["Kota Tangerang", "Banten", "Kota", "Ya"], ["Kota Cilegon", "Banten", "Kota", "Tidak"], ["Kota Serang", "Banten", "Kota", "Tidak"], ["Kota Tangerang Selatan", "Banten", "Kota", "Ya"], ["Kab. Jembrana", "Bali", "Kabupaten", "Tidak"], ["Kab. Tabanan", "Bali", "Kabupaten", "Tidak"], ["Kab. Badung", "Bali", "Kabupaten", "Tidak"], ["Kab. Gianyar", "Bali", "Kabupaten", "Tidak"], ["Kab. Klungkung", "Bali", "Kabupaten", "Tidak"], ["Kab. Bangli", "Bali", "Kabupaten", "Tidak"], ["Kab. Karangasem", "Bali", "Kabupaten", "Tidak"], ["Kab. Buleleng", "Bali", "Kabupaten", "Tidak"], ["Kota Denpasar", "Bali", "Kota", "Tidak"], ["Kab. Lombok Barat", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Lombok Tengah", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Lombok Timur", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Sumbawa", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Dompu", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Bima", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Sumbawa Barat", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kab. Lombok Utara", "Nusa Tenggara Barat", "Kabupaten", "Tidak"], ["Kota Mataram", "Nusa Tenggara Barat", "Kota", "Tidak"], ["Kota Bima", "Nusa Tenggara Barat", "Kota", "Tidak"], ["Kab. Kupang", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Timor Tengah Selatan", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Timor Tengah Utara", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Belu", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Alor", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Flores Timur", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Sikka", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Ende", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Ngada", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Manggarai", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Sumba Timur", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Sumba Barat", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Lembata", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Rote Ndao", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Manggarai Barat", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Nagekeo", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Sumba Tengah", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Sumba Barat Daya", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Manggarai Timur", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Sabu Raijua", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kab. Malaka", "Nusa Tenggara Timur", "Kabupaten", "Tidak"], ["Kota Kupang", "Nusa Tenggara Timur", "Kota", "Tidak"], ["Kab. Sambas", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Mempawah", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Sanggau", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Ketapang", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Sintang", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Kapuas Hulu", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Bengkayang", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Landak", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Sekadau", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Melawi", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Kayong Utara", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kab. Kubu Raya", "Kalimantan Barat", "Kabupaten", "Tidak"], ["Kota Pontianak", "Kalimantan Barat", "Kota", "Tidak"], ["Kota Singkawang", "Kalimantan Barat", "Kota", "Tidak"], ["Kab. Kotawaringin Barat", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Kotawaringin Timur", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Kapuas", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Barito Selatan", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Barito Utara", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Katingan", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Seruyan", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Sukamara", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Lamandau", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Gunung Mas", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Pulang Pisau", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Murung Raya", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kab. Barito Timur", "Kalimantan Tengah", "Kabupaten", "Tidak"], ["Kota Palangkaraya", "Kalimantan Tengah", "Kota", "Tidak"], ["Kab. Tanah Laut", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Kotabaru", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Banjar", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Barito Kuala", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Tapin", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Hulu Sungai Selatan", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Hulu Sungai Tengah", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Hulu Sungai Utara", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Tabalong", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Tanah Bumbu", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kab. Balangan", "Kalimantan Selatan", "Kabupaten", "Tidak"], ["Kota Banjarmasin", "Kalimantan Selatan", "Kota", "Tidak"], ["Kota Banjarbaru", "Kalimantan Selatan", "Kota", "Tidak"], ["Kab. Paser", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kab. Kutai Kartanegara", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kab. Berau", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kab. Kutai Barat", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kab. Kutai Timur", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kab. Penajam Paser Utara", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kab. Mahakam Ulu", "Kalimantan Timur", "Kabupaten", "Tidak"], ["Kota Balikpapan", "Kalimantan Timur", "Kota", "Tidak"], ["Kota Samarinda", "Kalimantan Timur", "Kota", "Tidak"], ["Kota Bontang", "Kalimantan Timur", "Kota", "Tidak"], ["Kab. Bulungan", "Kalimantan Utara", "Kabupaten", "Tidak"], ["Kab. Malinau", "Kalimantan Utara", "Kabupaten", "Tidak"], ["Kab. Nunukan", "Kalimantan Utara", "Kabupaten", "Tidak"], ["Kab. Tana Tidung", "Kalimantan Utara", "Kabupaten", "Tidak"], ["Kota Tarakan", "Kalimantan Utara", "Kota", "Tidak"], ["Kab. Bolaang Mongondow", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Minahasa", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Kepulauan Sangihe", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Kepulauan Talaud", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Minahasa Selatan", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Minahasa Utara", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Minahasa Tenggara", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Bolaang Mongondow Utara", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Kep. Siau Tagulandang Biaro", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Bolaang Mongondow Timur", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kab. Bolaang Mongondow Selatan", "Sulawesi Utara", "Kabupaten", "Tidak"], ["Kota Manado", "Sulawesi Utara", "Kota", "Tidak"], ["Kota Bitung", "Sulawesi Utara", "Kota", "Tidak"], ["Kota Tomohon", "Sulawesi Utara", "Kota", "Tidak"], ["Kota Kotamobagu", "Sulawesi Utara", "Kota", "Tidak"], ["Kab. Banggai", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Poso", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Donggala", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Toli-Toli", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Buol", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Morowali", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Banggai Kepulauan", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Parigi Moutong", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Tojo Una Una", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Sigi", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Banggai Laut", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kab. Morowali Utara", "Sulawesi Tengah", "Kabupaten", "Tidak"], ["Kota Palu", "Sulawesi Tengah", "Kota", "Tidak"], ["Kab. Kepulauan Selayar", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Bulukumba", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Bantaeng", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Jeneponto", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Takalar", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Gowa", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Sinjai", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Bone", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Maros", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Pangkajene dan Kepulauan", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Barru", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Soppeng", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Wajo", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Sidenreng Rappang", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Pinrang", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Enrekang", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Luwu", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Tana Toraja", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Luwu Utara", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Luwu Timur", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kab. Toraja Utara", "Sulawesi Selatan", "Kabupaten", "Tidak"], ["Kota Makassar", "Sulawesi Selatan", "Kota", "Tidak"], ["Kota Parepare", "Sulawesi Selatan", "Kota", "Tidak"], ["Kota Palopo", "Sulawesi Selatan", "Kota", "Tidak"], ["Kab. Kolaka", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Konawe", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Muna", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Buton", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Konawe Selatan", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Bombana", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Wakatobi", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Kolaka Utara", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Konawe Utara", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Buton Utara", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Kolaka Timur", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Konawe Kepulauan", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Muna Barat", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Buton Tengah", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kab. Buton Selatan", "Sulawesi Tenggara", "Kabupaten", "Tidak"], ["Kota Kendari", "Sulawesi Tenggara", "Kota", "Tidak"], ["Kota Bau Bau", "Sulawesi Tenggara", "Kota", "Tidak"], ["Kab. Gorontalo", "Gorontalo", "Kabupaten", "Tidak"], ["Kab. Boalemo", "Gorontalo", "Kabupaten", "Tidak"], ["Kab. Bone Bolango", "Gorontalo", "Kabupaten", "Tidak"], ["Kab. Pohuwato", "Gorontalo", "Kabupaten", "Tidak"], ["Kab. Gorontalo Utara", "Gorontalo", "Kabupaten", "Tidak"], ["Kota Gorontalo", "Gorontalo", "Kota", "Tidak"], ["Kab. Pasangkayu", "Sulawesi Barat", "Kabupaten", "Tidak"], ["Kab. Mamuju", "Sulawesi Barat", "Kabupaten", "Tidak"], ["Kab. Mamasa", "Sulawesi Barat", "Kabupaten", "Tidak"], ["Kab. Polewali Mandar", "Sulawesi Barat", "Kabupaten", "Tidak"], ["Kab. Majene", "Sulawesi Barat", "Kabupaten", "Tidak"], ["Kab. Mamuju Tengah", "Sulawesi Barat", "Kabupaten", "Tidak"], ["Kab. Maluku Tengah", "Maluku", "Kabupaten", "Tidak"], ["Kab. Maluku Tenggara", "Maluku", "Kabupaten", "Tidak"], ["Kab. Kepulauan Tanimbar", "Maluku", "Kabupaten", "Tidak"], ["Kab. Buru", "Maluku", "Kabupaten", "Tidak"], ["Kab. Seram Bagian Timur", "Maluku", "Kabupaten", "Tidak"], ["Kab. Seram Bagian Barat", "Maluku", "Kabupaten", "Tidak"], ["Kab. Kepulauan Aru", "Maluku", "Kabupaten", "Tidak"], ["Kab. Maluku Barat Daya", "Maluku", "Kabupaten", "Tidak"], ["Kab. Buru Selatan", "Maluku", "Kabupaten", "Tidak"], ["Kota Ambon", "Maluku", "Kota", "Tidak"], ["Kota Tual", "Maluku", "Kota", "Tidak"], ["Kab. Halmahera Barat", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Halmahera Tengah", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Halmahera Utara", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Halmahera Selatan", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Kepulauan Sula", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Halmahera Timur", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Pulau Morotai", "Maluku Utara", "Kabupaten", "Tidak"], ["Kab. Pulau Taliabu", "Maluku Utara", "Kabupaten", "Tidak"], ["Kota Ternate", "Maluku Utara", "Kota", "Tidak"], ["Kota Tidore Kepulauan", "Maluku Utara", "Kota", "Tidak"], ["Kab. Jayapura", "Papua", "Kabupaten", "Tidak"], ["Kab. Kepulauan Yapen", "Papua", "Kabupaten", "Tidak"], ["Kab. Biak Numfor", "Papua", "Kabupaten", "Tidak"], ["Kab. Sarmi", "Papua", "Kabupaten", "Tidak"], ["Kab. Keerom", "Papua", "Kabupaten", "Tidak"], ["Kab. Waropen", "Papua", "Kabupaten", "Tidak"], ["Kab. Supiori", "Papua", "Kabupaten", "Tidak"], ["Kab. Mamberamo Raya", "Papua", "Kabupaten", "Tidak"], ["Kota Jayapura", "Papua", "Kota", "Tidak"], ["Kab. Manokwari", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Fak Fak", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Teluk Bintuni", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Teluk Wondama", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Kaimana", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Manokwari Selatan", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Pegunungan Arfak", "Papua Barat", "Kabupaten", "Tidak"], ["Kab. Merauke", "Papua Selatan", "Kabupaten", "Tidak"], ["Kab. Boven Digoel", "Papua Selatan", "Kabupaten", "Tidak"], ["Kab. Mappi", "Papua Selatan", "Kabupaten", "Tidak"], ["Kab. Asmat", "Papua Selatan", "Kabupaten", "Tidak"], ["Kab. Nabire", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Puncak Jaya", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Paniai", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Mimika", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Puncak", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Dogiyai", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Intan Jaya", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Deiyai", "Papua Tengah", "Kabupaten", "Tidak"], ["Kab. Jayawijaya", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Pegunungan Bintang", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Yahukimo", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Tolikara", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Mamberamo Tengah", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Yalimo", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Lanny Jaya", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Nduga", "Papua Pegunungan", "Kabupaten", "Tidak"], ["Kab. Sorong", "Papua Barat Daya", "Kabupaten", "Tidak"], ["Kab. Sorong Selatan", "Papua Barat Daya", "Kabupaten", "Tidak"], ["Kab. Raja Ampat", "Papua Barat Daya", "Kabupaten", "Tidak"], ["Kab. Tambrauw", "Papua Barat Daya", "Kabupaten", "Tidak"], ["Kab. Maybrat", "Papua Barat Daya", "Kabupaten", "Tidak"], ["Kota Sorong", "Papua Barat Daya", "Kota", "Tidak"]];    // [nama, provinsi, tipe, jabodetabek]
+
+(function () {
+  var C = window.SURVEI_CONFIG || {}, T = C.TAMPILAN || {};
+  var API_URL = String(C.API_V1 || '').trim();
+  var app = document.getElementById('app'), nav = document.getElementById('nav'), btnN = document.getElementById('next'), btnB = document.getElementById('back');
+  function qs(n) { var m = new RegExp('[?&]' + n + '=([^&#]*)').exec(window.__SEARCH); return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : ''; }
+  var ID = qs('id'), PREVIEW = qs('preview') === '1', SRC = qs('src') || qs('utm_source') || 'langsung';
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+  function api(fn, args) {
+    return __gsFetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }) })
+      .then(function (r) { return r.text(); })
+      .then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { throw new Error('Server belum siap (kode Apps Script belum versi terbaru?)'); } if (!j.ok) throw new Error(j.error || 'gagal'); return j.data; });
+  }
+  var CFG = {
+    linkLain: T.LINK_SURVEI_LAIN, tombolLain: T.TOMBOL_SURVEI_LAIN, linkIg: T.LINK_INSTAGRAM, tombolIg: T.TOMBOL_INSTAGRAM,
+    teksTidakEligible: T.TEKS_TIDAK_ELIGIBLE, teksSudahIsi: T.TEKS_SUDAH_ISI, teksMenolak: T.TEKS_MENOLAK,
+    periodeLabel: T.PERIODE_LABEL, hadiahUtama: T.HADIAH_UTAMA, hadiah: T.HADIAH || [], periode: T.PERIODE_GIVEAWAY, announce: T.PENGUMUMAN_PEMENANG,
+    ig: T.IG_HANDLE || '@milgiftclub', langkah: T.LANGKAH_PENUTUP || [], pesanPenutup: T.PESAN_PENUTUP, privacy: T.PRIVACY_URL, tnc: T.TNC_URL
+  };
+  function ctaButtons(igFirst) {
+    var ig = CFG.linkIg ? '<a class="cta ' + (igFirst ? '' : 'cta2') + '" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || ('Follow ' + CFG.ig)) + '</a>' : '';
+    var sv = CFG.linkLain ? '<a class="cta ' + (igFirst ? 'cta2' : '') + '" href="' + esc(CFG.linkLain) + '">' + esc(CFG.tombolLain || 'Isi survei lainnya') + ' →</a>' : '';
+    return '<div class="ctas">' + (igFirst ? ig + sv : sv + ig) + '</div>';
+  }
+  function finish(t, m, note, extra, after) {
+    nav.style.display = 'none';
+    document.getElementById('prog').style.width = '100%';
+    app.innerHTML = '<div class="end"><div class="big">🎁</div><h1>' + esc(t) + '</h1><p class="intro">' + esc(m) + '</p>' + (extra || '') + (note ? '<div class="note">' + esc(note) + '</div>' : '') + (after || '') + '</div>';
+    window.__done = true;
+  }
+  if (!ID) return finish('Link survei tidak lengkap', 'Mohon buka survei dari link resmi MIL Gift Club.', '', ctaButtons(false));
+  if (!API_URL) return finish('Survei belum siap', 'Pengaturan website belum lengkap (config.js).', '');
+
+  var tries = 0;
+  (function load() {
+    api('getSurvey', [ID, PREVIEW]).then(start, function (e) {
+      if (/tidak ditemukan/i.test(e.message)) return finish('Survei tidak ditemukan', 'Link survei ini tidak aktif. Cek survei MIL Gift Club lainnya, ya!', '', ctaButtons(false));
+      if (++tries < 3) return setTimeout(load, 1500 * tries);
+      app.innerHTML = '<div class="loading">Gagal memuat survei. Periksa koneksi internet lalu muat ulang halaman.<br><small style="font-weight:400">' + esc(e.message) + '</small></div>';
+    });
+  })();
+
+  function shade(hex, k) {   // k<0 lebih gelap, k>0 lebih terang
+    var m = String(hex || '').match(/^#?([0-9a-f]{6})$/i); if (!m) return hex;
+    var n = parseInt(m[1], 16), r = n >> 16, g = n >> 8 & 255, b = n & 255;
+    var f = function (x) { return Math.max(0, Math.min(255, Math.round(k < 0 ? x * (1 + k) : x + (255 - x) * k))); };
+    return '#' + [f(r), f(g), f(b)].map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+  }
+  function applyBrand(B) {
+    var root = document.documentElement.style, p = B.primary || '#F2575D', a = B.accent || '#F9C23C';
+    root.setProperty('--coral', p); root.setProperty('--coral-d', shade(p, -0.18)); root.setProperty('--yellow', a); root.setProperty('--yellow-l', shade(a, 0.75));
+    var ink = B.ink || '#3A2A20', bg = B.bg || shade(p, 0.94);
+    root.setProperty('--brown', ink); root.setProperty('--brown2', shade(ink, 0.35)); root.setProperty('--cream', bg); root.setProperty('--cream2', shade(p, 0.86)); root.setProperty('--line', shade(p, 0.8));
+    var nv = document.getElementById('nav'); if (nv) nv.style.background = bg;
+    var h = String(B.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
+    CFG.ig = h; CFG.linkIg = h ? 'https://www.instagram.com/' + h.slice(1) + '/' : ''; CFG.tombolIg = h ? 'Follow ' + h + ' di Instagram' : '';
+    CFG.linkLain = ''; CFG.pesanPenutup = ''; CFG.periodeLabel = 'Giveaway ' + B.name;
+    CFG.langkah = (CFG.langkah || []).map(function (t) { return String(t).replace(/@milgift_club|@milgiftclub/gi, h || 'kami'); }).filter(function (t) { return h || !/follow/i.test(t); });
+    CFG.teksTidakEligible = 'Kamu belum termasuk kriteria survei ini. Terima kasih banyak atas waktumu!';
+    CFG.teksSudahIsi = 'Akun Instagram ini sudah pernah mengisi survei ini. Satu akun hanya bisa ikut satu kali. Terima kasih!';
+    CFG.teksMenolak = 'Tidak apa-apa kalau kamu belum ingin mengisi survei ini. Terima kasih!';
+    var lg = document.querySelector('header .logo'), tg = document.querySelector('header .tag');
+    lg.innerHTML = B.logoData ? '<img src="' + B.logoData + '" alt="' + esc(B.name) + '" style="max-height:64px;max-width:240px;object-fit:contain">' : esc(B.name);
+    tg.textContent = '';
+  }
+  function start(D) {
+    var S = D.schema || {};
+    var G = S.giveaway !== false, PROF = S.profile !== false;
+    if (S.hadiahUtama) CFG.hadiahUtama = S.hadiahUtama;
+    var prize = function (h) { return String(h.nama || '').trim() + (Number(h.nilai) ? ' · Rp' + Number(h.nilai).toLocaleString('id-ID') : ''); };
+    var HD = (S.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
+    if (HD.length) { CFG.hadiahUtama = prize(HD[0]); CFG.hadiah = HD.slice(1).map(prize); }
+    if (S.periode) CFG.periode = S.periode;
+    var BR = D.brand && D.brand.mode === 'client' ? D.brand : null, ORG = BR ? BR.name : 'MIL Gift Club';
+    if (BR) applyBrand(BR);
+    document.title = D.name + ' — ' + ORG;
+    if (!D.open) return finish('Survei telah ditutup', 'Terima kasih atas minat kamu. Pantau Instagram ' + CFG.ig + ' untuk survei dan giveaway berikutnya.', '', ctaButtons(true));
+
+    // ---------- susun pertanyaan ----------
+    var BY = {};
+    var std = function (id) { var q = JSON.parse(JSON.stringify(STD[id])); q.std = true; BY[id] = q; return id; };
+    var custom = (S.questions || []).map(function (q) {
+      var t = { id: q.id, topic: q.topic || D.name, text: q.text, hint: q.hint || '', ct: q.type, optional: q.required === false, max: Number(q.max) || 0, rnd: !!q.random, showIf: q.showIf || null, scale: q.scale || {}, min: q.min, maxNum: q.maxNum,
+        options: (q.options || []).filter(function (o) { return String(o.t || '').trim(); }).map(function (o) { return { t: String(o.t).trim(), other: !!o.other, ex: !!o.exclusive, screen: !!o.screen }; }) };
+      t.type = { single: 'sa', multi: 'ma', dropdown: 'dropdown', text: 'oa', longtext: 'oa', number: 'num', scale: 'scale' }[q.type] || 'oa';
+      if (q.type === 'longtext') t.long = true;
+      BY[t.id] = t; return t.id;
+    });
+    var PRE = [std('O1')];
+    var CY = new Date().getFullYear();
+    if (G) { PRE.push(std('Z2')); if (PROF) { PRE.push(std('PV')); PRE.push(std('PR')); } }
+    if (PROF || G) { PRE.push(std('S0')); PRE.push(std('S0B')); BY.S0B.showIf = { q: 'S0', op: 'is', val: String(CY - 18) }; }
+    if (PROF) {
+      PRE.push(std('S2')); if (S.screenIndustri !== false) PRE.push(std('S3'));
+      ['A1', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17'].forEach(function (x) { PRE.push(std(x)); });
+      BY.A4N.showIf = { q: 'A4M', op: 'isnot', val: BY.A4M.options[0].t };
+      BY.A4K.showIf = { q: 'A4N', op: 'isnot', val: BY.A4N.options[0].t };
+    }
+    else if (S.gender && S.gender !== 'all') PRE.push(std('S2'));
+    if (BY.A15) BY.A15.showIf = { q: 'S2', op: 'is', val: 'Wanita' };
+    var S1O = STD.S1.options.map(function (o) { return o.t; });
+    var MAIN = custom.slice();
+    if (S.attention !== false && MAIN.length) { std('QC1'); MAIN.splice(Math.ceil(MAIN.length / 2), 0, 'QC1'); }
+    var POST = G ? [std('Z1'), std('Z3')] : [];
+    var intro = (S.intro ? S.intro.trim().replace(/([^.!?])$/, '$1.') + ' ' : 'Terima kasih telah berpartisipasi dalam survei ' + D.name + '. ') +
+      (S.estimasi ? 'Survei ini membutuhkan waktu ±' + S.estimasi + ' menit. ' : '') + 'Jawaban Anda bersifat rahasia dan hanya digunakan untuk keperluan riset.' +
+      (G ? ' Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.' : '');
+    BY.O1.intro = intro;
+    if (BY.Z2) BY.Z2.text = BR ? 'Tuliskan username Instagram Anda (untuk verifikasi keikutsertaan giveaway' + (CFG.ig ? ' ' + CFG.ig : '') + ').' : BY.Z2.text.replace(/@milgift_club|@milgiftclub/g, CFG.ig);
+    if (BR && BY.Z1) BY.Z1.text = BY.Z1.text.replace(/MIL Gift Club/g, BR.name + ' dan MIL Digital');
+    if (BR) BY.O1.intro += ' Survei ini diselenggarakan oleh MIL Digital untuk ' + BR.name + '.';
+
+    var KEY = 'milc_' + ID + (PREVIEW ? '_p' : '');
+    var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
+    var ST = load() || { a: {}, cur: null, sid: uid(), start: null, order: {} };
+    if (ST.prSum && BY.PR) BY.PR.hint = ST.prSum;
+    var lastKey = null;
+    function uid() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+    function save() { try { sessionStorage.setItem(KEY, JSON.stringify(ST)); } catch (e) {} }
+    function load() { try { var s = sessionStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+    function clearSave() { try { sessionStorage.removeItem(KEY); } catch (e) {} }
+    function arr(v) { return Array.isArray(v) ? v : []; }
+    function opts(id) { return BY[id].options.map(function (o) { return o.t; }); }
+    function excl(id) { return BY[id].options.filter(function (o) { return o.ex; }).map(function (o) { return o.t; }); }
+    function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    var ANCHOR = /^(Tidak|Lainnya|Belum pernah|Saya tidak)/;
+    function optionsOf(q) {
+      var list = q.options || [];
+      if (!q.rnd) return list;
+      var normal = list.filter(function (o) { return !(o.ex || o.other || ANCHOR.test(o.t)); }), tail = list.filter(function (o) { return o.ex || o.other || ANCHOR.test(o.t); });
+      var sig = normal.map(function (o) { return o.t; }).join('|'), sv = ST.order[q.id];
+      if (!sv || sv.sig !== sig) { sv = ST.order[q.id] = { sig: sig, idx: shuffle(normal.map(function (o, i) { return i; })) }; save(); }
+      return sv.idx.map(function (i) { return normal[i]; }).concat(tail);
+    }
+    function ansText(id) { var v = ST.a[id]; if (Array.isArray(v)) v = v.join(', '); return v == null ? '' : String(v); }
+    function fill(t) { return String(t).replace(/\{(Q[0-9A-Za-z_]+)\}/g, function (m, id) { return ansText(id) || 'jawaban Anda sebelumnya'; }).replace(/@milgift_club/g, CFG.ig); }
+
+    function visible(id) {
+      if (ST.pre && ST.pre.indexOf(id) >= 0) return false;
+      if (id === 'PV') return !!ST.known;
+      if (id === 'PR') return !!ST.stale;
+      var q = BY[id], c = q && q.showIf;
+      if (c && c.q && (BY[c.q] || ST.a[c.q] != null)) {
+        if (BY[c.q] && !(ST.pre && ST.pre.indexOf(c.q) >= 0) && !visible(c.q)) return false;
+        var v = ST.a[c.q], has = Array.isArray(v) ? v.indexOf(c.val) >= 0 : String(v == null ? '' : v) === String(c.val);
+        if (c.op === 'isnot') return v != null && v !== '' && !has;
+        return has;
+      }
+      return true;
+    }
+    function seq() { return PRE.concat(MAIN, POST).filter(function (id) { return BY[id] && visible(id); }); }
+    function screenout(id, v) {
+      var q = BY[id], o = q.options ? opts(id) : [];
+      if (id === 'O1' && v === o[1]) return 'Menolak persetujuan';
+      if (id === 'S2' && S.gender && S.gender !== 'all' && v !== S.gender) return 'Survei khusus responden ' + S.gender.toLowerCase();
+      if (id === 'S3' && arr(v).some(function (x) { return o.slice(0, 3).indexOf(x) >= 0; })) return 'Bekerja di industri terkait';
+      if (!q.std && q.options) {
+        var hit = q.options.filter(function (x) { return x.screen && (v === x.t || arr(v).indexOf(x.t) >= 0); })[0];
+        if (hit) return 'Tidak lolos kriteria: ' + id + ' = ' + hit.t;
+      }
+      return null;
+    }
+
+    // ---------- tampilan ----------
+    function promoBox() {
+      if (!G) return '';
+      var hd = CFG.hadiah || [], rows = '';
+      if (CFG.periodeLabel) rows += '<div class="pr-l">' + esc(CFG.periodeLabel) + '</div>';
+      if (CFG.hadiahUtama) rows += '<div class="pr-u"><span>🎁 Hadiah utama</span><b>' + esc(CFG.hadiahUtama) + '</b></div>';
+      if (hd.length) rows += '<div class="pr-s">' + (CFG.hadiahUtama ? 'Hadiah lainnya' : 'Hadiah') + '</div><ul>' + hd.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+      if (CFG.periode) rows += '<div class="pr-r"><span>📅 Periode Giveaway</span><b>' + esc(CFG.periode) + '</b></div>';
+      if (CFG.announce) rows += '<div class="pr-r"><span>🏆 Pengumuman Pemenang</span><b>' + esc(CFG.announce) + '</b></div>';
+      return rows ? '<div class="promo">' + rows + '<div class="pr-f">Pemenang dipilih secara acak dari respons yang lolos verifikasi dan diumumkan di Instagram ' + esc(CFG.ig) + '.</div></div>' : '';
+    }
+    function stepsBox() {
+      var st = CFG.langkah || []; if (!G || !st.length) return '';
+      return '<div class="steps"><div class="pr-s">Supaya bisa ikut diundi, lanjutkan langkah berikut:</div><ol><li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>';
+    }
+    function cur() { var s = seq(), i = ST.cur ? s.indexOf(ST.cur) : 0; return { s: s, i: Math.max(i, 0) }; }
+    function render() {
+      var c = cur(), id = c.s[c.i], q = BY[id], v = ST.a[id];
+      ST.cur = id; save();
+      nav.style.display = '';
+      document.getElementById('prog').style.width = Math.round(c.i / c.s.length * 100) + '%';
+      btnB.style.visibility = c.i === 0 ? 'hidden' : 'visible';
+      btnN.textContent = c.i === c.s.length - 1 ? 'Kirim jawaban' : id === 'O1' ? 'Mulai' : 'Lanjut';
+      var h = PREVIEW ? '<div class="pvw">MODE PRATINJAU · jawaban tidak disimpan</div>' : '';
+      h += '<div class="section">' + esc(q.topic || D.name) + '</div>';
+      if (id === 'O1') h += promoBox();
+      if (q.intro) h += '<p class="intro">' + esc(fill(q.intro)) + '</p>';
+      h += '<h1>' + esc(fill(id === 'O1' ? (T.PERTANYAAN_PEMBUKA || q.text) : q.text)) + '</h1>';
+      var hint = q.hint || (q.type === 'ma' ? (q.max ? 'Pilih maksimal ' + q.max + ' jawaban' : 'Boleh pilih lebih dari satu') : '');
+      if (hint) h += '<p class="hint">' + esc(hint) + '</p>';
+      if (id === 'O1' && (CFG.privacy || CFG.tnc)) h += '<p class="links">' + (CFG.privacy ? '<a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a>' : '') + (CFG.privacy && CFG.tnc ? ' · ' : '') + (CFG.tnc ? '<a href="' + esc(CFG.tnc) + '" target="_blank" rel="noopener">Syarat & Ketentuan Giveaway</a>' : '') + '</p>';
+      h += '<div id="body"></div><div class="err" id="err"></div><div class="wait" id="wait"></div>';
+      if (id === 'O1') h += '<p class="ver">Versi ' + VERSION + ' · ' + esc(ID) + '</p>';
+      app.innerHTML = h;
+      var body = document.getElementById('body');
+      ({ sa: rSA, ma: rMA, dropdown: rDrop, city: rCity, oa: rOA, num: rNum, scale: rScale })[q.type](body, q, id, v);
+      if (id !== lastKey) { window.scrollTo(0, 0); lastKey = id; }
+    }
+    function optEl(type, name, o, on) {
+      var l = document.createElement('label'); l.className = 'opt' + (on ? ' on' : '');
+      var i = document.createElement('input'); i.type = type; i.name = name; i.checked = !!on;
+      var s = document.createElement('span'); s.textContent = o.t;
+      l.appendChild(i); l.appendChild(s); return { l: l, i: i };
+    }
+    function otherBox(K, show) {
+      var d = document.createElement('div'); d.className = 'other'; d.style.display = show ? 'block' : 'none';
+      var t = document.createElement('input'); t.type = 'text'; t.placeholder = 'Sebutkan...'; t.value = ST.a[K + '_lainnya'] || '';
+      t.oninput = function () { ST.a[K + '_lainnya'] = t.value; save(); };
+      d.appendChild(t); return d;
+    }
+    function rSA(body, q, K, v) {
+      var w = document.createElement('div'); w.className = 'opts';
+      optionsOf(q).forEach(function (o) {
+        var e = optEl('radio', K, o, v === o.t);
+        e.i.onchange = function () { ST.a[K] = o.t; if (!o.other) delete ST.a[K + '_lainnya']; save(); render(); };
+        w.appendChild(e.l); if (o.other) w.appendChild(otherBox(K, v === o.t));
+      });
+      body.appendChild(w);
+    }
+    function rMA(body, q, K, v) {
+      v = arr(v);
+      var w = document.createElement('div'); w.className = 'opts';
+      optionsOf(q).forEach(function (o) {
+        var on = v.indexOf(o.t) >= 0, full = q.max && v.length >= q.max && !on;
+        var e = optEl('checkbox', K, o, on); if (full) { e.l.className += ' dis'; e.i.disabled = true; }
+        e.i.onchange = function () {
+          var c = arr(ST.a[K]).slice();
+          if (e.i.checked) { if (o.ex) c = [o.t]; else { c = c.filter(function (x) { return excl(q.id).indexOf(x) < 0; }); c.push(o.t); } }
+          else c = c.filter(function (x) { return x !== o.t; });
+          ST.a[K] = c; if (o.other && !e.i.checked) delete ST.a[K + '_lainnya'];
+          save(); render();
+        };
+        w.appendChild(e.l); if (o.other) w.appendChild(otherBox(K, on));
+      });
+      body.appendChild(w);
+    }
+    function rDrop(body, q, K, v) {
+      var s = document.createElement('select');
+      s.innerHTML = '<option value="">— Pilih —</option>' + q.options.map(function (o) { return '<option' + (v === o.t ? ' selected' : '') + '>' + esc(o.t) + '</option>'; }).join('');
+      var ob = null, other = q.options.filter(function (o) { return o.other; })[0];
+      s.onchange = function () { ST.a[K] = s.value || undefined; save(); if (ob) ob.style.display = other && s.value === other.t ? 'block' : 'none'; };
+      body.appendChild(s);
+      if (other) { ob = otherBox(K, v === other.t); ob.style.marginLeft = 0; ob.style.marginTop = '8px'; body.appendChild(ob); }
+    }
+    function rCity(body, q, K, v) {
+      var inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Ketik nama kota/kabupaten, mis. Bandung'; inp.value = v || ''; inp.autocomplete = 'off';
+      var list = document.createElement('div'); list.className = 'opts'; list.style.marginTop = '8px';
+      var hint = function (txt) { var p = document.createElement('p'); p.className = 'hint'; p.textContent = txt; list.appendChild(p); };
+      var draw = function () {
+        list.innerHTML = '';
+        if (CITY[inp.value]) { var c0 = CITY[inp.value]; return hint('✓ ' + c0[0] + ', ' + c0[1]); }
+        var qv = inp.value.toLowerCase().replace(/^(kota|kab\.?|kabupaten)\s+/, '').trim();
+        if (qv.length < 2) return hint('Ketik minimal 2 huruf, lalu pilih dari daftar.');
+        var hits = CITIES.filter(function (c) { return c[0].toLowerCase().indexOf(qv) >= 0; }).slice(0, 12);
+        if (!hits.length) return hint('Tidak ditemukan. Coba ejaan lain.');
+        hits.forEach(function (c) {
+          var b = document.createElement('div'); b.className = 'opt';
+          b.innerHTML = '<span><b>' + esc(c[0]) + '</b><br><small>' + esc(c[1]) + '</small></span>';
+          b.onclick = function () { inp.value = c[0]; setCity(c[0]); draw(); };
+          list.appendChild(b);
+        });
+      };
+      inp.oninput = function () { setCity(CITY[inp.value] ? inp.value : null); draw(); };
+      body.appendChild(inp); body.appendChild(list); draw();
+    }
+    function setCity(name) {
+      var c = name && CITY[name];
+      if (c) { ST.a.A1 = c[0]; ST.a.provinsi = c[1]; ST.a.tipe_wilayah = c[2]; ST.a.jabodetabek = c[3]; }
+      else { delete ST.a.A1; delete ST.a.provinsi; delete ST.a.tipe_wilayah; delete ST.a.jabodetabek; }
+      save();
+    }
+    function rOA(body, q, K, v) {
+      var t = q.long ? document.createElement('textarea') : document.createElement('input');
+      if (!q.long) t.type = (K === 'Z3' || K === 'PV') ? 'tel' : 'text';
+      if (K === 'PV') t.maxLength = 4;
+      if (q.placeholder) t.placeholder = q.placeholder;
+      if (K === 'Z3' || K === 'PV') t.inputMode = 'numeric';
+      t.value = v || ''; t.oninput = function () { ST.a[K] = t.value; save(); };
+      body.appendChild(t);
+    }
+    function rNum(body, q, K, v) {
+      var t = document.createElement('input'); t.type = 'text'; t.inputMode = 'decimal'; t.placeholder = 'Tulis angka';
+      t.value = v == null ? '' : v; t.oninput = function () { ST.a[K] = t.value.replace(/[^\d.,-]/g, ''); save(); };
+      body.appendChild(t);
+    }
+    function rScale(body, q, K, v) {
+      var sc = q.scale || {}, mn = Number(sc.min == null ? 1 : sc.min), mx = Number(sc.max || 5);
+      var g = document.createElement('div'); g.className = 'scale';
+      for (var n = mn; n <= mx; n++) (function (n) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = n; if (Number(v) === n && v !== '' && v != null) b.className = 'on';
+        b.onclick = function () { ST.a[K] = n; save(); render(); };
+        g.appendChild(b);
+      })(n);
+      body.appendChild(g);
+      if (sc.minLabel || sc.maxLabel) { var l = document.createElement('div'); l.className = 'npsl'; l.innerHTML = '<span>' + mn + ' = ' + esc(sc.minLabel || '') + '</span><span>' + mx + ' = ' + esc(sc.maxLabel || '') + '</span>'; body.appendChild(l); }
+    }
+
+    function validate(q) {
+      var K = q.id, v = ST.a[K];
+      if (q.optional && (v == null || v === '' || (Array.isArray(v) && !v.length))) return '';
+      if (q.type === 'city') return CITY[v] ? '' : 'Mohon pilih kota/kabupaten dari daftar yang muncul.';
+      if (q.type === 'ma') { if (!arr(v).length) return 'Mohon pilih minimal satu jawaban.'; }
+      else if (q.type === 'scale') { if (v == null || v === '') return 'Mohon pilih salah satu nilai.'; }
+      else if (v == null || String(v).trim() === '') return (q.type === 'oa' || q.type === 'num') ? 'Mohon isi jawaban Anda.' : 'Mohon pilih salah satu jawaban.';
+      if (q.type === 'num') {
+        var n = Number(String(v).replace(',', '.'));
+        if (isNaN(n)) return 'Mohon isi dengan angka.';
+        if (q.min !== '' && q.min != null && n < Number(q.min)) return 'Angka minimal ' + q.min + '.';
+        if (q.maxNum !== '' && q.maxNum != null && n > Number(q.maxNum)) return 'Angka maksimal ' + q.maxNum + '.';
+      }
+      var other = (q.options || []).filter(function (o) { return o.other; })[0];
+      if (other && (v === other.t || arr(v).indexOf(other.t) >= 0) && !(ST.a[K + '_lainnya'] || '').trim()) return 'Mohon sebutkan jawaban "Lainnya".';
+      if (K === 'Z3' && !/^(\+?62|0)8\d{7,12}$/.test(String(v).replace(/[\s-]/g, ''))) return 'Format nomor WhatsApp belum sesuai (contoh: 081234567890).';
+      if (K === 'Z2' && !/^@?[A-Za-z0-9._]{1,30}$/.test(String(v).trim())) return 'Format username Instagram belum sesuai (contoh: @namaanda).';
+      return '';
+    }
+    function errBox(t) { document.getElementById('err').textContent = t; }
+    function waitMsg(t) {
+      var w = document.getElementById('wait'); if (!w) return;
+      w.innerHTML = t ? '<i></i><span>' + t + '</span>' : ''; w.className = 'wait' + (t ? ' on' : '');
+      [].forEach.call(document.querySelectorAll('#body input, #body textarea, #body select'), function (x) { x.disabled = !!t; });
+    }
+    var label = '';
+    function busy(b, txt) { if (b) { label = btnN.textContent; btnN.textContent = txt || 'Memproses...'; } else if (label) btnN.textContent = label; btnN.disabled = b; }
+    function go(d) { var c = cur(), n = c.s[c.i + d]; if (!n) return; ST.cur = n; save(); render(); }
+    function next() {
+      var c = cur(), id = c.s[c.i], q = BY[id];
+      var e = validate(q); errBox(e); if (e) return;
+      if (id === 'O1' && !ST.start) ST.start = Date.now();
+      var so = screenout(id, ST.a[id]); if (so) return endScreenout(so);
+      if (id === 'S0' || id === 'S0B') { ageBand(); save(); if (ST.a.S1 === S1O[0]) return endScreenout('Usia di bawah 18 tahun'); }
+      if (id === 'PR' && ST.a.PR === opts('PR')[1]) { (ST.pre || []).forEach(function (x) { delete ST.a[x]; }); delete ST.pre; ST.profOk = false; save(); }
+      if (id === 'PR' && ST.a.PR === opts('PR')[0]) { ST.profOk = true; save(); }
+      if (id === 'Z2' && !PREVIEW) {
+        busy(true, 'Memverifikasi...'); ST.known = false; delete ST.pre;
+        waitMsg('Tunggu sesaat, kami sedang memverifikasi data kamu di database kami.');
+        var done1 = false, go1 = function () { if (done1) return; done1 = true; waitMsg(''); busy(false); save(); go(1); };
+        setTimeout(go1, 8000);
+        return api('lookupIg', [ST.a.Z2, ID]).then(function (res) {
+          if (done1) return; res = res || {};
+          if (res.state === 'sudah_isi') { done1 = true; return endScreenout('Sudah pernah mengisi survei ini (Instagram sama)'); }
+          if (res.state === 'diblokir' || res.state === 'suspend') { done1 = true; return endBlocked(res); }
+          ST.known = PROF && !!res.known; ST.pvTry = 0; go1();
+        }, go1);
+      }
+      if (id === 'PV') {
+        var pv = String(ST.a.PV || '').replace(/\D/g, '');
+        if (!pv) { go(1); ST.known = false; save(); return; }
+        busy(true, 'Memverifikasi...'); waitMsg('Tunggu sesaat, kami sedang mencocokkan data kamu di database kami.');
+        return api('verifyProfile', [ST.a.Z2, pv]).then(function (res) {
+          waitMsg(''); busy(false);
+          if (res && res.ok) {
+            ST.pre = Object.keys(res.profile); ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
+            ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
+            if (ST.a.S0) ageBand(); if (ST.a.S1 === S1O[0]) return endScreenout('Usia di bawah 18 tahun');
+            save();
+            for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return endScreenout(so2); }
+            return go(1);
+          }
+          ST.pvTry = (ST.pvTry || 0) + 1;
+          if (ST.pvTry >= 3) { delete ST.a.PV; go(1); ST.known = false; save(); return; }
+          errBox('4 digit tidak cocok. Coba lagi, atau kosongkan lalu klik Lanjut untuk mengisi data diri dari awal.');
+        }, function () { waitMsg(''); busy(false); go(1); ST.known = false; save(); });
+      }
+      if (c.i === c.s.length - 1) return submit();
+      go(1);
+    }
+    function ageBand() {
+      var y = ST.a.S0; if (!y) return;
+      var age = /sebelum/.test(y) ? 99 : CY - parseInt(y, 10);
+      if (age === 18) { if (!ST.a.S0B) return; age = ST.a.S0B === opts('S0B')[0] ? 18 : 17; } else delete ST.a.S0B;
+      ST.a.S1 = age < 18 ? S1O[0] : age <= 24 ? S1O[1] : age <= 34 ? S1O[2] : age <= 44 ? S1O[3] : age <= 54 ? S1O[4] : S1O[5];
+    }
+    function profSummary(p) {
+      return [p.S0 ? 'Lahir ' + p.S0 : p.S1, p.S2, p.A1, p.A4M || p.A4, p.A5, p.A7 ? 'Pengeluaran ' + p.A7 : ''].filter(Boolean).join(' · ');
+    }
+    function payload(extra) {
+      var fp = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, (Intl.DateTimeFormat().resolvedOptions().timeZone || '')].join('|');
+      var hsh = 0; for (var i = 0; i < fp.length; i++) { hsh = ((hsh << 5) - hsh + fp.charCodeAt(i)) | 0; }
+      var vis = {}; seq().forEach(function (x) { vis[x] = 1; });
+      var a = {}; Object.keys(ST.a).forEach(function (k) { var base = k.replace(/_lainnya$/, ''); if (!BY[base] || vis[base] || (ST.pre && ST.pre.indexOf(base) >= 0)) a[k] = ST.a[k]; });
+      var o = { sid: ST.sid, ver: VERSION, variant: ID, prefilled: !!(ST.pre && ST.pre.length), profOk: !!ST.profOk, answers: a, cats: [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: SRC, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
+      for (var x in extra) o[x] = extra[x];
+      return o;
+    }
+    function submit() {
+      if (PREVIEW) { clearSave(); return finish('Pratinjau selesai', 'Ini tampilan akhir survei. Di mode pratinjau, jawaban tidak disimpan.', '', stepsBox()); }
+      busy(true, 'Mengirim...');
+      api('submitResponse', [payload({})]).then(function () { clearSave(); done(); }, function (e) {
+        busy(false); btnN.textContent = 'Coba kirim lagi';
+        document.getElementById('err').innerHTML = 'Jawaban belum terkirim karena gangguan koneksi. Mohon tekan tombol kirim sekali lagi.' + (e && e.message ? '<br><small style="color:#9a8a7a;font-weight:400">Detail: ' + esc(String(e.message).slice(0, 160)) + '</small>' : '');
+      });
+    }
+    function endScreenout(reason) {
+      if (!PREVIEW) api('logScreenout', [payload({ reason: reason })]).then(function () {}, function () {});
+      clearSave();
+      if (/di bawah 18/.test(reason)) return finish('Terima kasih atas waktumu', 'Mohon maaf, survei dan giveaway ini hanya untuk peserta berusia 18 tahun ke atas.');
+      var msg = /Sudah pernah/.test(reason) ? (CFG.teksSudahIsi || 'Akun Instagram ini sudah pernah mengisi survei ini.')
+        : /Menolak/.test(reason) ? (CFG.teksMenolak || 'Tidak apa-apa kalau kamu belum ingin mengisi survei ini.')
+        : (CFG.teksTidakEligible || 'Kamu belum termasuk kriteria survei ini.');
+      finish('Terima kasih atas waktumu', msg, '', ctaButtons(false));
+    }
+    function endBlocked(res) {
+      api('logScreenout', [payload({ reason: res.state === 'suspend' ? 'Akun suspend (riwayat asal-asalan)' : 'Akun diblokir (riwayat asal-asalan)' })]).then(function () {}, function () {});
+      clearSave();
+      var em = res.email || 'milgiftclub@gmail.com';
+      var msg = res.state === 'suspend'
+        ? 'Akses akun ini ke survei ' + ORG + ' ditutup sementara sampai ' + res.until + ' karena jawaban sebelumnya tidak lolos verifikasi kualitas.'
+        : 'Akses akun ini ke survei ' + ORG + ' ditutup karena jawaban sebelumnya tidak lolos verifikasi kualitas. Untuk membuka kembali, kirim email ke ' + em + ' dengan menyertakan username Instagram dan nomor WhatsApp kamu.';
+      finish('Akses survei ditutup', msg, '', CFG.linkIg ? '<div class="ctas"><a class="cta cta2" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || 'Follow Instagram') + '</a></div>' : '');
+    }
+    function done() {
+      finish('Terima kasih!', 'Jawaban kamu sudah kami terima.' + (G ? ' Pemenang diumumkan di Instagram ' + CFG.ig + (CFG.announce ? ' pada ' + CFG.announce : '') + '.' : ''), G ? (CFG.pesanPenutup || '') : '', stepsBox(), ctaButtons(true));
+    }
+    btnN.onclick = next;
+    btnB.onclick = function () { errBox(''); go(-1); };
+    window.__ctl = { at: function () { return ST.cur; }, done: function () { return !!window.__done; } };
+    render();
+  }
+})();
+</script>
+</body>
+</html>

@@ -8,3 +8,4 @@ generator/tests/screenout.json
 *.png
 !site/**/*.png
 generator/tests/page.html
+generator/tests/apps_page.html
