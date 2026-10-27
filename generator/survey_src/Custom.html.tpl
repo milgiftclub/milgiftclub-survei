@@ -103,7 +103,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var prize = function (h) { return String(h.nama || '').trim() + (Number(h.nilai) ? ' · Rp' + Number(h.nilai).toLocaleString('id-ID') : ''); };
     var HD = (S.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
     if (HD.length) { CFG.hadiahUtama = prize(HD[0]); CFG.hadiah = HD.slice(1).map(prize); }
-    if (S.periode) CFG.periode = S.periode;
+    CFG.periode = S.periode || '';   // batas waktu survei ini (kosong = tidak ditampilkan)
     var BR = D.brand && D.brand.mode === 'client' ? D.brand : null, ORG = BR ? BR.name : 'MIL Gift Club';
     if (BR) applyBrand(BR);
     if (S.periodeLabel) CFG.periodeLabel = S.periodeLabel;

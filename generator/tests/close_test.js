@@ -15,9 +15,11 @@ ctx.adminSaveSettings({ TUTUP_V2: fmt(new Date(Date.now() - 60e3)) });
 assert.strictEqual(ctx.isOpen_('v2'), false, 'v2 tertutup otomatis');
 const sv = ctx.surveyList_().find(s => s.v === 'v2'); assert(sv.tutupLewat && !sv.open && sv.switchOn);
 // survei Dashboard
-const r = ctx.adminBuilderSave({ name: 'Uji Tutup', target: 50, periodeKe: 3, tahun: 2026, tutup: fmt(new Date(Date.now() + 3600e3)), questions: [{ id: 'Q1', text: 'A?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true);
-let g = ctx.getSurvey(r.id); assert(g.open && /^Hingga /.test(g.schema.periode) && g.schema.periodeLabel === 'Survei MIL Gift Club · Periode 3 2026', JSON.stringify(g.schema.periodeLabel));
+const r = ctx.adminBuilderSave({ name: 'Uji Tutup', target: 50, tutup: fmt(new Date(Date.now() + 3600e3)), questions: [{ id: 'Q1', text: 'A?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true);
+let g = ctx.getSurvey(r.id); assert(g.open && /^Hingga /.test(g.schema.periode) && g.schema.periodeLabel === 'Survei MIL Gift Club · Periode 2 2027', JSON.stringify(g.schema.periodeLabel));
 ctx.adminBuilderSave(Object.assign({}, ctx.adminBuilderGet(r.id).schema, { id: r.id, tutup: fmt(new Date(Date.now() - 60e3)) }), true); ctx.CUSTOM_MEMO_ = null;
 g = ctx.getSurvey(r.id); assert.strictEqual(g.open, false, 'survei Dashboard tertutup otomatis');
 assert.strictEqual(ctx.surveyList_().find(s => s.v === r.id).status, 'Ditutup');
+const rk = ctx.adminBuilderSave({ name: 'Uji Klien', target: 50, brand: { mode: 'client', name: 'Gebros' }, questions: [{ id: 'Q1', text: 'A?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true);
+assert.strictEqual(ctx.getSurvey(rk.id).schema.periodeLabel, '', 'klien tanpa periode');
 console.log('OK close_test');

@@ -347,7 +347,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div class="hd-head"><span>Hadiah</span><span>Nilai (Rp)</span><span>Foto</span><span></span></div>
         <div id="b-hd"></div>
         <button class="btn sec sm" onclick="hdAdd()" style="margin-top:6px">+ Tambah hadiah</button>
-        <div class="kv" style="margin-top:14px"><label>Periode giveaway</label><div class="toolbar" style="margin:0">Periode ke-<input type="number" id="b-pke" min="1" style="width:70px">tahun<input type="number" id="b-pth" min="2024" style="width:90px"></div><div class="muted" id="b-per-prev" style="margin-top:6px"></div></div>
+        <div class="kv" style="margin-top:14px"><label>Periode giveaway</label><div class="muted" id="b-per-prev"></div></div>
       </div>
     </div>
   </div>
@@ -767,7 +767,6 @@ function bFill() {
   $('b-g').checked = B.giveaway !== false; $('b-p').checked = B.profile !== false; $('b-ind').checked = B.screenIndustri !== false;
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
   var g = (BDEF && BDEF.giveaway) || {};
-  $('b-pke').value = B.periodeKe || g.periodeKe || 1; $('b-pth').value = B.tahun || g.tahun || new Date().getFullYear();
   $('b-tutup').value = B.tutup != null ? B.tutup : (B.id ? '' : g.tutup || '');
   perPrev(); hdRender(); brandFill();
   $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan perubahan' : 'Publish';
@@ -780,9 +779,13 @@ function tglID(v) {
   var t = m[4] && !(m[4] === '23' && m[5] === '59') ? ', ' + m[4] + '.' + m[5] + ' WIB' : '';
   return +m[3] + ' ' + BULAN[+m[2] - 1] + ' ' + m[1] + t;
 }
+/** periode giveaway berlaku sama untuk semua survei MIL Gift Club (diatur di Pengaturan); survei brand klien tanpa periode */
+function perMil() { var g = (BDEF && BDEF.giveaway) || {}; return 'Periode ' + (g.periodeKe || 1) + ' ' + (g.tahun || new Date().getFullYear()); }
+function isClient() { var m = $('b-brand-mode').querySelector('.on'); return !!m && m.dataset.m === 'client'; }
 function perPrev() {
   var t = $('b-tutup').value, lewat = t && new Date(t + ':00+07:00') < new Date();
-  $('b-per-prev').innerHTML = 'Tampil di survei: <b>Periode ' + esc($('b-pke').value || 1) + ' ' + esc($('b-pth').value || '') + '</b>' + (t ? ' · <b>Hingga ' + esc(tglID(t)) + '</b>' : '') +
+  $('b-per-prev').innerHTML = (isClient() ? 'Survei brand klien tidak memakai periode.' : 'Tampil di survei: <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> <span>(sama untuk semua survei MIL Gift Club — ubah di Pengaturan)</span>') +
+    (t ? '<br>Batas waktu: <b>Hingga ' + esc(tglID(t)) + '</b>' : '') +
     (lewat ? '<br><span style="color:var(--red);font-weight:700">Tanggal tutup sudah lewat — survei akan tertutup.</span>' : '');
 }
 function bRead() {
@@ -790,8 +793,8 @@ function bRead() {
   B.target = Number($('b-target').value) || 0; B.autoClose = $('b-auto').checked;
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
   B.gender = $('b-gender').value;
-  B.periodeKe = Number($('b-pke').value) || 1; B.tahun = Number($('b-pth').value) || new Date().getFullYear(); B.tutup = $('b-tutup').value || '';
-  B.periode = B.tutup ? 'Hingga ' + tglID(B.tutup) : ''; B.periodeLabel = 'Periode ' + B.periodeKe + ' ' + B.tahun;
+  B.tutup = $('b-tutup').value || ''; delete B.periodeKe; delete B.tahun;
+  B.periode = B.tutup ? 'Hingga ' + tglID(B.tutup) : ''; B.periodeLabel = isClient() ? '' : perMil();
   var cl = $('b-brand-mode').querySelector('.on').dataset.m === 'client';
   B.brand = cl ? { mode: 'client', name: $('b-br-name').value.trim(), logo: (B.brand && B.brand.logo) || '', primary: $('b-br-p').value, accent: $('b-br-a').value, ig: $('b-br-ig').value.trim(), ink: $('b-br-k').value, bg: shadeHex($('b-br-p').value, 0.94) } : { mode: 'mil', logo: (B.brand && B.brand.logo) || '' };
 }
@@ -803,7 +806,7 @@ function brandFill() {
   var show = function () { $('b-br-logo').innerHTML = b.logo && IMGCACHE[b.logo] ? '<img src="' + IMGCACHE[b.logo].src + '">' : (b.logo ? 'memuat…' : 'belum ada'); };
   show(); if (b.logo && !IMGCACHE[b.logo]) loadPrizeImgs([b.logo]).then(show, function () {});
 }
-[].forEach.call($('b-brand-mode').children, function (x) { x.onclick = function () { [].forEach.call($('b-brand-mode').children, function (y) { y.classList.toggle('on', y === x); }); $('b-brand').style.display = x.dataset.m === 'client' ? '' : 'none'; bRead(); markDirty(); }; });
+[].forEach.call($('b-brand-mode').children, function (x) { x.onclick = function () { [].forEach.call($('b-brand-mode').children, function (y) { y.classList.toggle('on', y === x); }); $('b-brand').style.display = x.dataset.m === 'client' ? '' : 'none'; bRead(); markDirty(); perPrev(); }; });
 $('b-br-file').onchange = function (e) { var f = e.target.files[0]; if (!f) return; imageUpload(f, 480, function (id) {
   var pal = logoPalette(IMGCACHE[id]);
   if (pal) { $('b-br-p').value = pal.primary; $('b-br-a').value = pal.accent; $('b-br-k').value = pal.ink; }
@@ -846,7 +849,7 @@ function imageUpload(file, maxPx, done) {
   };
   fr.readAsDataURL(file);
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-pke', 'b-pth', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
   var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); perPrev(); }); e.addEventListener('change', function () { bRead(); markDirty(); perPrev(); });
 });
 [].forEach.call($('b-src').children, function (b) {
@@ -1186,7 +1189,7 @@ function brandPM(b) {
   PM.brand = b && b.mode === 'client' && b.name ? b : null;
   if (!PM.brand) return;
   var h = String(b.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
-  PM.ig = h || b.name; PM.label = PM.perLabel || '';
+  PM.ig = h || b.name; PM.label = '';
   PM.langkah = PM.langkah.map(function (t) { return String(t).replace(/@milgift_club|@milgiftclub/gi, h || b.name); }).filter(function (t) { return h || !/follow/i.test(t); });
 }
 function pmCaption() {

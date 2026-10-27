@@ -126,9 +126,9 @@ function mainPeriode_(variant) {
 }
 /** label & teks periode survei buatan Dashboard */
 function customPeriode_(c) {
-  var sc = c.schema || {}, br = sc.brand && sc.brand.mode === 'client' ? sc.brand.name : '';
-  var p = periodeText_(sc.periodeKe, sc.tahun);
-  return { label: p ? (br ? 'Giveaway ' + br : 'Survei MIL Gift Club') + ' · ' + p : '', periode: tutupText_(sc.tutup) || sc.periode || '' };
+  // survei MIL Gift Club: periode sama dengan survei utama (Pengaturan); survei brand klien: tanpa periode
+  var sc = c.schema || {}, client = !!(sc.brand && sc.brand.mode === 'client');
+  return { label: client ? '' : mainPeriode_('v1').label, periode: tutupText_(sc.tutup) || sc.periode || '' };
 }
 var SET_MEMO_ = null;
 /** nilai tanggal untuk input datetime-local di Dashboard */
@@ -1263,7 +1263,7 @@ function getSurvey(id, preview) {
   var br = c.schema.brand && c.schema.brand.mode === 'client' ? JSON.parse(JSON.stringify(c.schema.brand)) : null;
   if (br && br.logo) br.logoData = imageData_([br.logo])[br.logo] || '';
   var sch = JSON.parse(JSON.stringify(c.schema)), cp = customPeriode_(c);
-  sch.periode = cp.periode; if (cp.label) sch.periodeLabel = cp.label;
+  sch.periode = cp.periode; sch.periodeLabel = cp.label;
   return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: sch, brand: br, tutupLewat: closed_(c.schema.tutup),
     giveaway: { periodeLabel: mainPeriode_('v1').label, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: mainPeriode_('v1').periode, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
 }
