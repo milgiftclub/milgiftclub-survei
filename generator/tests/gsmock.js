@@ -32,7 +32,7 @@ function makeEnv() {
       return this;
     },
     setValue(v) { return this.setValues([[v]]); },
-    setFontWeight() { return this; }, setBackground() { return this; }, setDataValidation() { return this; }, insertCheckboxes() { return this.setValue(false); }, setNumberFormat() { return this; }, getSheet() { return this.s; }, getRow() { return this.r; }, getColumn() { return this.c; },
+    setFontWeight() { return this; }, setNote(n) { (this.s.notes = this.s.notes || {})[this.r + ":" + this.c] = n; return this; }, getNote() { return (this.s.notes || {})[this.r + ":" + this.c] || ""; }, setBackground() { return this; }, setDataValidation() { return this; }, insertCheckboxes() { return this.setValue(false); }, setNumberFormat() { return this; }, getSheet() { return this.s; }, getRow() { return this.r; }, getColumn() { return this.c; },
   };
   const ss = {
     getId: () => 'SHEET123',

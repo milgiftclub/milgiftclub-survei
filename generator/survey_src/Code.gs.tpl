@@ -246,15 +246,16 @@ function setupCore_(ss) {
       s.setFrozenRows(1);
     }
   });
-  var d = ss.getSheetByName(SH.DICT);
-  if (!d) {
-    d = ss.insertSheet(SH.DICT);
+  var d = ss.getSheetByName(SH.DICT), dsig = 'kamus:' + DICTIONARY.map(function (r) { return r[0]; }).join(',');
+  if (!d || d.getRange(1, 1).getNote() !== dsig) {   // dibuat ulang otomatis saat daftar pertanyaan berubah
+    if (d) d.clear(); else d = ss.insertSheet(SH.DICT);
     var dr = [['Kolom', 'No', 'Topik', 'Pertanyaan']].concat(DICTIONARY);
     dr.push(['L1_xxx', '', 'Modul kategori', 'Jawaban modul funnel untuk kategori_1 (kategori terakhir dibeli)']);
     dr.push(['xxx_lainnya', '', '', 'Isian teks untuk opsi "Lainnya"']);
     dr.push(['xxx: baris', '', '', 'Jawaban pertanyaan matrix per baris']);
     d.getRange(1, 1, dr.length, 4).setValues(dr);
     d.getRange(1, 1, 1, 4).setFontWeight('bold').setBackground('#FFFF00');
+    d.getRange(1, 1).setNote(dsig);
   }
   if (!ss.getSheetByName(SH.REKAP)) ss.insertSheet(SH.REKAP);
   var pn = ss.getSheetByName(SH.PANEL);

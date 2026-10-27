@@ -240,13 +240,6 @@ Q = [
   '-', 'Format iklan CPAS / collaborative ads yang paling sering dilihat. Masukan untuk pemilihan placement iklan'),
 
  # ---------------- PENUTUP ----------------
- ('Z1', T_CLOSE, 'Apakah Anda bersedia data profil Anda disimpan dan dihubungi kembali oleh MIL Gift Club untuk survei atau riset berikutnya (dengan kesempatan mendapatkan hadiah)?', 'SA',
-  ['Ya, bersedia', 'Tidak'], '-', 'Persetujuan TERPISAH untuk panel riset MIL (database profil). Jika Ya -> profil disimpan/diperbarui di tab Panel. Wajib terpisah dari persetujuan {O1} sesuai UU PDP'),
- ('Z3', T_CLOSE, 'Tuliskan nomor HP / WhatsApp aktif Anda. Nomor ini digunakan untuk menghubungi Anda apabila terpilih secara acak sebagai pemenang hadiah.', 'OA', ['08___'], 'Wajib diisi; validasi format nomor',
-  'Nomor HP menjadi ID unik: satu nomor = satu respons, dan kunci data di tab Panel. Data identitas pemenang (KTP/NPWP untuk PPh hadiah) diminta terpisah HANYA kepada pemenang'),
- ('Z5', T_CLOSE, 'Terima kasih! Jawaban Anda telah tercatat. Pemenang hadiah akan dipilih secara acak dan diumumkan melalui Instagram @milgift_club pada [tanggal]. Hanya respons yang lolos verifikasi kualitas yang diikutkan dalam pengundian.', 'Info', ['-'], '-', 'Halaman penutup'),
-
- # ---------------- SISTEM ----------------
  ('A9', T_PROF, 'Siapa yang biasanya memutuskan belanja kebutuhan rumah tangga di rumah Anda?', 'SA',
   ['Saya sendiri', 'Saya bersama pasangan / anggota keluarga lain', 'Orang lain, tetapi saya ikut memberi masukan', 'Orang lain, saya tidak terlibat'], '-', 'Peran pengambil keputusan belanja (gatekeeper)'),
  ('A10', T_PROF, 'Media sosial apa saja yang Anda buka setiap hari? (boleh pilih lebih dari satu)', 'MA',
@@ -264,7 +257,13 @@ Q = [
  ('A16', T_PROF, 'Kendaraan apa saja yang Anda miliki? (boleh pilih lebih dari satu)', 'MA', ['Mobil', 'Motor', 'Sepeda', 'Tidak memiliki kendaraan (eksklusif)'], '-', 'Proxy SES & targeting otomotif'),
  ('A17', T_PROF, 'Apakah Anda memelihara hewan? (boleh pilih lebih dari satu)', 'MA',
   ['Kucing', 'Anjing', 'Ikan', 'Burung', 'Hewan lainnya', 'Tidak memelihara hewan (eksklusif)'], '-', 'Targeting kategori pet care'),
+ ('Z1', T_CLOSE, 'Apakah Anda bersedia data profil Anda disimpan dan dihubungi kembali oleh MIL Gift Club untuk survei atau riset berikutnya (dengan kesempatan mendapatkan hadiah)?', 'SA',
+  ['Ya, bersedia', 'Tidak'], '-', 'Persetujuan TERPISAH untuk panel riset MIL (database profil). Jika Ya -> profil disimpan/diperbarui di tab Panel. Wajib terpisah dari persetujuan {O1} sesuai UU PDP'),
+ ('Z3', T_CLOSE, 'Tuliskan nomor HP / WhatsApp aktif Anda. Nomor ini digunakan untuk menghubungi Anda apabila terpilih secara acak sebagai pemenang hadiah.', 'OA', ['08___'], 'Wajib diisi; validasi format nomor',
+  'Nomor HP menjadi ID unik: satu nomor = satu respons, dan kunci data di tab Panel. Data identitas pemenang (KTP/NPWP untuk PPh hadiah) diminta terpisah HANYA kepada pemenang'),
+ ('Z5', T_CLOSE, 'Terima kasih! Jawaban Anda telah tercatat. Pemenang hadiah akan dipilih secara acak dan diumumkan melalui Instagram @milgift_club pada [tanggal]. Hanya respons yang lolos verifikasi kualitas yang diikutkan dalam pengundian.', 'Info', ['-'], '-', 'Halaman penutup'),
 
+ # ---------------- SISTEM ----------------
  ('X1', 'Variabel Sistem', '[VARIABEL SISTEM - tidak ditampilkan] Data pendukung kontrol kualitas', 'Hidden',
   ['Durasi pengisian (detik)', 'Device ID / fingerprint', 'Sumber traffic (UTM: organik IG / iklan)', 'Kategori modul funnel ({C1})', 'Status attention check ({QC1})'],
   "Speeder: durasi < 1/3 median -> tidak valid", 'Dipakai pada tahap verifikasi sebelum undian'),
