@@ -120,9 +120,9 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
 
 (function () {
   var BY = {}; SCHEMA.forEach(function (q) { BY[q.id] = q; });
-  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A4M','A4N','A4K','A4','A5','A6','A7','A8','B2','B3','B4','C1','C2'];
+  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A4M','A4N','A4K','A4','A5','A6','A7','A8','B2','B4','C1','C2'];
   var LOOP = SCHEMA.filter(function (q) { return q.loop; }).map(function (q) { return q.id; });
-  var POST = ['D0','D1','D2','D4','D3','D5','A9','A10','A11','A12','A13','A14','A15','A16','A17','Z1','Z3'];
+  var POST = ['D0','D1','D4','D5','A9','A10','A11','A12','A13','A14','A15','A16','A17','Z1','Z3'];
   var CY = new Date().getFullYear();
   var MAIN_PLAT = ['Shopee', 'TikTok Shop', 'Tokopedia'];
   var MKT = ['Shopee', 'TikTok Shop', 'Tokopedia', 'Lazada', 'Blibli'];
@@ -192,8 +192,6 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       case 'B4': return colsOf(BY.B4).length > 2;
       case 'C2': return !!get('C1') && !isOtherCat(get('C1'));
       case 'AW6': return /^(Video pendek|Live shopping|Konten kreator|Iklan di media sosial)/.test(get('AW5', k) || '');
-      case 'CO1': return !!get('CO2', k) && get('CO2', k) !== o('CO2')[3];
-      case 'CO3': return [o('CO2')[1], o('CO2')[2]].indexOf(get('CO2', k)) >= 0 && pipedOptions(BY.CO3, k).length > 0;
       case 'PU7': return [o('PU6')[0], o('PU6')[1]].indexOf(get('PU6', k)) >= 0;
       case 'LO2': var i = o('LO1').indexOf(get('LO1', k)); return i >= 0 && i < 4;
       case 'RE3': var r = arr(get('RE2', k)), rv = opts('RE2').slice(0, 6); return r.some(function (x) { return rv.indexOf(x) >= 0; });
@@ -201,8 +199,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       case 'G1': case 'G2': case 'G3': return ST.cats && ST.cats[k] === 'Bunga & tanaman';
       case 'OF2': case 'OF3': var of1 = o('OF1').indexOf(get('OF1', k)); return of1 === 0 || of1 === 1;
       case 'OF4': var of1b = o('OF1').indexOf(get('OF1', k)); return of1b === 1 || of1b === 2;
-      case 'D2': return !!get('D1') && get('D1') !== o('D1')[0];
-      case 'D4': var d2 = o('D2').indexOf(get('D2')); return d2 === 0 || d2 === 1;
+      case 'D4': var d1 = o('D1').indexOf(get('D1')); return d1 === 2 || d1 === 3;
     }
     return true;
   }
@@ -293,7 +290,6 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     if (intro) h += '<p class="intro">' + esc(fill(intro, k)) + '</p>';
     h += '<h1>' + esc(fill((q.id === 'O1' && CFG.o1q) || q.text, k)) + '</h1>';
     var hint = q.hint || (q.type === 'ma' ? (q.max ? 'Pilih maksimal ' + q.max + ' jawaban' : 'Boleh pilih lebih dari satu') : '');
-    if (q.id === 'LO3') hint = lo3Hint(k);
     if (hint) h += '<p class="hint">' + esc(hint) + '</p>';
     if (q.id === 'O1' && (CFG.privacy || CFG.tnc)) {
       h += '<p class="links">' + (CFG.privacy ? '<a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a>' : '') +
@@ -305,12 +301,6 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     var body = document.getElementById('body');
     ({ sa: rSA, dropdown: rDrop, city: rCity, ma: rMA, matrix_sa: rMatrix, matrix_ma: rMatrix, nps: rNPS, oa: rOA })[q.type](body, q, k, K, v);
     if (K !== lastKey) { window.scrollTo(0, 0); lastKey = K; } else window.scrollTo(0, keepY);
-  }
-  function lo3Hint(k) {
-    var mid = [40000, 75000, 175000, 375000, 750000, 1500000][opts('PU4').indexOf(get('PU4', k))];
-    if (!mid) return '';
-    var r = function (n) { return 'Rp' + Math.round(n).toLocaleString('id-ID'); };
-    return 'Contoh untuk belanja sekitar ' + r(mid) + ': selisih 5% = ' + r(mid * 0.05) + ', 10% = ' + r(mid * 0.1) + ', 20% = ' + r(mid * 0.2) + '.';
   }
   function optEl(type, name, o, on) {
     var l = document.createElement('label'); l.className = 'opt' + (on ? ' on' : '');

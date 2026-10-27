@@ -53,11 +53,11 @@ var PANEL_COLS = [
   ['life_stage', 'A4'], ['pekerjaan', 'A5'], ['pendidikan', 'A6'], ['pengeluaran_rumah_tangga', 'A7'],
   ['belanja_online_per_bulan', 'A8'], ['frekuensi_belanja_online', 'S5'], ['platform_dipakai_1bln', 'S4'],
   ['platform_utama', 'B2'], ['kategori_terakhir_dibeli', 'C1'], ['frekuensi_beli_kategori_3bln', 'C2'],
-  ['metode_bayar_terakhir', 'L1_PU3'], ['frekuensi_live_shopping', 'D1'], ['penggunaan_paylater', 'D3'], ['momen_beli_live_shopping', 'D4'], ['prioritas_pilih_fashion', 'L1_FA1'], ['sikap_harga_fashion', 'L1_FA2'], ['format_iklan_sosmed_dilihat', 'D5'], ['produk_terakhir_dibeli', 'L1_PT1'], ['harga_produk_terakhir', 'L1_PT2'],
+  ['metode_bayar_terakhir', 'L1_PU3'], ['frekuensi_live_shopping', 'D1_lama'], ['penggunaan_paylater', 'D3'], ['momen_beli_live_shopping', 'D4'], ['prioritas_pilih_fashion', 'L1_FA1'], ['sikap_harga_fashion', 'L1_FA2'], ['format_iklan_sosmed_dilihat', 'D5'], ['produk_terakhir_dibeli', 'L1_PT1'], ['harga_produk_terakhir', 'L1_PT2'],
   ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5'],
   ['tahun_lahir', 'S0'], ['status_pernikahan', 'A4M'], ['jumlah_anak', 'A4N'], ['usia_anak', 'A4K'], ['peran_belanja_rumah_tangga', 'A9'],
   ['media_sosial_harian', 'A10'], ['durasi_media_sosial', 'A11'], ['metode_pembayaran', 'A12'], ['jenis_hp', 'A13'], ['minat_hobi', 'A14'],
-  ['hijab', 'A15'], ['kendaraan', 'A16'], ['hewan_peliharaan', 'A17'], ['profil_diperbarui', 'profil_diperbarui']
+  ['hijab', 'A15'], ['kendaraan', 'A16'], ['hewan_peliharaan', 'A17'], ['profil_diperbarui', 'profil_diperbarui'], ['pengalaman_live_shopping', 'D1']
 ];
 var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
 var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
