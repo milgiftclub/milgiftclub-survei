@@ -264,7 +264,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <!-- SURVEI (per survei) -->
 <section class="page" id="p-survey">
   <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
-    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
@@ -838,6 +838,7 @@ function bState() {
     (st === 'Dibuka' ? '<button class="btn danger sm" onclick="bStatus(\'Ditutup\')">Tutup survei</button>' : st !== 'Draf' ? '<button class="btn soft sm" onclick="bStatus(\'Dibuka\')">Buka lagi</button>' : '') +
     '<button class="btn soft sm" onclick="promoFromBuilder()">🖼 Gambar IG</button><button class="btn sec sm" onclick="bDelete()">' + (BMETA.responses ? 'Arsipkan' : 'Hapus') + '</button></div>';
 }
+function svCopyLink() { var u = $('sv-link').href; if (!u || /#$/.test(u)) return toast('Link belum tersedia'); try { navigator.clipboard.writeText(u); } catch (e) { var t = document.createElement('textarea'); t.value = u; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } toast('Link survei disalin'); }
 function bCopy() { var i = $('b-link'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } toast('Link disalin'); }
 function bStatus(st) {
   if (!confirm((st === 'Ditutup' ? 'Tutup' : 'Buka') + ' survei ini untuk responden?')) return;
