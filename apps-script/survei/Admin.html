@@ -318,9 +318,8 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div id="b-brand" style="display:none">
           <div class="kv"><label>Nama brand</label><input id="b-br-name" placeholder="mis. Gebros"></div>
           <div class="kv"><label>Logo brand</label><div class="toolbar" style="margin:0"><div id="b-br-logo" class="logo-prev">belum ada</div><label class="btn sec sm" style="cursor:pointer">Unggah logo<input type="file" accept="image/*" id="b-br-file" style="display:none"></label></div></div>
-          <div class="kv"><label>Warna utama &amp; aksen</label><div class="toolbar" style="margin:0"><input type="color" id="b-br-p" value="#E4312B" title="Warna utama (tombol, banner)"><input type="color" id="b-br-a" value="#F9C23C" title="Warna aksen (sorotan)"><span class="muted">utama · aksen</span></div></div>
+          <div class="kv"><label>Warna brand</label><div class="toolbar" style="margin:0"><input type="color" id="b-br-p" value="#E4312B" title="Warna utama (tombol, banner)"><input type="color" id="b-br-a" value="#F9C23C" title="Warna aksen (sorotan)"><input type="color" id="b-br-k" value="#3A2A20" title="Warna teks"><span class="muted">utama · aksen · teks</span></div><div class="muted" id="b-br-auto" style="margin-top:6px">Diambil otomatis dari logo saat diunggah. Boleh diubah.</div></div>
           <div class="kv"><label>Instagram brand</label><input id="b-br-ig" placeholder="@akunbrand"></div>
-          <label class="row"><span>Tampilkan "bersama MIL Digital"</span><span class="switch"><input type="checkbox" id="b-br-credit" checked><span></span></span></label>
         </div>
       </div>
       <div class="card"><h2>Info survei</h2>
@@ -736,18 +735,43 @@ function bRead() {
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
   B.gender = $('b-gender').value; B.periode = $('b-period').value.trim();
   var cl = $('b-brand-mode').querySelector('.on').dataset.m === 'client';
-  B.brand = cl ? { mode: 'client', name: $('b-br-name').value.trim(), logo: (B.brand && B.brand.logo) || '', primary: $('b-br-p').value, accent: $('b-br-a').value, ig: $('b-br-ig').value.trim(), credit: $('b-br-credit').checked } : { mode: 'mil', logo: (B.brand && B.brand.logo) || '' };
+  B.brand = cl ? { mode: 'client', name: $('b-br-name').value.trim(), logo: (B.brand && B.brand.logo) || '', primary: $('b-br-p').value, accent: $('b-br-a').value, ig: $('b-br-ig').value.trim(), ink: $('b-br-k').value, bg: shadeHex($('b-br-p').value, 0.94) } : { mode: 'mil', logo: (B.brand && B.brand.logo) || '' };
 }
 function brandFill() {
   var b = B.brand || { mode: 'mil' }, cl = b.mode === 'client';
   [].forEach.call($('b-brand-mode').children, function (x) { x.classList.toggle('on', x.dataset.m === (cl ? 'client' : 'mil')); });
   $('b-brand').style.display = cl ? '' : 'none';
-  $('b-br-name').value = b.name || ''; $('b-br-p').value = b.primary || '#E4312B'; $('b-br-a').value = b.accent || '#F9C23C'; $('b-br-ig').value = b.ig || ''; $('b-br-credit').checked = b.credit !== false;
+  $('b-br-name').value = b.name || ''; $('b-br-p').value = b.primary || '#E4312B'; $('b-br-a').value = b.accent || '#F9C23C'; $('b-br-ig').value = b.ig || ''; $('b-br-k').value = b.ink || '#3A2A20';
   var show = function () { $('b-br-logo').innerHTML = b.logo && IMGCACHE[b.logo] ? '<img src="' + IMGCACHE[b.logo].src + '">' : (b.logo ? 'memuat…' : 'belum ada'); };
   show(); if (b.logo && !IMGCACHE[b.logo]) loadPrizeImgs([b.logo]).then(show, function () {});
 }
 [].forEach.call($('b-brand-mode').children, function (x) { x.onclick = function () { [].forEach.call($('b-brand-mode').children, function (y) { y.classList.toggle('on', y === x); }); $('b-brand').style.display = x.dataset.m === 'client' ? '' : 'none'; bRead(); markDirty(); }; });
-$('b-br-file').onchange = function (e) { var f = e.target.files[0]; if (!f) return; imageUpload(f, 480, function (id) { bRead(); B.brand.logo = id; markDirty(); brandFill(); toast('Logo tersimpan. Klik Simpan supaya tercatat di survei.'); }); };
+$('b-br-file').onchange = function (e) { var f = e.target.files[0]; if (!f) return; imageUpload(f, 480, function (id) {
+  var pal = logoPalette(IMGCACHE[id]);
+  if (pal) { $('b-br-p').value = pal.primary; $('b-br-a').value = pal.accent; $('b-br-k').value = pal.ink; }
+  bRead(); B.brand.logo = id; markDirty(); brandFill(); toast('Logo tersimpan. Warna brand diambil dari logo. Klik Simpan supaya tercatat.');
+}); };
+function logoPalette(im) {   // ambil warna dominan dari logo: utama, aksen, warna teks
+  if (!im) return null;
+  var cv = document.createElement('canvas'), n = 72; cv.width = n; cv.height = n;
+  var x = cv.getContext('2d'); x.drawImage(im, 0, 0, n, n);
+  var d = x.getImageData(0, 0, n, n).data, bins = {}, dark = [];
+  for (var i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 200) continue;
+    var r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, sat = mx === mn ? 0 : (l > .5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn)), h = 0;
+    if (mx !== mn) { h = mx === r ? (g - b) / (mx - mn) + (g < b ? 6 : 0) : mx === g ? (b - r) / (mx - mn) + 2 : (r - g) / (mx - mn) + 4; h *= 60; }
+    if (l < 0.32 && sat < 0.6) { dark.push([d[i], d[i + 1], d[i + 2]]); continue; }
+    if (sat < 0.25 || l > 0.9 || l < 0.12) continue;
+    var k = Math.round(h / 24) % 15, bn = bins[k] || (bins[k] = { w: 0, r: 0, g: 0, b: 0, h: h });
+    bn.w += sat; bn.r += d[i] * sat; bn.g += d[i + 1] * sat; bn.b += d[i + 2] * sat;
+  }
+  var hex = function (r, g, b) { return '#' + [r, g, b].map(function (v) { return ('0' + Math.round(v).toString(16)).slice(-2); }).join(''); };
+  var list = Object.keys(bins).map(function (k) { var bn = bins[k]; return { w: bn.w, h: bn.h, c: hex(bn.r / bn.w, bn.g / bn.w, bn.b / bn.w) }; }).sort(function (a, b) { return b.w - a.w; });
+  if (!list.length) return null;
+  var p = list[0], a = list.filter(function (o) { var dh = Math.abs(o.h - p.h); return Math.min(dh, 360 - dh) > 40 && o.w > p.w * 0.08; })[0];
+  var ink = dark.length > 20 ? hex.apply(null, [0, 1, 2].map(function (j) { return dark.reduce(function (s, c) { return s + c[j]; }, 0) / dark.length; })) : shadeHex(p.c, -0.7);
+  return { primary: p.c, accent: a ? a.c : shadeHex(p.c, 0.55), ink: ink };
+}
 function imageUpload(file, maxPx, done) {
   toast('Mengunggah gambar…');
   var fr = new FileReader();
@@ -764,7 +788,7 @@ function imageUpload(file, maxPx, done) {
   };
   fr.readAsDataURL(file);
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-period', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-ig', 'b-br-credit'].forEach(function (id) {
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-period', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
   var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); }); e.addEventListener('change', function () { bRead(); markDirty(); });
 });
 [].forEach.call($('b-src').children, function (b) {
@@ -1252,9 +1276,9 @@ function labelBlob(c, x, y, h, size, rot) {
   return { w: bw, h: bh };
 }
 function paintPoster(c, W, H, story) {
-  var keep = { blue: PP.blue, blueD: PP.blueD, yellow: PP.yellow };
-  if (PM.brand) { PP.blue = PM.brand.primary || PP.blue; PP.blueD = shadeHex(PP.blue, -0.15); PP.yellow = PM.brand.accent || PP.yellow; }
-  try { paintPoster0(c, W, H, story); } finally { PP.blue = keep.blue; PP.blueD = keep.blueD; PP.yellow = keep.yellow; }
+  var keep = { blue: PP.blue, blueD: PP.blueD, yellow: PP.yellow, brown: PP.brown, cream: PP.cream };
+  if (PM.brand) { var Bd = PM.brand; PP.blue = Bd.primary || PP.blue; PP.blueD = shadeHex(PP.blue, -0.15); PP.yellow = Bd.accent || PP.yellow; PP.brown = Bd.ink || PP.brown; PP.cream = Bd.bg || shadeHex(PP.blue, 0.94); }
+  try { paintPoster0(c, W, H, story); } finally { for (var k in keep) PP[k] = keep[k]; }
 }
 function shadeHex(hex, k) {
   var m = String(hex || '').match(/^#?([0-9a-f]{6})$/i); if (!m) return hex;
@@ -1305,7 +1329,6 @@ function posterContent(c, W, S) {
   var BRD = P.brand, blogo = BRD && BRD.logo && IMGCACHE[BRD.logo];
   if (BRD) {
     if (blogo) { fitImg(c, blogo, cx - 190, y, 380, 120); y += 126; } else { c.font = '700 70px Fredoka'; c.fillStyle = PP.brown; c.fillText(BRD.name, cx, y + 70); y += 96; }
-    if (BRD.credit !== false) { c.font = '800 18px Nunito'; c.fillStyle = '#7A5440'; c.letterSpacing = '5px'; c.fillText('BERSAMA MIL DIGITAL', cx, y + 10); c.letterSpacing = '0px'; y += 22; }
     y += giveawayTitle(c, cx, y, S, BRD.name);
   } else {
     if (ASSET.logo) { fitImg(c, ASSET.logo, cx - 170, y, 340, 108); y += 108; } else { c.font = '700 64px Fredoka'; c.fillStyle = PP.brown; c.fillText('MIL Gift Club', cx, y + 70); y += 100; }

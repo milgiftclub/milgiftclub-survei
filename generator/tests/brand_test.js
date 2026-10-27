@@ -5,7 +5,7 @@ const SP = process.env.SHOTS || require('os').tmpdir() + '/', ROOT = path.join(_
 global.__viewer = 'robert@mildigital.id';
 const logo = 'data:image/png;base64,' + fs.readFileSync(SP + 'logo_test.png').toString('base64');
 const lid = ctx.adminImageSave(logo);
-const r = ctx.adminBuilderSave({ name: 'Survei Camilan Pedas', target: 100, brand: { mode: 'client', name: 'Contoh Snack', logo: lid, primary: '#D62828', accent: '#FCBF49', ig: '@contohsnack', credit: true },
+const r = ctx.adminBuilderSave({ name: 'Survei Camilan Pedas', target: 100, brand: { mode: 'client', name: 'Contoh Snack', logo: lid, primary: '#D62828', accent: '#FCBF49', ink: '#3C2A1E', bg: '#FDF1F1', ig: '@contohsnack' },
   hadiah: [{ nama: 'Hampers camilan untuk 5 pemenang', nilai: 250000 }, { nama: 'Saldo GoPay untuk 10 pemenang', nilai: 50000 }], periode: 'Hingga 30 November 2026',
   questions: [{ text: 'Seberapa sering Anda ngemil keripik pedas?', type: 'single', options: [{ t: 'Setiap hari' }, { t: 'Seminggu sekali' }, { t: 'Jarang' }] }] }, true);
 (async () => {
@@ -29,6 +29,7 @@ const r = ctx.adminBuilderSave({ name: 'Survei Camilan Pedas', target: 100, bran
   await p.route('https://fonts.googleapis.com/**', r2 => { const ff = (pkg, fam, w) => '@font-face{font-family:"' + fam + '";font-weight:' + w + ';src:url(https://fonts.gstatic.test/' + pkg + '/' + w + ')}'; r2.fulfill({ body: [ff('fredoka', 'Fredoka', 600), ff('fredoka', 'Fredoka', 700), ff('nunito', 'Nunito', 700), ff('nunito', 'Nunito', 800), ff('kalam', 'Kalam', 700)].join(''), contentType: 'text/css' }); });
   await p.route('https://fonts.gstatic.test/**', r2 => { try { const [, pkg, w] = new URL(r2.request().url()).pathname.split('/'); const dir = path.join(path.dirname(require.resolve('@fontsource/' + pkg + '/package.json')), 'files'); r2.fulfill({ body: fs.readFileSync(path.join(dir, pkg + '-latin-' + w + '-normal.woff2')), contentType: 'font/woff2' }); } catch (e) { r2.abort(); } });
   await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(1500);
+  console.log('palette from logo:', JSON.stringify(await p.evaluate((id) => loadPrizeImgs([id]).then(() => logoPalette(IMGCACHE[id])), lid)));
   await p.click('#sv-list button[data-v="' + r.id + '"]'); await p.waitForTimeout(500);
   await p.click('#sv-edit'); await p.waitForTimeout(1200); await p.screenshot({ path: SP + 'brand_builder.png' });
   await p.click('#sv-list button[data-v="' + r.id + '"]'); await p.waitForTimeout(500);

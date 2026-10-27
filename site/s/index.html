@@ -170,6 +170,9 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
   function applyBrand(B) {
     var root = document.documentElement.style, p = B.primary || '#F2575D', a = B.accent || '#F9C23C';
     root.setProperty('--coral', p); root.setProperty('--coral-d', shade(p, -0.18)); root.setProperty('--yellow', a); root.setProperty('--yellow-l', shade(a, 0.75));
+    var ink = B.ink || '#3A2A20', bg = B.bg || shade(p, 0.94);
+    root.setProperty('--brown', ink); root.setProperty('--brown2', shade(ink, 0.35)); root.setProperty('--cream', bg); root.setProperty('--cream2', shade(p, 0.86)); root.setProperty('--line', shade(p, 0.8));
+    var nv = document.getElementById('nav'); if (nv) nv.style.background = bg;
     var h = String(B.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
     CFG.ig = h; CFG.linkIg = h ? 'https://www.instagram.com/' + h.slice(1) + '/' : ''; CFG.tombolIg = h ? 'Follow ' + h + ' di Instagram' : '';
     CFG.linkLain = ''; CFG.pesanPenutup = ''; CFG.periodeLabel = 'Giveaway ' + B.name;
@@ -179,7 +182,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     CFG.teksMenolak = 'Tidak apa-apa kalau kamu belum ingin mengisi survei ini. Terima kasih!';
     var lg = document.querySelector('header .logo'), tg = document.querySelector('header .tag');
     lg.innerHTML = B.logoData ? '<img src="' + B.logoData + '" alt="' + esc(B.name) + '" style="max-height:64px;max-width:240px;object-fit:contain">' : esc(B.name);
-    tg.textContent = B.credit !== false ? 'BERSAMA MIL DIGITAL' : '';
+    tg.textContent = '';
   }
   function start(D) {
     var S = D.schema || {};
@@ -218,7 +221,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     BY.O1.intro = intro;
     if (BY.Z2) BY.Z2.text = BR ? 'Tuliskan username Instagram Anda (untuk verifikasi keikutsertaan giveaway' + (CFG.ig ? ' ' + CFG.ig : '') + ').' : BY.Z2.text.replace(/@milgift_club|@milgiftclub/g, CFG.ig);
     if (BR && BY.Z1) BY.Z1.text = BY.Z1.text.replace(/MIL Gift Club/g, BR.name + ' dan MIL Digital');
-    if (BR && BR.credit !== false) BY.O1.intro += ' Survei ini diselenggarakan oleh MIL Digital untuk ' + BR.name + '.';
+    if (BR) BY.O1.intro += ' Survei ini diselenggarakan oleh MIL Digital untuk ' + BR.name + '.';
 
     var KEY = 'milc_' + ID + (PREVIEW ? '_p' : '');
     var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
