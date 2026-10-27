@@ -19,11 +19,14 @@ jobs:
         with: { node-version: 20 }
       - name: Pasang clasp
         run: npm install -g @google/clasp@2.4.2
-      - name: Login Google (dari secret CLASPRC_JSON)
-        env: { CLASPRC_JSON: '${{ secrets.CLASPRC_JSON }}' }
+      - name: Login Google
+        env:
+          CLASPRC_JSON: '${{ secrets.CLASPRC_JSON }}'
+          KUNCI: '${{ secrets.NETLIFY_AUTH_TOKEN }}'
         run: |
-          if [ -z "$CLASPRC_JSON" ]; then echo "::error::Secret CLASPRC_JSON belum diisi. Lihat README bagian Setup."; exit 1; fi
-          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          if [ -n "$CLASPRC_JSON" ]; then printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          elif [ -f apps-script/clasprc.enc ] && [ -n "$KUNCI" ]; then openssl enc -d -aes-256-cbc -pbkdf2 -pass env:KUNCI -in apps-script/clasprc.enc -out ~/.clasprc.json
+          else echo "::error::Belum login Google. Jalankan workflow 'Login Google (setup Apps Script)' dulu (lihat README)."; exit 1; fi
       - name: Deploy proyek survei
         working-directory: apps-script/survei
         run: |

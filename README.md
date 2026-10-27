@@ -61,16 +61,11 @@ npm run test:builder
 
 1. **Netlify**: buat token di https://app.netlify.com/user/applications#personal-access-tokens (klik *New access token*, beri nama `github`, pilih masa berlaku terpanjang). Simpan token itu sebagai secret `NETLIFY_AUTH_TOKEN` di Settings → Secrets and variables → Actions repo ini.
 2. **Google**: login dengan akun @mildigital.id pemilik proyek Apps Script survei, lalu aktifkan *Google Apps Script API* di https://script.google.com/home/usersettings.
-3. **Codespaces**: di GitHub klik Code → Codespaces → Create codespace on main, lalu jalankan:
-   ```
-   bash scripts/setup-codespace.sh
-   ```
-   Skrip ini akan:
-   - login Google;
-   - membuat proyek Dashboard;
-   - menyimpan ID-nya;
-   - menampilkan teks untuk secret `CLASPRC_JSON`;
-   - menampilkan link Dashboard baru.
-4. Tambahkan secret `CLASPRC_JSON` di Settings → Secrets and variables → Actions.
-5. Buka Actions, lalu klik **Run workflow** untuk *Deploy Website (Netlify)* dan untuk *Deploy Apps Script*.
-6. Kalau web app menampilkan "Authorization is required", buka proyeknya di script.google.com, pilih fungsi `izinkanAkses`, lalu klik Run → Allow.
+3. **Login Google (tanpa Codespaces):**
+   1. Buka [link login Google ini](https://accounts.google.com/o/oauth2/v2/auth?client_id=1072944905499-vm2v2i5dvn0a0d2o4ca36i1vge8cvbn0.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A8888&response_type=code&access_type=offline&prompt=consent&hd=mildigital.id&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fscript.deployments+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fscript.projects+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fscript.webapp.deploy+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.metadata.readonly+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fservice.management+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Flogging.read+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform). Pilih akun @mildigital.id, lalu klik *Allow*.
+   2. Browser akan menampilkan halaman localhost yang **gagal dimuat**. Itu normal. Salin seluruh alamatnya (`http://localhost:8888/?code=...`).
+   3. Di repo ini buka **Actions** → *Login Google (setup Apps Script)* → **Run workflow**, tempel alamatnya, lalu klik **Run workflow**. Lakukan dalam 5 menit, karena kodenya cepat kedaluwarsa.
+   4. Setelah centang hijau muncul, buka hasil run-nya. Link Dashboard ada di bagian *Summary*.
+4. Buka link Dashboard, klik **Review permissions** → **Allow** (sekali saja).
+
+(Alternatif: `bash scripts/setup-codespace.sh` di Codespaces, lalu simpan secret `CLASPRC_JSON`.)

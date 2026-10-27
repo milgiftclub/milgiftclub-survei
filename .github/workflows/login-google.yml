@@ -1,0 +1,73 @@
+# SETUP SEKALI (tanpa Codespaces): login Google, buat proyek Dashboard, lalu deploy semuanya.
+# Cara pakai: lihat README bagian "Setup Apps Script".
+name: Login Google (setup Apps Script)
+
+on:
+  workflow_dispatch:
+    inputs:
+      alamat:
+        description: 'Tempel alamat localhost dari browser (diawali http://localhost:8888/?code=...)'
+        required: true
+
+permissions: { contents: write }
+concurrency: { group: apps-script, cancel-in-progress: false }
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      KUNCI: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    steps:
+      - name: Sembunyikan kode login dari log
+        run: |
+          C=$(jq -r '.inputs.alamat' "$GITHUB_EVENT_PATH" | sed -E 's/.*[?&]code=([^&]*).*/\1/')
+          echo "::add-mask::$C"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install -g @google/clasp@2.4.2
+      - name: Login Google
+        env: { ALAMAT: '${{ github.event.inputs.alamat }}' }
+        run: node scripts/exchange-login.js
+      - name: Simpan login (terenkripsi) ke repo
+        run: |
+          if [ -z "$KUNCI" ]; then echo "::error::Secret NETLIFY_AUTH_TOKEN dibutuhkan sebagai kunci enkripsi."; exit 1; fi
+          openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:KUNCI -in ~/.clasprc.json -out apps-script/clasprc.enc
+      - name: Buat proyek Dashboard (bila belum ada)
+        working-directory: apps-script/dashboard
+        run: |
+          if [ ! -f .clasp.json ]; then
+            cp appsscript.json /tmp/manifest.json
+            clasp create --type standalone --title "MIL Gift Club - Dashboard" --rootDir .
+            cp /tmp/manifest.json appsscript.json
+          fi
+          clasp push --force
+          ID=$(jq -r .dashboard ../deployments.json)
+          if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+            OUT=$(clasp deploy --description "Dashboard"); echo "$OUT"
+            ID=$(echo "$OUT" | grep -o 'AKfy[A-Za-z0-9_-]*' | head -1)
+            jq --arg d "$ID" '.dashboard = $d' ../deployments.json > /tmp/d.json && mv /tmp/d.json ../deployments.json
+          else
+            clasp deploy --deploymentId "$ID" --description "setup"
+          fi
+          echo "DASH=$ID" >> "$GITHUB_ENV"
+      - name: Deploy proyek survei
+        working-directory: apps-script/survei
+        run: |
+          clasp push --force
+          clasp deploy --deploymentId "$(jq -r .survei ../deployments.json)" --description "setup ${GITHUB_SHA::7}"
+      - name: Simpan ke GitHub
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps-script/clasprc.enc apps-script/deployments.json apps-script/dashboard/.clasp.json
+          git commit -m "Setup Apps Script: login & proyek Dashboard [skip ci]" || true
+          git push
+      - name: Ringkasan
+        run: |
+          {
+            echo "## Setup selesai"
+            echo ""
+            echo "**Link Dashboard (bookmark):** https://script.google.com/a/macros/mildigital.id/s/$DASH/exec"
+            echo ""
+            echo "Saat pertama dibuka, klik **Review permissions** lalu **Allow** (sekali saja)."
+          } >> "$GITHUB_STEP_SUMMARY"
