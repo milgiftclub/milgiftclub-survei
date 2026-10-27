@@ -20,6 +20,7 @@ for (let d = 25; d >= 0; d--) {
 }
 for (let i = 0; i < 25; i++) ctx.logScreenout({ sid: 'x' + i, reason: pick(['Survei v2 khusus responden wanita','Tidak membeli kategori fokus dalam 1 bulan terakhir','Usia di bawah 18 tahun','Sudah pernah mengisi survei ini (Instagram sama)']), answers: {}, variant: 'v2' });
 ctx.submitResponse({ sid:'sx', variant:'v1', durasi: 20, cats: ['Skincare'], answers: { QC1:'Biru', Z2:'@kilat', Z3:'081299990001', S1:'25-34 tahun' } });
+for (let i = 0; i < 12; i++) ctx.submitResponse({ sid: 'r' + i, variant: i % 2 ? 'v2' : 'v1', durasi: 420, cats: ['Tas & aksesori'], prefilled: true, answers: { QC1: 'Biru', Z2: '@user' + (i * 3), Z3: '0812' + String(30000000 + i * 3), Z1: 'Ya, bersedia', S1: '25-34 tahun', S2: 'Wanita', S4: ['Shopee'] } });
 ctx.markSpeeders(true);
 global.__viewer = 'robert@mildigital.id';
 console.log('admin?', ctx.isAdmin_(), '| outsider?', ctx.isAdmin_('orang@gmail.com'));
@@ -52,6 +53,13 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.evaluate(() => { const q = [...document.querySelectorAll('#rp-list .rq')].find(e => /B4|matrix/i.test(e.innerText) || e.querySelector('.rq-n').textContent === 'B4'); if (q) q.scrollIntoView(); }); await p.waitForTimeout(1500); await p.screenshot({ path: SP + 'adm_laporan3.png' });
   await p.evaluate(() => { const q = [...document.querySelectorAll('#rp-list .rq')].find(e => e.querySelector('.rq-n').textContent === 'S4'); if (q) q.scrollIntoView(); window.scrollBy(0, -80); }); await p.waitForTimeout(1500); await p.screenshot({ path: SP + 'adm_laporan4.png' });
   await p.selectOption('#rp-fc', { index: 1 }); await p.waitForTimeout(800); await p.waitForTimeout(1500); console.log('report filtered meta:', await p.$eval('#rp-kpi', e => e.innerText.replace(/\n/g, ' ')));
+  await p.locator('nav.side button', { hasText: 'Database Responden' }).click(); await p.waitForTimeout(2500);
+  await p.screenshot({ path: SP + 'adm_people.png' });
+  console.log('people:', await p.$eval('#pp-kpi', e => e.innerText.replace(/\n/g, ' ')), '|', await p.$eval('#pp-n', e => e.textContent));
+  await p.selectOption('#pp-min', '2'); await p.waitForTimeout(1200); console.log('>=2:', await p.$eval('#pp-n', e => e.textContent));
+  await p.locator('#pp-t tr.click').first().click(); await p.waitForTimeout(1000); await p.screenshot({ path: SP + 'adm_person.png' });
+  console.log('detail surveys:', await p.$$eval('#m-body details', e => e.length));
+  await p.locator('#m button', { hasText: 'Tutup' }).first().click();
   console.log('JS errors:', errs);
   console.log('V2 open after toggle:', ctx.isOpen_('v2'), '| winners rows:', sheets['Pemenang'].d.length - 1, '| blok:', sheets['Daftar Blokir'].d.slice(1).map(r => r[5]).join(','));
   // API test

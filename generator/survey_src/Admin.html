@@ -205,6 +205,11 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 .logo-prev{width:120px;height:56px;border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;font-size:12px;color:var(--muted);background:#fff;overflow:hidden}
 .logo-prev img{max-width:100%;max-height:100%;object-fit:contain}
 input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:pointer}
+.chip-s{display:inline-block;background:var(--navy-l);color:var(--navy);border-radius:10px;padding:2px 8px;font-size:11.5px;font-weight:700;margin:1px 3px 1px 0;white-space:nowrap}
+.chip-s.bad{background:var(--rl);color:var(--red)}
+.pp-sv{border:1px solid var(--line);border-radius:16px;margin:12px 0;overflow:hidden}
+.pp-sv summary{cursor:pointer;padding:12px 16px;background:#FAFBFE;font-weight:700;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pp-sv dl{margin:0;padding:6px 16px 14px}
 .dirty{font-size:12px;font-weight:700;color:var(--amber);align-self:center}
 .lnk{display:flex;gap:8px;align-items:center;margin:10px 0}
 .lnk input{flex:1;font-size:12px;padding:8px 10px;min-width:0}
@@ -223,6 +228,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="grp">DATA</div>
   <button data-p="resp"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Jawaban</button>
   <button data-p="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Laporan</button>
+  <button data-p="people"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Database Responden</button>
   <button data-p="panel"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .4 5.5 2.8 5.5 5.8"/></svg>Panel Responden</button>
   <div class="grp">OPERASIONAL</div>
   <button data-p="draw"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z"/></svg>Undian Pemenang</button>
@@ -344,6 +350,30 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
       </div>
     </div>
   </div>
+</section>
+
+<!-- DATABASE RESPONDEN -->
+<section class="page" id="p-people">
+  <div class="svhead"><div><div class="eyebrow">Data survei</div><h1>Database Responden</h1><p class="desc">Satu orang = satu baris, digabung dari semua survei yang pernah ia isi (dikenali dari nomor WhatsApp / username IG). Klik nama untuk melihat semua jawabannya.</p></div>
+    <div class="acts"><button class="btn sec sm" onclick="pplCsv(false)">Unduh ringkas (CSV)</button><button class="btn sm" onclick="pplCsv(true)">Unduh lengkap: semua jawaban (CSV)</button></div></div>
+  <div class="rep-kpi" id="pp-kpi"></div>
+  <div class="card rep-bar">
+    <div class="toolbar" style="margin:0 0 10px">
+      <input id="pp-q" placeholder="Cari IG / WA / kota" oninput="pplLoadSoon()" style="min-width:220px">
+      <select id="pp-min" onchange="pplLoad()"><option value="">Semua jumlah survei</option><option value="2">Ikut ≥ 2 survei</option><option value="3">Ikut ≥ 3 survei</option></select>
+      <select id="pp-sv" onchange="pplLoad()"><option value="">Semua survei</option></select>
+      <select id="pp-g" onchange="pplLoad()"><option value="">Semua gender</option></select>
+      <select id="pp-a" onchange="pplLoad()"><option value="">Semua usia</option></select>
+      <select id="pp-p" onchange="pplLoad()"><option value="">Semua provinsi</option></select>
+      <label class="flag"><input type="checkbox" id="pp-c" onchange="pplLoad()"> Bersedia dihubungi</label>
+      <label class="flag"><input type="checkbox" id="pp-v" onchange="pplLoad()"> Punya jawaban valid</label>
+    </div>
+    <div class="toolbar" style="margin:0"><span class="muted">Yang menjawab:</span>
+      <select id="pp-ac" onchange="pplAnsVals()" style="max-width:460px"><option value="">— pertanyaan dari survei mana pun —</option></select>
+      <select id="pp-av" onchange="pplLoad()" style="display:none;max-width:260px"></select>
+      <span style="flex:1"></span><span class="muted" id="pp-n"></span></div>
+  </div>
+  <div class="tw" style="max-height:66vh"><table id="pp-t"></table></div>
 </section>
 
 <!-- LAPORAN -->
@@ -479,7 +509,7 @@ function bindNav(b) {
     if ($('p-build').classList.contains('on')) markDirty(false);
     showPage(b.dataset.p, b);
     if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
-    var f = { report: function () { repInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    var f = { people: function () { pplLoad(true); }, report: function () { repInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
     if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
   };
 }
@@ -1543,6 +1573,73 @@ function repCsv() {
     else if (q.items) q.items.forEach(function (it) { rows.push([q.id, q.text, it[0], it[1], pct(it[1], q.answered || 1) + '%']); });
   });
   csv('laporan_' + $('rp-v').value, ['Kode', 'Pertanyaan', 'Pilihan', 'Jumlah', 'Persen'], rows);
+}
+
+// =====================================================================
+// ---------- DATABASE RESPONDEN ----------
+// =====================================================================
+var PPL = null, PPLCOLS = null, pplT = null;
+function pplLoadSoon() { clearTimeout(pplT); pplT = setTimeout(pplLoad, 350); }
+function pplFilter() {
+  var ac = $('pp-ac').value, col = ac ? JSON.parse(ac) : null;
+  return { q: $('pp-q').value, minSurveys: $('pp-min').value, survey: $('pp-sv').value, gender: $('pp-g').value, age: $('pp-a').value, prov: $('pp-p').value,
+    contact: $('pp-c').checked, valid: $('pp-v').checked, aCol: col, aVal: col ? $('pp-av').value : '' };
+}
+function pplAnsVals() {
+  var ac = $('pp-ac').value, c = ac ? JSON.parse(ac) : null, def = c && (PPLCOLS || []).filter(function (x) { return x.v === c.v && x.col === c.col; })[0];
+  $('pp-av').style.display = def ? '' : 'none';
+  $('pp-av').innerHTML = def ? def.values.map(function (v) { return '<option>' + esc(v) + '</option>'; }).join('') : '';
+  pplLoad();
+}
+function pplLoad(first) {
+  var f = pplFilter(); if (first || !PPLCOLS) f.withCols = true;
+  $('pp-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>';
+  run('adminPeople', f).then(function (d) {
+    PPL = d;
+    if (d.answerCols) {
+      PPLCOLS = d.answerCols;
+      $('pp-ac').innerHTML = '<option value="">— pertanyaan dari survei mana pun —</option>' + d.answerCols.map(function (c) { return '<option value="' + esc(JSON.stringify({ v: c.v, col: c.col })) + '">' + esc(c.survey + ' · ' + c.col + ' · ' + c.text.slice(0, 70)) + '</option>'; }).join('');
+      var fill = function (id, arr, lab) { var e = $(id), cur = e.value; e.innerHTML = '<option value="">' + lab + '</option>' + arr.map(function (x) { return '<option>' + esc(x) + '</option>'; }).join(''); e.value = cur; };
+      fill('pp-g', d.options.S2, 'Semua gender'); fill('pp-a', d.options.S1, 'Semua usia'); fill('pp-p', d.options.provinsi, 'Semua provinsi');
+      var sv = $('pp-sv'), cur = sv.value; sv.innerHTML = '<option value="">Semua survei</option>' + d.surveys.map(function (s) { return '<option value="' + s.v + '">Ikut: ' + esc(s.name) + '</option>'; }).join(''); sv.value = cur;
+    }
+    $('pp-kpi').innerHTML = '<div><span>Orang unik</span><b>' + fmt(d.total) + '</b><span>dari semua survei</span></div>' +
+      '<div><span>Ikut ≥ 2 survei</span><b>' + fmt(d.multi) + '</b><span>' + (d.total ? Math.round(d.multi / d.total * 100) : 0) + '% dari semua orang</span></div>' +
+      '<div><span>Rata-rata survei / orang</span><b>' + d.avg + '</b><span>makin tinggi, makin kaya datanya</span></div>' +
+      '<div><span>Bersedia dihubungi</span><b>' + fmt(d.contact) + '</b><span>bisa diajak riset lanjutan</span></div>';
+    $('pp-n').textContent = fmt(d.count) + ' orang sesuai saringan' + (d.count > d.list.length ? ' (tampil ' + d.list.length + ')' : '');
+    var cols = ['Instagram', 'WhatsApp', 'Usia', 'Gender', 'Kota', 'Survei diikuti', 'Valid', 'Terakhir', 'Dihubungi', 'Status'];
+    var h = '<thead><tr>' + cols.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+    if (!d.list.length) h += '<tr><td colspan="10" class="loading">Tidak ada responden yang sesuai saringan.</td></tr>';
+    d.list.forEach(function (p, i) {
+      h += '<tr class="click" data-i="' + i + '"><td><b>' + esc(p.ig || '-') + '</b></td><td>' + esc(p.wa || '-') + '</td><td>' + esc(p.profile.S1 || '') + '</td><td>' + esc(p.profile.S2 || '') + '</td><td>' + esc(p.profile.A1 || '') + '</td>' +
+        '<td style="white-space:normal;min-width:240px"><b>' + p.n + '</b> · ' + p.surveys.map(function (s) { return '<span class="chip-s' + (s.status === 'Valid' ? '' : ' bad') + '" title="' + esc(s.status + ' · ' + s.time) + '">' + esc(s.name.length > 22 ? s.name.slice(0, 21) + '…' : s.name) + '</span>'; }).join('') + '</td>' +
+        '<td>' + p.valid + '</td><td>' + esc(p.last) + '</td><td>' + (p.contact ? '✅' : '–') + '</td><td>' + (p.blok ? badge(p.blok) : p.wins ? '<span class="badge b-y">Pernah menang ' + p.wins + '×</span>' : '') + '</td></tr>';
+    });
+    $('pp-t').innerHTML = h + '</tbody>';
+    [].forEach.call($('pp-t').querySelectorAll('tr.click'), function (tr) { tr.onclick = function () { pplDetail(PPL.list[+tr.dataset.i].key); }; });
+  });
+}
+function pplDetail(key) {
+  $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
+  run('adminPerson', key).then(function (d) {
+    var pr = d.profile, lab = { S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A4: 'Kondisi', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan' };
+    $('m-body').innerHTML = '<div class="top" style="margin-bottom:6px"><div><div class="eyebrow">Database Responden</div><h2 style="font-size:24px">' + esc(d.ig || d.wa) + '</h2><div class="muted">' + esc(d.wa) + ' · ikut ' + d.surveys.length + ' survei · pertama ' + esc(d.first) + ' · terakhir ' + esc(d.last) + (d.contact ? ' · ✅ bersedia dihubungi' : '') + '</div></div><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
+      '<div class="stats" style="margin:10px 0 6px">' + Object.keys(lab).filter(function (k) { return pr[k]; }).map(function (k) { return '<div>' + lab[k] + '<b>' + esc(pr[k]) + '</b></div>'; }).join('') + '</div>' +
+      d.surveys.map(function (s, i) {
+        return '<details class="pp-sv"' + (i === d.surveys.length - 1 ? ' open' : '') + '><summary>' + esc(s.name) + ' ' + badge(s.status) + '<span class="muted" style="font-weight:600">' + esc(s.time) + ' · ' + s.items.length + ' jawaban</span></summary><dl class="detail">' +
+          s.items.map(function (it) { return '<dt>' + esc(it.key) + (it.q ? ' · ' + esc(it.q) : '') + '</dt><dd>' + esc(it.val) + '</dd>'; }).join('') + '</dl></details>';
+      }).join('');
+  });
+}
+function pplCsv(full) {
+  if (!full) {
+    if (!PPL) return;
+    return csv('database_responden_ringkas', ['instagram', 'whatsapp', 'usia', 'gender', 'kota', 'provinsi', 'jumlah_survei', 'jumlah_valid', 'survei_diikuti', 'pertama', 'terakhir', 'bersedia_dihubungi', 'status'],
+      PPL.list.map(function (p) { return [p.ig, p.wa, p.profile.S1 || '', p.profile.S2 || '', p.profile.A1 || '', p.profile.provinsi || '', p.n, p.valid, p.surveys.map(function (s) { return s.name; }).join(' | '), p.first, p.last, p.contact ? 'Ya' : 'Tidak', p.blok || '']; }));
+  }
+  toast('Menyiapkan file lengkap…');
+  run('adminPeopleExport', pplFilter()).then(function (d) { csv('database_responden_lengkap', d.cols, d.rows); });
 }
 
 (function () {

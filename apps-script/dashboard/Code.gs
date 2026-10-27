@@ -1316,8 +1316,9 @@ function reportMeta_(v) {
   return meta;
 }
 /** Ringkasan semua pertanyaan satu survei, siap digambar sebagai grafik. opt: {status:'Valid'|'all', col, val} */
-function adminReport(v, opt) {
-  requireAdmin_(); opt = opt || {};
+function adminReport(v, opt) { requireAdmin_(); return adminReportCore_(v, opt); }
+function adminReportCore_(v, opt) {
+  opt = opt || {};
   var all = readAll_().filter(function (r) { return r._v === v; });
   var rows = all.filter(function (r) { return opt.status === 'all' || r.status === 'Valid'; });
   var has = function (val, x) { return String(val == null ? '' : val).split(' | ').indexOf(String(x)) >= 0; };
@@ -1379,4 +1380,106 @@ function adminReport(v, opt) {
   var durs = rows.map(function (r) { return Number(r.durasi_detik) || 0; }).filter(Boolean).sort(function (a, b) { return a - b; });
   return { survey: (surveyList_().filter(function (x) { return x.v === v; })[0] || {}).name, total: rows.length, all: all.length,
     medianMin: durs.length ? Math.round(durs[Math.floor(durs.length / 2)] / 6) / 10 : 0, generatedAt: iso_(new Date()), questions: res, filterable: filterable };
+}
+
+// =====================================================================
+// ====== DATABASE RESPONDEN (1 orang = 1 baris, gabungan semua survei) ======
+// Kunci orang: nomor WA (bila ada), selain itu username IG.
+// =====================================================================
+var PEOPLE_PROFILE = ['S1', 'S2', 'A1', 'provinsi', 'A4', 'A5', 'A6', 'A7'];
+function personKey_(r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); return w ? 'wa:' + w : g ? 'ig:' + g : ''; }
+function peopleIndex_() {
+  var rows = readAll_(), byKey = {}, igToKey = {}, names = {};
+  surveyList_().forEach(function (s) { names[s.v] = s.name; });
+  rows.forEach(function (r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); if (w && g) igToKey[g] = 'wa:' + w; });
+  rows.forEach(function (r) {
+    var k = personKey_(r); if (!k) return;
+    if (k.indexOf('ig:') === 0 && igToKey[k.slice(3)]) k = igToKey[k.slice(3)];   // satukan IG yang pernah tercatat dengan WA
+    var p = byKey[k] || (byKey[k] = { key: k, ig: '', wa: '', rows: [] });
+    p.rows.push(r);
+    if (r.ig_normal) p.ig = '@' + r.ig_normal; if (r.wa_normal) p.wa = String(r.wa_normal).replace(/^'/, '');
+  });
+  Object.keys(byKey).forEach(function (k) {
+    var p = byKey[k];
+    p.rows.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+    p.profile = {}; PEOPLE_PROFILE.forEach(function (c) { p.rows.forEach(function (r) { if (r[c] !== '' && r[c] != null && !/^(Tidak valid|Diblokir)/.test(String(r.status))) p.profile[c] = String(r[c]); }); });
+    p.surveys = p.rows.map(function (r) { return { v: r._v, name: names[r._v] || r._v, status: r.status, time: iso_(r.timestamp), sid: r.session_id }; });
+    var last = p.rows[p.rows.length - 1];
+    p.last = iso_(last.timestamp); p.first = iso_(p.rows[0].timestamp);
+    p.valid = p.rows.filter(function (r) { return r.status === 'Valid'; }).length;
+    var z1 = p.rows.filter(function (r) { return r.Z1; }).pop(); p.contact = z1 ? z1.Z1 === 'Ya, bersedia' : false;
+  });
+  return { people: byKey, names: names };
+}
+function answerCols_() {   // kolom jawaban pilihan (untuk saringan "jawaban di survei X")
+  var out = [], meta = {};
+  surveyList_().forEach(function (s) {
+    var rep; try { rep = adminReportCore_(s.v, { status: 'all' }); } catch (e) { return; }
+    rep.questions.forEach(function (q) { if ((q.kind === 'single' || q.kind === 'multi') && q.items && q.items.length >= 2 && q.items.length <= 40) out.push({ v: s.v, survey: s.name, col: q.id, text: q.text, values: q.items.map(function (x) { return x[0]; }) }); });
+  });
+  return out;
+}
+/** Daftar orang unik + saringan. f: {q, minSurveys, survey, contact, gender, age, prov, aCol:{v,col}, aVal} */
+function adminPeople(f) {
+  requireAdmin_(); f = f || {};
+  var idx = peopleIndex_(), b = blokData_(), blk = {}, won = {}, w = sheet_(SH.WIN);
+  b.v.forEach(function (r) { var st = r[b.c('status')]; if (/Diblokir|Suspend/.test(st)) { var ig = String(r[b.c('instagram')]).replace(/^@/, ''), wa = String(r[b.c('nomor_wa')]).replace(/^'/, ''); if (ig) blk['ig:' + ig] = st; if (wa) blk['wa:' + wa] = st; } });
+  if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) { if (String(r[7]).indexOf('Gugur') !== 0) { var k = 'wa:' + String(r[4]).replace(/^'/, ''); won[k] = (won[k] || 0) + 1; } });
+  var q = String(f.q || '').toLowerCase().trim(), has = function (val, x) { return String(val == null ? '' : val).split(' | ').indexOf(String(x)) >= 0; };
+  var list = Object.keys(idx.people).map(function (k) { return idx.people[k]; }).filter(function (p) {
+    if (q && (p.ig + ' ' + p.wa + ' ' + (p.profile.A1 || '') + ' ' + (p.profile.provinsi || '')).toLowerCase().indexOf(q) < 0) return false;
+    if (f.minSurveys && p.surveys.length < Number(f.minSurveys)) return false;
+    if (f.survey && !p.surveys.some(function (s) { return s.v === f.survey; })) return false;
+    if (f.contact && !p.contact) return false;
+    if (f.gender && p.profile.S2 !== f.gender) return false;
+    if (f.age && p.profile.S1 !== f.age) return false;
+    if (f.prov && p.profile.provinsi !== f.prov) return false;
+    if (f.valid && !p.valid) return false;
+    if (f.aCol && f.aVal && !p.rows.some(function (r) { return r._v === f.aCol.v && has(r[f.aCol.col], f.aVal); })) return false;
+    return true;
+  }).map(function (p) {
+    var st = blk[p.key] || (p.ig ? blk['ig:' + p.ig.slice(1)] : '') || '';
+    return { key: p.key, ig: p.ig, wa: p.wa, profile: p.profile, surveys: p.surveys.map(function (s) { return { v: s.v, name: s.name, status: s.status, time: s.time }; }), n: p.surveys.length, valid: p.valid, last: p.last, first: p.first, contact: p.contact, blok: st, wins: won[p.key] || 0 };
+  }).sort(function (a, b) { return b.n - a.n || (b.last > a.last ? 1 : -1); });
+  var all = Object.keys(idx.people).map(function (k) { return idx.people[k]; });
+  var opts = function (c) { var o = {}; all.forEach(function (p) { if (p.profile[c]) o[p.profile[c]] = 1; }); return Object.keys(o).sort(); };
+  return {
+    total: all.length, multi: all.filter(function (p) { return p.surveys.length >= 2; }).length, contact: all.filter(function (p) { return p.contact; }).length,
+    avg: all.length ? Math.round(all.reduce(function (s, p) { return s + p.surveys.length; }, 0) / all.length * 10) / 10 : 0,
+    list: list.slice(0, 2000), count: list.length, surveys: surveyList_().map(function (s) { return { v: s.v, name: s.name }; }),
+    options: { S1: opts('S1'), S2: opts('S2'), provinsi: opts('provinsi') }, answerCols: f.withCols ? answerCols_() : null
+  };
+}
+/** Semua jawaban satu orang, dikelompokkan per survei. */
+function adminPerson(key) {
+  requireAdmin_();
+  var idx = peopleIndex_(), p = idx.people[key]; if (!p) throw new Error('Responden tidak ditemukan');
+  var dm = dictMap_(), skip = { _tab: 1, _v: 1, _row: 1 }, hide = ['user_agent', 'device_fp', 'wa_normal', 'ig_normal', 'survei', 'varian', 'versi_kuesioner', 'kategori_ditugaskan', 'QC1', 'Z2', 'Z3', 'PV', 'O1'];
+  return { key: key, ig: p.ig, wa: p.wa, profile: p.profile, contact: p.contact, first: p.first, last: p.last,
+    surveys: p.rows.map(function (r) {
+      var cu = r._v !== 'v1' && r._v !== 'v2' ? customById_(r._v) : null, dd = JSON.parse(JSON.stringify(dm));
+      if (cu) (cu.schema.questions || []).forEach(function (x) { dd[x.id] = [x.id, '', '', x.text]; });
+      var items = [];
+      Object.keys(r).forEach(function (k) {
+        if (skip[k] || hide.indexOf(k) >= 0 || r[k] === '' || r[k] == null || META.indexOf(k) >= 0 && ['durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'kategori_1'].indexOf(k) < 0) return;
+        var base = k.replace(/^L\d_/, '').replace(/(_lainnya|: .*)$/, ''), d = dd[base];
+        items.push({ key: k, q: d ? d[3] : '', val: String(iso_(r[k])) });
+      });
+      return { v: r._v, name: idx.names[r._v] || r._v, status: r.status, time: iso_(r.timestamp), sid: r.session_id, items: items };
+    }) };
+}
+/** CSV lebar: 1 orang = 1 baris; kolom jawaban diberi awalan ID survei (mis. v1:S4). */
+function adminPeopleExport(f) {
+  requireAdmin_();
+  var keys = (adminPeople(f).list || []).map(function (x) { return x.key; }), idx = peopleIndex_(), cols = [], seen = {};
+  keys.forEach(function (k) { idx.people[k].rows.forEach(function (r) { Object.keys(r).forEach(function (c) { if (c.charAt(0) === '_' || META.indexOf(c) >= 0 || PEOPLE_PROFILE.indexOf(c) >= 0 || /^(Z2|Z3|PV|QC1)$/.test(c)) return; var h = r._v + ':' + c; if (!seen[h]) { seen[h] = 1; cols.push([r._v, c, h]); } }); }); });
+  var head = ['instagram', 'whatsapp', 'jumlah_survei', 'jumlah_valid', 'pertama', 'terakhir', 'bersedia_dihubungi', 'survei_diikuti'].concat(PEOPLE_PROFILE).concat(cols.map(function (c) { return c[2]; }));
+  var rows = keys.map(function (k) {
+    var p = idx.people[k], last = {};
+    p.rows.forEach(function (r) { last[r._v] = r; });
+    return [p.ig, p.wa, p.rows.length, p.valid, p.first, p.last, p.contact ? 'Ya' : 'Tidak', p.rows.map(function (r) { return idx.names[r._v] || r._v; }).join(' | ')]
+      .concat(PEOPLE_PROFILE.map(function (c) { return p.profile[c] || ''; }))
+      .concat(cols.map(function (c) { var r = last[c[0]]; return r && r[c[1]] != null ? String(iso_(r[c[1]])) : ''; }));
+  });
+  return { cols: head, rows: rows };
 }
