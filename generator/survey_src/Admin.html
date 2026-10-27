@@ -233,11 +233,11 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 </section>
 
 <div class="modal" id="pm"><div class="card">
-  <div class="top" style="margin-bottom:10px"><div><div class="eyebrow">Materi promosi</div><h2 id="pm-title" style="font-size:22px">Gambar Instagram</h2></div><button class="btn sec sm" onclick="$('pm').classList.remove('on')">Tutup</button></div>
+  <div class="top" style="margin-bottom:10px"><div><div class="eyebrow" id="pm-head">Materi promosi</div><h2 id="pm-title" style="font-size:22px">Gambar Instagram</h2></div><button class="btn sec sm" onclick="$('pm').classList.remove('on')">Tutup</button></div>
   <div class="tabs" id="pm-tabs"><button data-f="story" class="on">IG Story (9:16)</button><button data-f="feed">IG Feed (4:5)</button></div>
   <div class="pm-wrap">
     <div class="pm-prev"><canvas id="pm-c"></canvas>
-      <div class="toolbar" style="justify-content:center;margin:12px 0 0"><button class="btn sm" onclick="pmDownload()">Unduh gambar (PNG)</button><button class="btn sec sm" onclick="pmOpenImg()">Buka di tab baru</button></div>
+      <div class="toolbar" style="justify-content:center;margin:12px 0 0"><button class="btn sm" onclick="pmDownloadAll()">Unduh Story + Feed</button><button class="btn sec sm" onclick="pmDownload()">Unduh yang tampil</button><button class="btn sec sm" onclick="pmOpenImg()">Buka di tab baru</button></div>
       <p class="muted" id="pm-note"></p></div>
     <div><h2>Caption</h2><p class="muted">Boleh diedit sebelum disalin.</p><textarea id="pm-cap"></textarea>
       <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="pmCopy()">Salin caption</button></div></div>
@@ -247,7 +247,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 <!-- BUAT SURVEI -->
 <section class="page" id="p-build">
   <div class="svhead"><div><div class="eyebrow">Buat survei</div><h1 id="b-title">Survei baru</h1><p class="desc">Minta AI menyusun pertanyaan dari brief, atau tempel daftar pertanyaanmu sendiri. Rapikan, coba lewat pratinjau, lalu publish. Pembuka, giveaway, cek Instagram, profil, dan penutup ditambahkan otomatis.</p></div>
-    <div class="acts"><span class="dirty" id="b-dirty"></span><button class="btn sec sm" onclick="bPreview()">Pratinjau</button><button class="btn sec sm" onclick="bSave(false)">Simpan draf</button><button class="btn sm" id="b-pub" onclick="bSave(true)">Publish</button></div></div>
+    <div class="acts"><span class="dirty" id="b-dirty"></span><button class="btn soft sm" onclick="promoFromBuilder()">🖼 Gambar IG</button><button class="btn sec sm" onclick="bPreview()">Pratinjau</button><button class="btn sec sm" onclick="bSave(false)">Simpan draf</button><button class="btn sm" id="b-pub" onclick="bSave(true)">Publish</button></div></div>
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
@@ -682,7 +682,7 @@ function bState() {
     (BMETA.responses ? '<div class="tip">Sudah ada jawaban masuk. Menambah pertanyaan atau memperbaiki ejaan aman. Hindari menghapus pertanyaan atau mengganti isi pilihan, supaya data lama tetap bisa dibandingkan.</div>' : '') +
     '<div class="toolbar" style="margin:12px 0 0">' +
     (st === 'Dibuka' ? '<button class="btn danger sm" onclick="bStatus(\'Ditutup\')">Tutup survei</button>' : st !== 'Draf' ? '<button class="btn soft sm" onclick="bStatus(\'Dibuka\')">Buka lagi</button>' : '') +
-    '<button class="btn sec sm" onclick="bDelete()">' + (BMETA.responses ? 'Arsipkan' : 'Hapus') + '</button></div>';
+    '<button class="btn soft sm" onclick="promoFromBuilder()">🖼 Gambar IG</button><button class="btn sec sm" onclick="bDelete()">' + (BMETA.responses ? 'Arsipkan' : 'Hapus') + '</button></div>';
 }
 function bCopy() { var i = $('b-link'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } toast('Link disalin'); }
 function bStatus(st) {
@@ -881,6 +881,7 @@ function bSave(publish, then) {
     B.id = r.id; BMETA = Object.assign(BMETA || { responses: 0 }, { id: r.id, status: r.status, link: r.link });
     markDirty(false); bFill(); loadHome();
     toast(publish ? 'Survei dipublish! Link siap dibagikan.' : 'Draf tersimpan');
+    if (publish) promoFromBuilder('Survei dipublish 🎉 · unduh gambar untuk promosi IG');
     if (then) then(r);
   });
 }
@@ -942,6 +943,19 @@ function hdAdd() { B.hadiah.push({ nama: '', nilai: '' }); markDirty(); hdRender
 // =====================================================================
 var PM = null, PMF = 'story';
 var rp = function (n) { return 'Rp' + Number(n).toLocaleString('id-ID'); };
+function pmShow(data, note) {
+  var g = (BDEF && BDEF.giveaway) || {}, hd = (data.hadiah || []).filter(function (h) { return String(h.nama || '').trim(); });
+  if (!hd.length) hd = defaultPrizes();
+  PM = { name: data.name || 'Survei baru', link: data.link || '', hadiah: hd, periode: data.periode || g.periode || '', announce: g.announce || '', label: g.periodeLabel || '', ig: g.ig || '@milgiftclub',
+    langkah: g.langkah || [], estimasi: data.estimasi || '', giveaway: data.giveaway !== false };
+  $('pm').classList.add('on'); $('pm-title').textContent = PM.name;
+  $('pm-head').textContent = note || 'Materi promosi';
+  return pmDraw();
+}
+function promoFromBuilder(note) {
+  var go = function () { bRead(); pmShow({ name: B.name, link: BMETA && BMETA.link, hadiah: B.hadiah, periode: B.periode, estimasi: B.estimasi || bPayload().estimasi, giveaway: B.giveaway }, note); };
+  if (BDEF) go(); else run('adminBuilderDefaults').then(function (d) { BDEF = d; go(); });
+}
 function promoOpen(v) {
   var s = SUM.surveys.filter(function (x) { return x.v === v; })[0]; if (!s) return;
   $('pm').classList.add('on'); $('pm-title').textContent = s.name; $('pm-cap').value = 'Menyiapkan…';
@@ -994,7 +1008,7 @@ function pmDraw() {
   c.fillStyle = '#FCF6E5'; c.fillRect(0, 0, W, H); c.fillStyle = '#4A2412'; c.font = '700 40px sans-serif'; c.textAlign = 'center'; c.fillText('Menyiapkan gambar…', W / 2, H / 2);
   var fontsReady = document.fonts && document.fonts.load ? Promise.all(['700 60px Fredoka', '700 40px Kalam', '800 30px Nunito', '700 30px Nunito'].map(function (f) { return document.fonts.load(f); })) : Promise.resolve();
   var ready = Promise.all([fontsReady.catch(function () {}), loadAssets(), loadPrizeImgs(PM.hadiah.map(function (h) { return h.img; })).catch(function () {})]);
-  ready.then(function () { paintPoster(c, W, H, story); }, function () { paintPoster(c, W, H, story); });
+  return ready.then(function () { paintPoster(c, W, H, story); }, function () { paintPoster(c, W, H, story); });
 }
 // ---- gaya poster MIL Gift Club (mengikuti poster giveaway resmi) ----
 var ASSET_DATA = __PROMO_ASSETS__, ASSET = {}, IMGCACHE = {};   // gambar poster tertanam (tidak bergantung pada Netlify)
@@ -1166,6 +1180,15 @@ function posterContent(c, W, S) {
 function pmDownload() {
   var name = 'IG_' + (PMF === 'story' ? 'Story' : 'Feed') + '_' + PM.name.replace(/[^\w]+/g, '_').slice(0, 40) + '.png';
   $('pm-c').toBlob(function (b) { var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('Gambar diunduh. Kalau tidak muncul, pakai "Buka di tab baru" lalu simpan gambarnya.'); });
+}
+function pmDownloadAll() {
+  var keep = PMF, files = [];
+  var one = function (f) { PMF = f; return pmDraw().then(function () { return new Promise(function (ok) { $('pm-c').toBlob(function (b) { files.push([f, b]); ok(); }); }); }); };
+  one('story').then(function () { return one('feed'); }).then(function () {
+    files.forEach(function (x, i) { setTimeout(function () { var a = document.createElement('a'); a.href = URL.createObjectURL(x[1]); a.download = 'IG_' + (x[0] === 'story' ? 'Story' : 'Feed') + '_' + PM.name.replace(/[^\w]+/g, '_').slice(0, 40) + '.png'; document.body.appendChild(a); a.click(); a.remove(); }, i * 600); });
+    PMF = keep; [].forEach.call($('pm-tabs').children, function (x) { x.classList.toggle('on', x.dataset.f === keep); }); pmDraw();
+    toast('2 gambar diunduh (Story & Feed). Kalau browser bertanya, pilih Izinkan unduh beberapa file.');
+  });
 }
 function pmOpenImg() { var w = window.open(''); if (!w) return toast('Pop-up diblokir browser'); w.document.write('<title>' + esc(PM.name) + '</title><body style="margin:0;background:#222;text-align:center"><img src="' + $('pm-c').toDataURL('image/png') + '" style="max-width:100%;height:auto"></body>'); }
 function pmCopy() { var t = $('pm-cap'); t.select(); try { navigator.clipboard.writeText(t.value); } catch (e) { document.execCommand('copy'); } toast('Caption disalin'); }

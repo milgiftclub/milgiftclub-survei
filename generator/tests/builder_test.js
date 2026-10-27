@@ -68,7 +68,13 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   log('prize rows default:', await p.$$eval('#b-hd .hd-row input[data-k=nama]', e => e.map(x => x.value).join(' | ')));
   await p.click('text=+ Tambah hadiah'); await p.fill('#b-hd .hd-row:last-child input[data-k=nama]', 'Saldo ShopeePay untuk 10 pemenang'); await p.fill('#b-hd .hd-row:last-child input[data-k=nilai]', '25000');
   await p.click('#b-pub'); await p.waitForTimeout(1200);
+  await p.waitForTimeout(1500);
+  log('promo modal after publish:', await p.$eval('#pm', e => e.classList.contains('on')), '|', await p.$eval('#pm-head', e => e.textContent));
+  const dl = []; p.on('download', d => dl.push(d.suggestedFilename()));
+  await p.click('text=Unduh Story + Feed'); await p.waitForTimeout(3000);
+  log('downloads:', dl.join(', '));
   await p.screenshot({ path: SP + 'bld_2_published.png' });
+  await p.click('#pm .btn.sec >> text=Tutup'); await p.waitForTimeout(300);
   const reg = sheets['Daftar Survei'].d;
   log('Daftar Survei:', reg.slice(1).map(r => r.slice(0, 5).join(' | ')));
   const id = reg[1][0];
