@@ -1220,7 +1220,7 @@ var CT_LIB = {
     var banners = (o.banners || []).map(function (id) { return idx[id]; }).filter(function (i) { return i != null && qs[i].cats.length >= 2 && qs[i].cats.length <= 12; });
     // yang dicari: perbedaan jawaban PERTANYAAN UTAMA antar kelompok profil (bukan profil vs profil, mis. SES vs pengeluaran)
     var skipSect = o.skipSect || /^(Profil|Screening|Tentang kamu)/i;
-    var targets = qs.map(function (q, i) { return i; }).filter(function (i) { return banners.indexOf(i) < 0 && qs[i].cats.length >= 2 && qs[i].cats.length <= 30 && !skipSect.test(qs[i].sect || '') && (!o.skip || o.skip.indexOf(qs[i].id) < 0); });
+    var targets = qs.map(function (q, i) { return i; }).filter(function (i) { return banners.indexOf(i) < 0 && qs[i].cats.length >= 2 && qs[i].cats.length <= 30 && !skipSect.test(qs[i].sect || '') && qs[i].group !== 'PROFIL RESPONDEN' && (!o.skip || o.skip.indexOf(qs[i].id) < 0); });
     var found = [];
     targets.forEach(function (ti) {
       banners.forEach(function (bi) {
@@ -1258,32 +1258,56 @@ function wilayah_(r) {
   if (!r.provinsi) return '';
   return r.jabodetabek === 'Ya' ? 'Jabodetabek' : JAWA.indexOf(r.provinsi) >= 0 ? 'Jawa lainnya' : SUM.indexOf(r.provinsi) >= 0 ? 'Sumatera' : 'Kalimantan, Sulawesi & Indonesia Timur';
 }
-/** Data ringkas untuk cross tab: hanya pertanyaan pilihan (tanpa teks bebas & data pribadi). */
+/** Kelompok pertanyaan untuk daftar pilihan Cross Tab: [judul kelompok, sub-topik] */
+var CT_GROUPS = ['PROFIL RESPONDEN', 'KEBIASAAN BELANJA ONLINE', 'KATEGORI & PRODUK TERAKHIR', 'PERJALANAN BELANJA (FUNNEL)', 'PERTANYAAN SURVEI', 'LAINNYA'];
+function ctGroup_(id, topic, custom) {
+  var b = id.replace(/^L\d_/, '').split(': ')[0], t = String(topic || '');
+  if (/^(S4|S5|SC1)$/.test(b)) return [CT_GROUPS[1], ''];
+  if (/^(Screening|Profil|Tentang)/i.test(t) || /^(wilayah|ses|kelas_ekonomi)$/.test(b)) return [CT_GROUPS[0], ''];
+  if (/^Lanskap|^Tren/i.test(t)) return [CT_GROUPS[1], t.replace(/^Tren & Perilaku Baru$/, 'Tren & perilaku baru').replace(/^Lanskap Platform$/, 'Platform belanja')];
+  if (/^(Penetrasi|Funneling - Produk|Belanja terakhir)/i.test(t) || b === 'kategori_1') return [CT_GROUPS[2], ''];
+  if (/^Funneling - /i.test(t)) return [CT_GROUPS[3], t.replace(/^Funneling - /i, '')];
+  if (custom) return [CT_GROUPS[4], ''];
+  return [CT_GROUPS[5], t];
+}
+/** Data ringkas untuk cross tab: hanya pertanyaan pilihan (tanpa teks bebas & data pribadi). Daftar pertanyaan tetap muncul walau belum ada jawaban. */
 function ctData_(v, status) {
+  var c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
   var rows = readAll_().filter(function (r) { return r._v === v && (status === 'all' || r.status === 'Valid'); });
   rows.forEach(function (r) { r.wilayah = wilayah_(r); });
   var s = sheet_(respTab_(v)), header = s && s.getLastColumn() ? s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0] : [];
   var meta = reportMeta_(v), base = function (col) { return col.replace(/^L\d_/, ''); };
   meta.wilayah = { text: 'Wilayah (otomatis dari kota)', topic: 'Profil', opts: ['Jabodetabek', 'Jawa lainnya', 'Sumatera', 'Kalimantan, Sulawesi & Indonesia Timur'] };
   meta.kategori_1 = meta.kategori_1 || { text: 'Kategori yang dibahas', topic: 'Belanja terakhir' };
-  var cols = header.filter(function (c) { return c && (META.indexOf(c) < 0 || c === 'kategori_1') && !/_lainnya$/.test(c) && CT_SKIP.indexOf(base(c).split(': ')[0]) < 0 && ['Z2', 'Z3'].indexOf(c) < 0; });
-  if (cols.indexOf('provinsi') >= 0 || header.indexOf('provinsi') >= 0) cols.splice(Math.max(0, cols.indexOf('S2') + 1), 0, 'wilayah');
+  var ok = function (col) { return col && (META.indexOf(col) < 0 || col === 'kategori_1') && !/_lainnya$/.test(col) && CT_SKIP.indexOf(base(col).split(': ')[0]) < 0 && ['Z2', 'Z3'].indexOf(col) < 0; };
+  var cols = header.filter(ok);
+  // pertanyaan yang belum punya kolom (belum ada jawaban) tetap dimasukkan dari kuesioner
+  var prof = !c || c.schema.profile !== false;
+  var known = c ? (prof ? ['S1', 'S2', 'S3', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'] : []).concat((c.schema.questions || []).map(function (q) { return q.id; }))
+    : DICTIONARY.map(function (d) { return d[0]; });
+  if (prof) known = known.concat(['ses', 'kelas_ekonomi']);
+  var bases = cols.map(function (x) { return base(x).split(': ')[0]; });
+  known.forEach(function (id) { if (ok(id) && bases.indexOf(id) < 0 && meta[id] && meta[id].opts && meta[id].opts.length && !/per baris/i.test(meta[id].text || '')) { cols.push(id); bases.push(id); } });
+  if (prof && cols.indexOf('wilayah') < 0) cols.push('wilayah');
   var qs = [], data = rows.map(function () { return []; });
   cols.forEach(function (col) {
     var mx = col.match(/^(.+?): (.+)$/), id = mx ? mx[1] : col, m = meta[base(id)] || {};
     var vals = rows.map(function (r) { var x = r[col]; return x === '' || x == null ? [] : String(x).split(' | '); });
     var seen = {}, nAns = 0; vals.forEach(function (a) { if (a.length) nAns++; a.forEach(function (x) { seen[x] = (seen[x] || 0) + 1; }); });
-    if (!nAns) return;
     var keys = Object.keys(seen), opts = (m.opts || []).slice();
+    if (!nAns && !opts.length) return;
     if (!opts.length && keys.length > 25) return;                 // teks bebas / angka bebas -> tidak bisa di-cross tab
-    var cats = opts.filter(function (x) { return seen[x]; });
+    var cats = opts.slice();
     keys.sort(function (a, b) { return seen[b] - seen[a]; }).forEach(function (k) { if (cats.indexOf(k) < 0) cats.push(k); });
     if (cats.length > 40) cats = cats.slice(0, 40);
-    var multi = vals.some(function (a) { return a.length > 1; }) || m.type === 'multi';
-    var qi = qs.length;
-    qs.push({ id: col, text: (m.text || id) + (mx ? ' — ' + mx[2] : '') + (/^L\d_/.test(col) ? ' (modul kategori)' : ''), sect: m.topic || 'Lainnya', multi: multi, cats: cats });
-    vals.forEach(function (a, i) { data[i][qi] = a.map(function (x) { return cats.indexOf(x); }).filter(function (k) { return k >= 0; }); });
+    var multi = vals.some(function (a) { return a.length > 1; }) || m.type === 'multi' || /\(boleh pilih|maksimal \d/i.test(m.text || '');
+    var g = ctGroup_(col, m.topic, !!c && !/^(S\d|A\d|ses|kelas|wilayah)/.test(base(id)));
+    qs.push({ id: col, text: (m.text || id) + (mx ? ' — ' + mx[2] : '') + (/^L\d_/.test(col) ? ' (modul kategori)' : ''), sect: m.topic || 'Lainnya', group: g[0], sub: g[1], multi: multi, cats: cats, _vals: vals });
   });
+  // urutkan per kelompok (profil dulu), urutan kuesioner tetap di dalam kelompok
+  qs.forEach(function (q, i) { q._o = CT_GROUPS.indexOf(q.group) * 1000 + i; });
+  qs.sort(function (a, b) { return a._o - b._o; });
+  qs.forEach(function (q, qi) { q._vals.forEach(function (a, i) { data[i][qi] = a.map(function (x) { return q.cats.indexOf(x); }).filter(function (k) { return k >= 0; }); }); delete q._vals; delete q._o; });
   var ts = rows.map(function (r) { return new Date(r.timestamp).getTime(); }).filter(function (x) { return !isNaN(x); }).sort();
   return { qs: qs, data: data, meta: { n: rows.length, first: ts.length ? fmt_(new Date(ts[0])) : '', last: ts.length ? fmt_(new Date(ts[ts.length - 1])) : '', status: status === 'all' ? 'Semua jawaban' : 'Hanya jawaban valid' },
     banners: CT_BANNERS.filter(function (b) { return qs.some(function (q) { return q.id === b; }); }) };

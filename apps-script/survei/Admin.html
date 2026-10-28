@@ -111,7 +111,8 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ct-opts label{display:flex;align-items:center;gap:6px} .ct-opts select{width:auto;padding:6px 8px;font-size:12.5px}
 .ct-combo{position:relative} .ct-combo input{width:100%;padding-right:34px} .ct-combo .arr{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer}
 .ct-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:340px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh);z-index:30}
-.ct-sect{padding:7px 10px 4px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:var(--navy-l)}
+.ct-grp{position:sticky;top:0;z-index:1;padding:9px 12px;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--navy)}
+.ct-sect{padding:6px 12px 4px;font-size:11px;font-weight:800;color:var(--navy);background:var(--navy-l)}
 .ct-item{padding:8px 10px;font-size:12.5px;cursor:pointer;border-bottom:1px solid var(--line);line-height:1.4} .ct-item b{color:var(--navy)} .ct-item:hover,.ct-item.act{background:var(--navy-l)}
 .ct-frow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;margin-top:8px}
 .ct-fcats{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-top:10px}
@@ -1635,7 +1636,7 @@ var CT_LIB = {
     var banners = (o.banners || []).map(function (id) { return idx[id]; }).filter(function (i) { return i != null && qs[i].cats.length >= 2 && qs[i].cats.length <= 12; });
     // yang dicari: perbedaan jawaban PERTANYAAN UTAMA antar kelompok profil (bukan profil vs profil, mis. SES vs pengeluaran)
     var skipSect = o.skipSect || /^(Profil|Screening|Tentang kamu)/i;
-    var targets = qs.map(function (q, i) { return i; }).filter(function (i) { return banners.indexOf(i) < 0 && qs[i].cats.length >= 2 && qs[i].cats.length <= 30 && !skipSect.test(qs[i].sect || '') && (!o.skip || o.skip.indexOf(qs[i].id) < 0); });
+    var targets = qs.map(function (q, i) { return i; }).filter(function (i) { return banners.indexOf(i) < 0 && qs[i].cats.length >= 2 && qs[i].cats.length <= 30 && !skipSect.test(qs[i].sect || '') && qs[i].group !== 'PROFIL RESPONDEN' && (!o.skip || o.skip.indexOf(qs[i].id) < 0); });
     var found = [];
     targets.forEach(function (ti) {
       banners.forEach(function (bi) {
@@ -1677,8 +1678,10 @@ function ctInit() {
 function ctOpen(v) { navTo('ct'); $('ct-v').value = v; ctLoad(); }
 function ctLoad() {
   var v = $('ct-v').value; if (!v) return;
-  $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '';
+  $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '<p class="muted">Memuat…</p>';
+  ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
   run('adminCrosstab', v, $('ct-st').value).then(function (d) {
+    if (!d || !d.qs || d.qs.length < 2) { CT = null; $('ct-tbl').innerHTML = '<p class="loading">Survei ini belum punya pertanyaan pilihan yang bisa disilangkan.</p>'; $('ct-ins').innerHTML = ''; return; }
     CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
     var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
     var ban = d.banners.map(ix).filter(function (x) { return x != null; });
@@ -1691,7 +1694,7 @@ function ctLoad() {
     ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; });
     ctCombo('ct-fq', function (i) { CTS.fq = i; ctRender(); }, function () { return CTS.fq; }, 'Tambah filter: cari pertanyaan…');
     ctRender();
-  });
+  }, function (e) { $('ct-tbl').innerHTML = '<p class="loading">Gagal memuat data: ' + esc((e && e.message) || e) + '</p>'; $('ct-ins').innerHTML = ''; });
 }
 function ctRows() {
   var fs = Object.keys(CTS.filters).filter(function (k) { return CTS.filters[k].length; }), out = [];
@@ -1704,10 +1707,12 @@ function ctCombo(host, onPick, getVal, ph) {
   var inp = h.querySelector('input'), dd = h.querySelector('.ct-dd'), act = -1;
   var sync = function () { var v = getVal(); inp.value = v == null ? '' : ctQ(v); };
   var draw = function (t) {
-    t = (t || '').toLowerCase(); var out = '', sect = null;
+    t = (t || '').toLowerCase(); var out = '', grp = null, sub = null;
     CT.qs.forEach(function (q, i) {
       if (t && (q.id + ' ' + q.text).toLowerCase().indexOf(t) < 0) return;
-      if (q.sect !== sect) { sect = q.sect; out += '<div class="ct-sect">' + esc(sect) + '</div>'; }
+      var g = q.group || q.sect;
+      if (g !== grp) { grp = g; sub = null; out += '<div class="ct-grp">' + esc(g) + '</div>'; }
+      if (q.sub && q.sub !== sub) { sub = q.sub; out += '<div class="ct-sect">' + esc(sub) + '</div>'; }
       out += '<div class="ct-item" data-i="' + i + '"><b>' + esc(q.id) + '</b> ' + esc(q.text) + (q.multi ? ' <small class="muted">(pilihan ganda)</small>' : '') + '</div>';
     });
     dd.innerHTML = out || '<div class="ct-item muted">Tidak ada pertanyaan yang cocok</div>'; act = -1;
@@ -1744,7 +1749,7 @@ function ctRender() {
   var ins = CT_LIB.insights(CT.qs, CT.data, { banners: CT.banners, rows: fl ? rows : null, max: 8 });
   $('ct-ins').innerHTML = ins.length ? ins.map(function (f) {
     return '<div class="ct-find' + (f.diff < 0 ? ' neg' : '') + '"><b>' + esc(f.title) + '</b><p>' + esc(f.text) + '</p><button class="btn sec sm" onclick="ctGoto(\'' + esc(f.row) + '\',\'' + esc(f.col) + '\')">Lihat tabel</button></div>';
-  }).join('') : '<p class="muted">Belum ada perbedaan yang nyata. Biasanya muncul setelah ±100 responden valid, atau coba lepaskan filter.</p>';
+  }).join('') : '<p class="muted">' + (N ? 'Belum ada perbedaan yang nyata. Biasanya muncul setelah ±100 responden valid, atau coba lepaskan filter.' : 'Belum ada jawaban di survei ini. Temuan otomatis muncul setelah data masuk.') + '</p>';
   // filter
   var fq = CTS.fq, box = $('ct-fcats');
   if (fq == null) box.hidden = true; else {
@@ -1768,7 +1773,7 @@ function ctRender() {
     (CT.qs[ri].multi || CT.qs[ci].multi ? ' Ada pertanyaan pilihan ganda, jadi total bisa lebih dari 100%.' : '') + (fl ? ' Filter aktif.' : '');
   if (ri === ci) { $('ct-tbl').innerHTML = '<p class="loading">Pilih pertanyaan yang berbeda untuk baris dan kolom.</p>'; CT_LAST = null; return; }
   var t = CT_LIB.table(CT.qs, CT.data, ri, ci, { mode: mode, sort: $('ct-sort').value, hideEmpty: $('ct-empty').checked, rows: rows });
-  if (!t.base) { $('ct-tbl').innerHTML = '<p class="loading">Tidak ada responden yang menjawab pertanyaan baris dengan filter ini.</p>'; CT_LAST = null; return; }
+  if (!t.base) { $('ct-tbl').innerHTML = '<p class="loading">' + (N ? 'Tidak ada responden yang menjawab pertanyaan baris dengan filter ini.' : 'Belum ada jawaban di survei ini. Tabel terisi otomatis setelah responden mulai mengisi.') + '</p>'; CT_LAST = null; return; }
   var max = 0; t.lines.forEach(function (l) { l.cells.forEach(function (c, j) { if (c.v != null && (t.cols[j].n >= 10 || mode === 'count')) max = Math.max(max, c.v); }); });
   if (!max) t.lines.forEach(function (l) { l.cells.forEach(function (c) { max = Math.max(max, c.v || 0); }); }); max = max || 1;
   $('ct-lmax').textContent = mode === 'count' ? max : Math.round(max) + '%';

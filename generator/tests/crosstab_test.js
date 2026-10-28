@@ -15,6 +15,9 @@ for (let i = 0; i < 420; i++) {
   ctx.submitResponse({ sid: 's' + i, variant: 'v1', cats: ['Skincare'], answers: { QC1: 'Biru', Z2: '@u' + i, Z3: '0812' + String(40000000 + i), Z1: 'Tidak', S1: age, S2: g, A1: c[0], provinsi: c[1], jabodetabek: c[2],
     S4: ['Shopee', 'Tokopedia', 'TikTok Shop'], B2: b2, D1: d1, D0: pick(ctx.QOPTS.D0), A7: pick(A7), A7N: pick(['1 orang (hanya saya)', '2 orang', '3 orang', '4 orang']), A13: pick(['Android', 'iPhone']), A10: [pick(['Instagram', 'TikTok']), 'YouTube'] } });
 }
+const e2 = ctx.ctData_('v2', 'Valid');
+console.log('v2 tanpa jawaban:', e2.qs.length, 'pertanyaan |', [...new Set(e2.qs.map(q => q.group))].join(' > '));
+assert(e2.qs.length > 20 && e2.qs[0].group === 'PROFIL RESPONDEN' && e2.data.length === 0);
 const d = ctx.ctData_('v1', 'Valid');
 const ids = d.qs.map(q => q.id);
 assert(['S1', 'S2', 'B2', 'D1', 'ses', 'wilayah', 'A10'].every(x => ids.includes(x)), ids.join(','));
@@ -45,6 +48,10 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.locator('nav.side button', { hasText: 'Cross Tab' }).click(); await p.waitForTimeout(2000);
   await p.screenshot({ path: SP + 'ct_1.png', fullPage: true });
   console.log('findings on page:', await p.$$eval('.ct-find', e => e.length), '| title:', await p.$eval('#ct-title', e => e.textContent));
+  await p.evaluate(() => document.querySelector('#ct-row').scrollIntoView()); await p.click('#ct-row input'); await p.waitForTimeout(400); await p.locator('#ct-row .ct-dd').screenshot({ path: SP + 'ct_dd.png' }); await p.keyboard.press('Escape');
+  await p.selectOption('#ct-v', 'v2'); await p.waitForTimeout(1500);
+  console.log('v2 kosong:', await p.$eval('#ct-tbl', e => e.innerText), '| row:', await p.$eval('#ct-row input', e => e.value));
+  await p.selectOption('#ct-v', 'v1'); await p.waitForTimeout(1500);
   await p.locator('.ct-find button').first().click(); await p.waitForTimeout(800);
   console.log('after Lihat tabel:', await p.$eval('#ct-title', e => e.textContent));
   // filter: hanya Wanita
