@@ -41,6 +41,7 @@ var CONFIG = {
 // ====== DATA (dihasilkan dari draft kuesioner) ======
 var CATEGORIES = __CATEGORIES__;   // [kelompok, kategori, prioritas]
 var DICTIONARY = __DICTIONARY__;
+var QTYPES = __QTYPES__;       // tipe pertanyaan (sa/ma/...) untuk filter Panel
 var QOPTS = __QOPTS__;         // urutan pilihan jawaban per pertanyaan (untuk laporan)   // [id, no, topik, pertanyaan]
 
 var SH = { SET: 'Pengaturan', WIN: 'Pemenang', KAT: 'Kategori', RESP: 'Responses', RESP1: 'Jawaban - Semua Kategori', RESP2: 'Jawaban - Fashion Tas Hijab', BLOK: 'Daftar Blokir', SCR: 'Screenout', REKAP: 'Rekap', DICT: 'Kamus Kolom', UNDIAN: 'Eligible Undian', PANEL: 'Panel', CARI: 'Cari Panel', HASIL: 'Hasil Pencarian', SURV: 'Daftar Survei' };
@@ -1144,7 +1145,28 @@ function adminSetStatus(v, sid, status, violation) {
 }
 
 /** Panel: daftar kolom & pencarian. */
-function adminPanelColumns() { requireAdmin_(); return PANEL_COLS.map(function (c) { return c[0]; }); }
+/** Kolom Panel untuk filter: label, tipe (sa = pilih satu, ma = pilihan ganda, num = angka, text) dan pilihan jawaban (+ jumlah responden). */
+var PANEL_SKIP = ['panel_id', 'nomor_hp', 'tgl_bergabung', 'update_terakhir', 'profil_diperbarui'];
+var PANEL_NUM = ['jumlah_survei', 'pengeluaran_per_kapita'];
+function panelColumns_() {
+  var p = sheet_(SH.PANEL), h = p && p.getLastColumn() ? p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0] : [];
+  var data = p && p.getLastRow() > 1 ? p.getRange(2, 1, p.getLastRow() - 1, h.length).getValues() : [];
+  var meta = reportMeta_('v1');
+  return PANEL_COLS.filter(function (c) { return PANEL_SKIP.indexOf(c[0]) < 0; }).map(function (c) {
+    var col = c[0], src = String(c[1] || ''), id = src.replace(/^L\d_/, ''), m = meta[id] || {}, ci = h.indexOf(col);
+    var type = col === 'instagram' ? 'text' : PANEL_NUM.indexOf(col) >= 0 ? 'num' : (QTYPES[id] === 'ma' || col === 'riwayat_survei') ? 'ma' : 'sa';
+    var cnt = {}, seen = [];
+    if (ci >= 0 && type !== 'text' && type !== 'num') data.forEach(function (r) {
+      var v = String(r[ci] == null ? '' : r[ci]).trim(); if (!v) return;
+      (type === 'ma' ? v.split(' | ') : [v]).forEach(function (x) { x = x.trim(); if (!x) return; if (!cnt[x]) { cnt[x] = 0; seen.push(x); } cnt[x]++; });
+    });
+    var opts = (m.opts || []).slice();
+    seen.sort(function (a, b) { return cnt[b] - cnt[a]; }).forEach(function (x) { if (opts.indexOf(x) < 0 && opts.length < 400) opts.push(x); });
+    var lab = CT_LABELS[id] || col.replace(/_/g, ' ');
+    return { col: col, label: lab.charAt(0).toUpperCase() + lab.slice(1), type: type, opts: type === 'text' || type === 'num' ? [] : opts.map(function (o) { return [o, cnt[o] || 0]; }) };
+  });
+}
+function adminPanelColumns() { requireAdmin_(); return panelColumns_(); }
 function adminPanelSearch(crit) {
   requireAdmin_();
   var p = sheet_(SH.PANEL), h = p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0];
@@ -1153,9 +1175,15 @@ function adminPanelSearch(crit) {
   var res = data.filter(function (r) {
     if (String(r[h.indexOf('status_kualitas_terakhir')]).indexOf('Tidak valid') === 0) return false;
     return (crit || []).every(function (k) {
-      if (!k.col || k.val === '' || k.val == null) return true;
+      if (!k.col || k.val === '' || k.val == null || (Array.isArray(k.val) && !k.val.length)) return true;
       var i = h.indexOf(k.col); if (i < 0) return false;
-      var v = low(r[i]), n = low(k.val);
+      var v = low(r[i]), n = low(k.val), vs = v.split(' | ').map(function (x) { return x.trim(); }), want = (Array.isArray(k.val) ? k.val : [k.val]).map(low);
+      if (k.op === 'adalah') return want.indexOf(v) >= 0;
+      if (k.op === 'bukan') return want.indexOf(v) < 0;
+      if (k.op === 'memilih salah satu') return want.some(function (x) { return vs.indexOf(x) >= 0; });
+      if (k.op === 'memilih semua') return want.every(function (x) { return vs.indexOf(x) >= 0; });
+      if (k.op === 'tidak memilih') return !want.some(function (x) { return vs.indexOf(x) >= 0; });
+      if (k.op === 'minimal' || k.op === 'maksimal') { var a = parseFloat(String(r[i]).replace(/[^\d.,-]/g, '').replace(',', '.')), b = parseFloat(k.val); if (isNaN(a) || isNaN(b)) return false; return k.op === 'minimal' ? a >= b : a <= b; }
       return k.op === 'sama dengan' ? v === n : k.op === 'tidak sama dengan' ? v !== n : k.op === 'mengandung' ? v.indexOf(n) >= 0 : k.op === 'tidak mengandung' ? v.indexOf(n) < 0 : true;
     });
   });

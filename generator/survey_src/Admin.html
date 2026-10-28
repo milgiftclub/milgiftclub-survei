@@ -138,6 +138,11 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .per-prev .pr-l{font-weight:800;margin-bottom:6px} .per-prev .pr-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
 #per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t input[type=date]{width:142px} #per-t th,#per-t td{padding-left:8px;padding-right:8px} #per-t td{vertical-align:middle}
 .rg-d{display:inline-flex;align-items:center;gap:6px} .rg-d input{width:auto;padding:6px 8px}
+.ms{position:relative} .ms summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:9px 34px 9px 12px;background:#fff;min-width:220px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.ms summary::-webkit-details-marker{display:none} .ms summary:after{content:'▾';position:absolute;right:12px;top:8px;color:var(--muted)}
+.ms-l{position:absolute;z-index:30;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,.14);padding:8px;width:340px;max-height:320px;overflow:auto}
+.ms-l label{display:flex;gap:8px;align-items:center;padding:6px 6px;border-radius:8px;cursor:pointer;font-size:13.5px} .ms-l label:hover{background:var(--navy-l, #eef1fb)}
+.ms-l label span{flex:1} .ms-l label small{color:var(--muted)} .ms-l input[type=checkbox]{width:auto} .ms-q{width:100%;margin-bottom:6px}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
@@ -846,15 +851,45 @@ function setSt(v, sid, st, vio) {
 
 // ---------- panel ----------
 var PCOLS = [], PRES = { cols: [], rows: [] }, OPS = ['sama dengan', 'tidak sama dengan', 'mengandung', 'tidak mengandung'];
-function loadPanel() { run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'sama dengan', 'Wanita'); addCrit(); searchPanel(); }); }
+// kriteria panel: pilihan jawaban mengikuti tipe pertanyaan (SA = pilih satu, MA = boleh lebih dari satu)
+var POPS = { sa: [['adalah', 'adalah'], ['bukan', 'bukan']], ma: [['memilih salah satu', 'memilih salah satu dari'], ['memilih semua', 'memilih semua'], ['tidak memilih', 'tidak memilih']],
+  num: [['minimal', 'minimal'], ['maksimal', 'maksimal']], text: [['mengandung', 'mengandung'], ['sama dengan', 'sama dengan']] };
+function loadPanel() {
+  $('pn-crit').innerHTML = '<p class="loading">Memuat daftar profil…</p>';
+  run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', 'Wanita'); addCrit(); searchPanel(); });
+}
+function pcol(name) { return PCOLS.filter(function (c) { return c.col === name; })[0] || PCOLS[0]; }
 function addCrit(col, op, val) {
-  var d = document.createElement('div'); d.className = 'toolbar'; d.style.margin = '6px 0';
-  d.innerHTML = '<select class="c-col">' + PCOLS.map(function (c) { return '<option' + (c === col ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select><select class="c-op">' + OPS.map(function (o) { return '<option' + (o === op ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select><input class="c-val" placeholder="nilai" value="' + esc(val || '') + '"><button class="btn sec sm">Hapus</button>';
+  var d = document.createElement('div'); d.className = 'toolbar crit'; d.style.margin = '6px 0';
+  d.innerHTML = '<select class="c-col">' + PCOLS.map(function (c) { return '<option value="' + esc(c.col) + '"' + (c.col === col ? ' selected' : '') + '>' + esc(c.label) + (c.type === 'ma' ? ' (pilihan ganda)' : '') + '</option>'; }).join('') + '</select>' +
+    '<select class="c-op"></select><span class="c-vw"></span><button class="btn sec sm">Hapus</button>';
   d.querySelector('button').onclick = function () { d.remove(); };
-  $('pn-crit').appendChild(d);
+  d.querySelector('.c-col').onchange = function () { critVal(d); };
+  $('pn-crit').appendChild(d); critVal(d, op, val);
+}
+function critVal(d, op, val) {
+  var c = pcol(d.querySelector('.c-col').value), ops = POPS[c.type];
+  d.querySelector('.c-op').innerHTML = ops.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === op ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  var w = d.querySelector('.c-vw'), sel = [].concat(val || []), cnt = function (o) { return o[1] ? ' (' + fmt(o[1]) + ')' : ''; };
+  if (c.type === 'sa') w.innerHTML = '<select class="c-val"><option value="">— pilih jawaban —</option>' + c.opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (sel.indexOf(o[0]) >= 0 ? ' selected' : '') + '>' + esc(o[0]) + cnt(o) + '</option>'; }).join('') + '</select>';
+  else if (c.type === 'ma') {
+    w.innerHTML = '<details class="ms"><summary>Pilih jawaban</summary><div class="ms-l">' + (c.opts.length > 8 ? '<input class="ms-q" placeholder="Cari pilihan…">' : '') +
+      c.opts.map(function (o) { return '<label><input type="checkbox" value="' + esc(o[0]) + '"' + (sel.indexOf(o[0]) >= 0 ? ' checked' : '') + '> <span>' + esc(o[0]) + '</span><small>' + (o[1] ? fmt(o[1]) : '') + '</small></label>'; }).join('') +
+      (c.opts.length ? '' : '<p class="muted">Belum ada jawaban di panel.</p>') + '</div></details>';
+    var upd = function () { var v = critGet(d).val; w.querySelector('summary').textContent = v.length ? v.join(', ') : 'Pilih jawaban'; };
+    [].forEach.call(w.querySelectorAll('input[type=checkbox]'), function (x) { x.onchange = upd; });
+    var q = w.querySelector('.ms-q'); if (q) q.oninput = function () { var t = q.value.toLowerCase(); [].forEach.call(w.querySelectorAll('label'), function (l) { l.style.display = l.textContent.toLowerCase().indexOf(t) >= 0 ? '' : 'none'; }); };
+    upd();
+  } else w.innerHTML = '<input class="c-val"' + (c.type === 'num' ? ' type="number"' : '') + ' placeholder="' + (c.type === 'num' ? 'angka' : 'ketik teks') + '" value="' + esc(sel[0] || '') + '">';
+}
+function critGet(d) {
+  var c = pcol(d.querySelector('.c-col').value), op = d.querySelector('.c-op').value;
+  var val = c.type === 'ma' ? [].map.call(d.querySelectorAll('.ms-l input[type=checkbox]:checked'), function (x) { return x.value; }) : d.querySelector('.c-val').value;
+  return { col: c.col, op: op, val: val };
 }
 function searchPanel() {
-  var crit = [].map.call(document.querySelectorAll('#pn-crit .toolbar'), function (d) { return { col: d.querySelector('.c-col').value, op: d.querySelector('.c-op').value, val: d.querySelector('.c-val').value }; });
+  var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet);
+  $('pn-n').textContent = 'Mencari…';
   run('adminPanelSearch', crit).then(function (d) { PRES = d; $('pn-n').textContent = fmt(d.rows.length) + ' responden'; table($('pn-t'), d.cols, d.rows.slice(0, 300)); });
 }
 function csvPanel() { csv('panel', PRES.cols, PRES.rows); }
