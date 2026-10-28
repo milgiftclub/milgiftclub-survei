@@ -1,0 +1,26 @@
+const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
+const load = require('./sim/load'); const { ctx, sheets } = load(); const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/sim/'; fs.mkdirSync(SP, { recursive: true });
+ctx.adminPanelSave('Wanita 18-34', [{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }, { col: 'usia', op: 'adalah', val: ['18-24 tahun', '25-34 tahun'] }]); ctx.SET_MEMO_ = null;
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept('Tidak bisa dihubungi'));
+  await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
+  await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
+  await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
+  await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(2500);
+  await p.waitForTimeout(6000);
+  const shot = async (n, full) => { await p.screenshot({ path: SP + n + '.png', fullPage: !!full }); };
+  const go = async (label, wait) => { await p.locator('nav.side button', { hasText: label }).click(); await p.waitForTimeout(wait || 4000); };
+  await shot('01_ringkasan');
+  await p.locator('#sv-list button[data-v="v1"]').click(); await p.waitForTimeout(2000); await shot('02_survei_v1');
+  await go('Laporan', 6000); await p.selectOption('#rp-v', 'all'); await p.waitForTimeout(12000); await shot('03_laporan_gabungan');
+  await go('Cross Tab', 5000); await p.selectOption('#ct-v', 'all'); await p.waitForTimeout(10000); await shot('04_crosstab_gabungan', true);
+  await go('Panel', 12000); await p.selectOption('#pn-saved', { index: 1 }); await p.waitForTimeout(14000);
+  await p.evaluate(() => document.querySelectorAll('#pn-ins details.pi-g')[1] && (document.querySelectorAll('#pn-ins details.pi-g')[1].open = true));
+  await shot('05_panel_insight', true);
+  await go('Undian', 5000); await shot('06_undian');
+  console.log('JS errors:', errs); await b.close();
+})();

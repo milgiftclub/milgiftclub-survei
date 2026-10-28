@@ -555,7 +555,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
       <div class="kv"><label>Jumlah pemenang</label><input id="d-n" type="number" min="1" value="1"></div>
       <p class="muted" id="d-elig">Menghitung peserta eligible…</p>
       <div id="d-funnel" class="d-funnel"></div>
-      <p class="muted">Eligible = jawaban masuk di periode yang dipilih, berstatus Valid, tidak diblokir/suspend, belum pernah menang di periode ini (1 nomor WA = 1 kesempatan), dan — bila diaktifkan di bawah — sudah komentar & tag teman.</p>
+      <p class="muted">Eligible = jawaban masuk di periode yang dipilih, berstatus Valid, tidak diblokir/suspend, belum pernah menang di periode ini, dan — bila diaktifkan di bawah — sudah komentar & tag teman. Orang dihitung dari nomor WA; tiap survei valid = 1 kupon, peluang menang sebanding jumlah kupon.</p>
       <button class="btn" onclick="draw()">Undi sekarang</button>
       <div id="d-res" style="margin-top:14px"></div></div>
     <div class="card"><h2>Riwayat pemenang</h2><div class="tw" style="max-height:52vh"><table id="w-t"></table></div></div>
@@ -938,6 +938,7 @@ function pnInsight() {
     if (!d.nSeg) { $('pn-ins').innerHTML = '<p class="loading">Belum ada jawaban survei ini dari anggota panel.</p>'; return; }
     var pc = function (x) { return String(x).replace('.', ',') + '%'; };
     var h = '<div class="pi-n"><b>' + fmt(d.nSeg) + '</b> anggota panel punya jawaban survei yang valid (dibanding ' + fmt(d.nAll) + ' orang di semua survei)' + (d.nSeg < 30 ? ' <span class="badge b-y">Sampel kecil, baca dengan hati-hati</span>' : '') + '</div>';
+    if (!d.top.length) h += '<div class="pi-top"><b>Yang paling membedakan panel ini</b><p class="muted" style="margin:4px 0 0">Belum ada jawaban (di luar kriteria panel) yang beda nyata ≥ 10 poin dari semua responden. Buka kelompok di bawah untuk melihat sebaran lengkapnya.</p></div>';
     if (d.top.length) h += '<div class="pi-top"><b>Yang paling membedakan panel ini</b><ul>' + d.top.map(function (t) {
       return '<li><span class="' + (t.diff > 0 ? 'up' : 'dn') + '">' + (t.diff > 0 ? '▲' : '▼') + '</span> <b>' + esc(t.label) + ':</b> ' + esc(t.cat) + ' — ' + pc(t.pSeg) + ' vs ' + pc(t.pAll) + ' semua responden</li>'; }).join('') + '</ul></div>';
     d.groups.forEach(function (g, gi) {
