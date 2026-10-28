@@ -60,7 +60,7 @@ var PANEL_COLS = [
   ['hijab', 'A15'], ['kendaraan', 'A16'], ['profil_diperbarui', 'profil_diperbarui'], ['jenis_tempat_tinggal', 'A18'], ['status_tempat_tinggal', 'A19'], ['jumlah_anggota_rumah_tangga', 'A7N'], ['harga_hp', 'A13H'], ['segmen_hp', 'segmen_hp'], ['generasi', 'generasi'], ['pengeluaran_per_kapita', 'pengeluaran_per_kapita'], ['kelas_ekonomi', 'kelas_ekonomi'], ['ses', 'ses'], ['pengalaman_live_shopping', 'D1']
 ];
 var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
-var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
+var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan', 'periode'];
 var PROFILE_KEYS = ['S0', 'S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'A8',
   'A9', 'A10', 'A11', 'A12', 'A13', 'A13H', 'A14', 'A15', 'A16'];
 var PROFILE_MULTI = ['S3', 'A4K', 'A10', 'A12', 'A14', 'A16'];   // jawaban pilihan ganda (disimpan "a | b")
@@ -70,7 +70,7 @@ function respTab_(variant) {
   var c = variant && variant !== 'v1' ? customById_(variant) : null;
   return c ? c.tab : SH.RESP1;
 }
-var META = ['timestamp', 'survei', 'varian', 'versi_kuesioner', 'session_id', 'status', 'durasi_detik', 'kategori_1', 'kategori_2', 'attention_check', 'wa_normal', 'ig_normal', 'profil_dari_survei_sebelumnya', 'profil_diperbarui', 'sumber', 'device_fp', 'user_agent'];
+var META = ['timestamp', 'survei', 'periode_giveaway', 'varian', 'versi_kuesioner', 'session_id', 'status', 'durasi_detik', 'kategori_1', 'kategori_2', 'attention_check', 'wa_normal', 'ig_normal', 'profil_dari_survei_sebelumnya', 'profil_diperbarui', 'sumber', 'device_fp', 'user_agent'];
 
 // Link survei publik (deployment Apps Script proyek survei; dari apps-script/deployments.json)
 var SURVEY_URL = 'https://script.google.com/macros/s/__SURVEY_DEPLOY__/exec';
@@ -439,7 +439,7 @@ function submitResponse(p) {
     var row = {
       timestamp: new Date(), survei: sname, varian: varianLabel_(p.variant), versi_kuesioner: p.ver || '', session_id: p.sid, status: status, durasi_detik: p.durasi || '',
       kategori_1: (p.cats || [])[0] || '', kategori_2: (p.cats || [])[1] || '',
-      attention_check: attention ? 'Lulus' : 'Gagal', wa_normal: wa, ig_normal: ig, profil_dari_survei_sebelumnya: p.prefilled ? 'Ya' : '', profil_diperbarui: (!p.prefilled || p.profOk) && a.S1 ? new Date() : '',
+      attention_check: attention ? 'Lulus' : 'Gagal', wa_normal: wa, ig_normal: ig, profil_dari_survei_sebelumnya: p.prefilled ? 'Ya' : '', periode_giveaway: activePeriode_(cs), profil_diperbarui: (!p.prefilled || p.profOk) && a.S1 ? new Date() : '',
       sumber: p.src || '', device_fp: p.fp || '', user_agent: (p.ua || '').slice(0, 300)
     };
     Object.keys(flat).forEach(function (k) { row[k] = flat[k]; });
@@ -1166,27 +1166,65 @@ function adminBlokOpen(rowNo) {
 function adminBlokAdd(ig, wa, reason) { var who = requireAdmin_(); addViolation_(ig, wa, (reason || 'Ditambahkan manual') + ' (oleh ' + who + ')', 'manual-' + Date.now()); return { ok: true }; }
 
 /** Undian. */
-function eligible_(v) {
-  var won = {}, w = sheet_(SH.WIN);
-  if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) { if (String(r[7]).indexOf('Gugur') !== 0) won[String(r[4]).replace(/^'/, '')] = 1; });
-  var seen = {}, tags = bool_(set_('SYARAT_KOMENTAR_WAJIB')) ? igTags_() : null, minTag = num_('IG_MIN_TAG') || 3;
-  return readAll_().filter(function (r) {
-    if (r.status !== 'Valid' || (v !== 'all' && r._v !== v)) return false;
-    var k = String(r.wa_normal); if (!k || won[k] || seen[k]) return false;
-    if (accessStatus_(String(r.ig_normal), k).state !== 'ok') return false;
-    if (tags && (tags[String(r.ig_normal).toLowerCase()] || 0) < minTag) return false;   // wajib komentar + tag teman
-    seen[k] = 1; return true;
-  });
+/** Periode giveaway aktif saat jawaban masuk: survei MIL Gift Club = periode di Pengaturan; survei brand klien = tanpa periode. */
+function activePeriode_(cs) {
+  if (cs && cs.schema && cs.schema.brand && cs.schema.brand.mode === 'client') return '';
+  return periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN'));
 }
-function adminEligible(v) { requireAdmin_(); var e = eligible_(v); return { count: e.length, rows: e.slice(0, 500).map(function (r) { return [varianLabel_(r._v), r.Z2, r.Z3, iso_(r.timestamp)]; }) }; }
-function adminDraw(v, prize, count) {
+function periodeOf_(r) {
+  if (r.periode_giveaway) return String(r.periode_giveaway);
+  var c = r._v !== 'v1' && r._v !== 'v2' ? customById_(r._v) : null;
+  return activePeriode_(c);   // jawaban lama (sebelum ada kolom periode) = periode aktif
+}
+function winSheet_() {
+  var w = sheet_(SH.WIN); if (!w) return null;
+  var h = w.getRange(1, 1, 1, Math.max(1, w.getLastColumn())).getValues()[0];
+  if (h.indexOf('periode') < 0) w.getRange(1, h.length + 1).setValue('periode').setFontWeight('bold');
+  return w;
+}
+/** Peserta eligible + rincian penyaringan. v = survei | 'all', per = periode ('' = semua periode) */
+function eligibleInfo_(v, per) {
+  var won = {}, w = winSheet_();
+  if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) {
+    if (String(r[7]).indexOf('Gugur') !== 0) won[String(r[4]).replace(/^'/, '') + '|' + String(r[9] || '')] = 1;   // 1 nomor WA = 1 kali menang per periode
+  });
+  var tags = bool_(set_('SYARAT_KOMENTAR_WAJIB')) ? igTags_() : null, minTag = num_('IG_MIN_TAG') || 3;
+  var st = { jawaban: 0, valid: 0, orang: 0, diblokir: 0, sudahMenang: 0, kurangKomentar: 0, eligible: 0 }, seen = {}, out = [];
+  readAll_().forEach(function (r) {
+    if (v !== 'all' && r._v !== v) return;
+    if (per && periodeOf_(r) !== per) return;
+    st.jawaban++;
+    if (r.status !== 'Valid') return; st.valid++;
+    var k = String(r.wa_normal); if (!k || seen[k]) return; seen[k] = 1; st.orang++;
+    if (accessStatus_(String(r.ig_normal), k).state !== 'ok') { st.diblokir++; return; }
+    if (won[k + '|' + (per || periodeOf_(r))]) { st.sudahMenang++; return; }
+    if (tags && (tags[String(r.ig_normal).toLowerCase()] || 0) < minTag) { st.kurangKomentar++; return; }   // wajib komentar + tag teman
+    st.eligible++; out.push(r);
+  });
+  return { rows: out, stats: st, wajibKomentar: !!tags };
+}
+function eligible_(v, per) { return eligibleInfo_(v, per).rows; }
+function periodeList_() {
+  var o = {}, cur = activePeriode_(null); if (cur) o[cur] = 1;
+  readAll_().forEach(function (r) { var p = periodeOf_(r); if (p) o[p] = 1; });
+  return Object.keys(o).sort(function (a, b) { var x = a.match(/(\d+)\s+(\d{4})/) || [0, 0, 0], y = b.match(/(\d+)\s+(\d{4})/) || [0, 0, 0]; return (y[2] - x[2]) || (y[1] - x[1]); });
+}
+function adminEligible(v, per) {
+  requireAdmin_();
+  if (per == null) per = activePeriode_(null);
+  var e = eligibleInfo_(v, per);
+  return { count: e.rows.length, stats: e.stats, wajibKomentar: e.wajibKomentar, periode: per, periods: periodeList_(), current: activePeriode_(null),
+    rows: e.rows.slice(0, 500).map(function (r) { return [varianLabel_(r._v), r.Z2, r.Z3, iso_(r.timestamp)]; }) };
+}
+function adminDraw(v, prize, count, per) {
   var who = requireAdmin_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
-    var pool = eligible_(v), picked = [];
+    if (per == null) per = activePeriode_(null);
+    var pool = eligible_(v, per), picked = [];
     count = Math.max(1, Math.min(Number(count) || 1, pool.length));
     for (var i = 0; i < count; i++) { var j = Math.floor(Math.random() * pool.length); picked.push(pool.splice(j, 1)[0]); }
     var w = sheet_(SH.WIN), now = new Date();
-    picked.forEach(function (r) { w.appendRow([now, varianLabel_(r._v), prize, r.Z2, "'" + r.wa_normal, r.session_id, who, 'Menang', 'Dari ' + (pool.length + picked.length) + ' peserta eligible']); });
+    picked.forEach(function (r) { w.appendRow([now, varianLabel_(r._v), prize, r.Z2, "'" + r.wa_normal, r.session_id, who, 'Menang', 'Dari ' + (pool.length + picked.length) + ' peserta eligible', per || periodeOf_(r)]); });
     return picked.map(function (r) { return { survei: varianLabel_(r._v), ig: r.Z2, wa: r.wa_normal, sid: r.session_id }; });
   } finally { lock.releaseLock(); }
 }

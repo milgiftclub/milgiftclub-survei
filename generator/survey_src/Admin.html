@@ -132,6 +132,8 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ct-scroll .small{opacity:.55} .ct-scroll .stag{display:block;font-size:10px;color:var(--red);font-weight:700} .ct-scroll .mk{font-size:10px;margin-left:3px;font-weight:800}
 @media (max-width:760px){.ct-controls{grid-template-columns:1fr}.ct-swap{justify-self:start;margin-top:0}}
 .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)} .btn:disabled{opacity:.5;cursor:not-allowed}
+.d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
+.d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
 td.act,th.act{position:sticky;right:0;background:#fff;width:44px;padding:4px 8px!important;text-align:center;box-shadow:-6px 0 8px -6px rgba(20,26,46,.15)} th.act{background:inherit}
 .trash{border:0;background:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;line-height:0} .trash:hover{color:var(--red);background:var(--rl)}
@@ -326,6 +328,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <div class="modal" id="pub"><div class="card">
   <div class="eyebrow">Publish survei</div><h2 style="font-size:22px" id="pub-name"></h2>
   <p class="muted" id="pub-desc">Survei langsung bisa diisi responden lewat link-nya dan muncul di menu Survei.</p>
+  <p id="pub-per" style="margin:6px 0 10px;font-weight:700"></p>
   <label class="row"><span><b>Buat gambar IG Story &amp; Feed + caption</b><small>Langsung siap diunduh untuk promosi di Instagram</small></span><span class="switch"><input type="checkbox" id="pub-img" checked><span></span></span></label>
   <div class="toolbar" style="justify-content:flex-end;margin:0"><button class="btn sec" onclick="$('pub').classList.remove('on')">Batal</button><button class="btn" id="pub-go" onclick="bPublishGo()">Publish sekarang</button></div>
 </div></div>
@@ -495,10 +498,12 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="grid g2">
     <div class="card"><h2>Undi</h2>
       <div class="kv"><label>Survei</label><select id="d-v" onchange="loadElig()"><option value="all">Gabungan kedua survei</option><option value="v1">Semua Kategori</option><option value="v2">Fashion Wanita, Tas & Aksesori, Hijab</option></select></div>
+      <div class="kv"><label>Periode</label><select id="d-per" onchange="loadElig()"></select></div>
       <div class="kv"><label>Hadiah</label><input id="d-prize" placeholder="mis. AirPods"></div>
       <div class="kv"><label>Jumlah pemenang</label><input id="d-n" type="number" min="1" value="1"></div>
       <p class="muted" id="d-elig">Menghitung peserta eligible…</p>
-      <p class="muted">Peserta eligible: jawaban berstatus Valid, tidak sedang diblokir/suspend, belum pernah menang (1 nomor WA = 1 kesempatan), dan — bila diaktifkan di bawah — sudah komentar & tag teman.</p>
+      <div id="d-funnel" class="d-funnel"></div>
+      <p class="muted">Eligible = jawaban masuk di periode yang dipilih, berstatus Valid, tidak diblokir/suspend, belum pernah menang di periode ini (1 nomor WA = 1 kesempatan), dan — bila diaktifkan di bawah — sudah komentar & tag teman.</p>
       <button class="btn" onclick="draw()">Undi sekarang</button>
       <div id="d-res" style="margin-top:14px"></div></div>
     <div class="card"><h2>Riwayat pemenang</h2><div class="tw" style="max-height:52vh"><table id="w-t"></table></div></div>
@@ -810,13 +815,29 @@ function igSave(sync) {
 }
 function igAuto() { run('adminIgAuto', $('ig-auto').checked).then(igShow); }
 function igDisc() { if (confirm('Putuskan sambungan Instagram?')) run('adminIgDisconnect').then(igShow); }
-function loadElig() { $('d-elig').textContent = 'Menghitung…'; run('adminEligible', $('d-v').value).then(function (d) { $('d-elig').innerHTML = '<b>' + fmt(d.count) + '</b> peserta eligible.'; }); }
+function loadElig() {
+  $('d-elig').textContent = 'Menghitung…'; $('d-funnel').innerHTML = '';
+  var sel = $('d-per'), per = sel.options.length ? sel.value : null;
+  run('adminEligible', $('d-v').value, per).then(function (d) {
+    if (!sel.options.length || sel.dataset.n !== String(d.periods.length)) {
+      sel.innerHTML = d.periods.map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + (p === d.current ? ' (aktif)' : '') + '</option>'; }).join('') + '<option value="">Semua periode</option>';
+      sel.value = d.periode; sel.dataset.n = String(d.periods.length);
+    }
+    var s = d.stats;
+    $('d-elig').innerHTML = '<span class="d-big">' + fmt(d.count) + '</span> orang eligible' + (d.periode ? ' untuk <b>' + esc(d.periode) + '</b>' : ' (semua periode)');
+    var step = function (n, t, minus) { return '<div class="' + (minus ? 'out' : '') + '"><b>' + (minus ? '− ' : '') + fmt(n) + '</b> ' + t + '</div>'; };
+    $('d-funnel').innerHTML = step(s.jawaban, 'jawaban masuk') + step(s.jawaban - s.valid, 'tidak valid', true) + step(s.valid - s.orang, 'jawaban ganda (WA sama)', true) +
+      (s.diblokir ? step(s.diblokir, 'diblokir / suspend', true) : '') + (s.sudahMenang ? step(s.sudahMenang, 'sudah menang di periode ini', true) : '') +
+      (d.wajibKomentar ? step(s.kurangKomentar, 'belum komentar & tag teman', true) : '') + '<div class="ok"><b>= ' + fmt(d.count) + '</b> eligible</div>';
+  });
+}
 function loadWin() { run('adminWinners').then(function (d) { table($('w-t'), d.cols, d.rows.slice().reverse(), { cell: function (c, v) { return c === 'status' ? badge(v) : esc(String(v).replace(/^'/, '')); }, action: function (r, i) { return String(r[7]).indexOf('Gugur') === 0 ? '' : '<button class="btn sec sm" onclick="voidWin(' + (d.rows.length - i + 1) + ')">Gugurkan</button>'; } }); }); }
 function draw() {
   var prize = $('d-prize').value.trim(), n = +$('d-n').value;
   if (!prize) return toast('Isi nama hadiah dulu');
-  if (!confirm('Undi ' + n + ' pemenang untuk "' + prize + '"? Hasil langsung tersimpan.')) return;
-  run('adminDraw', $('d-v').value, prize, n).then(function (w) {
+  var per = $('d-per').value;
+  if (!confirm('Undi ' + n + ' pemenang untuk "' + prize + '"' + (per ? ' — ' + per : ' — semua periode') + '? Hasil langsung tersimpan.')) return;
+  run('adminDraw', $('d-v').value, prize, n, $('d-per').value).then(function (w) {
     $('d-res').innerHTML = '<div class="winbox"><b>Pemenang ' + esc(prize) + '</b><ul class="list">' + w.map(function (x) { return '<li><span>' + esc(x.ig) + ' · ' + esc(x.wa) + '</span><span class="muted">' + esc(x.survei) + '</span></li>'; }).join('') + '</ul></div>';
     loadElig(); loadWin();
   });
@@ -1268,6 +1289,7 @@ function bPublish() {
   $('pub-name').textContent = B.name;
   $('pub-desc').textContent = live ? 'Survei ini sedang dibuka. Perubahan langsung berlaku untuk responden.' : 'Survei langsung bisa diisi responden lewat link-nya dan muncul di menu Survei.';
   $('pub-go').textContent = live ? 'Simpan perubahan' : 'Publish sekarang';
+  $('pub-per').innerHTML = isClient() ? 'Survei brand klien: jawaban tidak masuk periode giveaway MIL Gift Club.' : '🎁 Jawaban yang masuk tercatat untuk <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> dan ikut undian periode ini. <span class="muted" style="font-weight:400">(Ganti periode di Survei &amp; Pengaturan)</span>';
   $('pub-img').checked = !live;
   $('pub').classList.add('on');
 }
