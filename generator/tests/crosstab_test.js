@@ -40,12 +40,14 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
+  await p.exposeFunction('gsCall', async (fn, args) => { if (fn === 'adminSummary') await new Promise(z => setTimeout(z, 3000)); try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
   await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
   await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
   await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
-  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(2000);
-  await p.locator('nav.side button', { hasText: 'Cross Tab' }).click(); await p.waitForTimeout(2000);
+  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(300);
+  await p.locator('nav.side button', { hasText: 'Cross Tab' }).click(); await p.waitForTimeout(500);
+  console.log('saat ringkasan belum siap:', await p.$eval('#ct-tbl', e => e.innerText));
+  await p.waitForTimeout(5000);
   await p.screenshot({ path: SP + 'ct_1.png', fullPage: true });
   console.log('findings on page:', await p.$$eval('.ct-find', e => e.length), '| title:', await p.$eval('#ct-title', e => e.textContent));
   await p.evaluate(() => document.querySelector('#ct-row').scrollIntoView()); await p.click('#ct-row input'); await p.waitForTimeout(400); await p.locator('#ct-row .ct-dd').screenshot({ path: SP + 'ct_dd.png' }); await p.keyboard.press('Escape');

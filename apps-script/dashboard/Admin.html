@@ -115,7 +115,7 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ct-sect{padding:6px 12px 4px;font-size:11px;font-weight:800;color:var(--navy);background:var(--navy-l)}
 .ct-item{padding:8px 10px;font-size:12.5px;cursor:pointer;border-bottom:1px solid var(--line);line-height:1.4} .ct-item b{color:var(--navy)} .ct-item:hover,.ct-item.act{background:var(--navy-l)}
 .ct-frow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;margin-top:8px}
-.ct-fcats{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-top:10px}
+.ct-fcats[hidden]{display:none} .ct-fcats{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-top:10px}
 .ct-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer} .ct-chip input{width:auto;margin:0} .ct-chip.on{background:var(--navy-l);border-color:var(--navy);font-weight:700} .ct-chip small{color:var(--muted)}
 .ct-ftags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px} .ct-tag{display:inline-flex;align-items:center;gap:8px;background:var(--navy-l);border:1px solid var(--navy-m);border-radius:999px;padding:5px 6px 5px 12px;font-size:12px}
 .ct-tag button{width:18px;height:18px;border-radius:50%;background:var(--navy);color:#fff;border:0;cursor:pointer;font-size:10px}
@@ -1668,8 +1668,15 @@ var CT_LIB = {
 };
 
 var CT = null, CTS = { row: null, col: null, filters: {}, fq: null };
-function ctInit() {
-  if (!SUM) return loadHome();
+function ctInit(tries) {
+  // daftar survei berasal dari ringkasan (adminSummary); bila belum selesai dimuat, tunggu lalu coba lagi
+  if (!SUM) {
+    $('ct-tbl').innerHTML = '<p class="loading">Memuat data survei…</p>';
+    ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
+    if ((tries || 0) === 0 && !loaded.home) loadHome();
+    if ((tries || 0) < 120) setTimeout(function () { ctInit((tries || 0) + 1); }, 500);
+    return;
+  }
   var e = $('ct-v'), cur = e.value || (SV || 'v1');
   e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
@@ -1707,6 +1714,7 @@ function ctCombo(host, onPick, getVal, ph) {
   var inp = h.querySelector('input'), dd = h.querySelector('.ct-dd'), act = -1;
   var sync = function () { var v = getVal(); inp.value = v == null ? '' : ctQ(v); };
   var draw = function (t) {
+    if (!CT) { dd.innerHTML = '<div class="ct-item muted">Daftar pertanyaan belum dimuat…</div>'; return; }
     t = (t || '').toLowerCase(); var out = '', grp = null, sub = null;
     CT.qs.forEach(function (q, i) {
       if (t && (q.id + ' ' + q.text).toLowerCase().indexOf(t) < 0) return;
@@ -1731,7 +1739,8 @@ function ctCombo(host, onPick, getVal, ph) {
   };
   sync();
 }
-function ctSwap() { var t = CTS.row; CTS.row = CTS.col; CTS.col = t; ctCombo('ct-row', function (i) { CTS.row = i; ctRender(); }, function () { return CTS.row; }); ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; }); ctRender(); }
+function ctSwap() {
+  if (!CT) return; var t = CTS.row; CTS.row = CTS.col; CTS.col = t; ctCombo('ct-row', function (i) { CTS.row = i; ctRender(); }, function () { return CTS.row; }); ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; }); ctRender(); }
 function ctGoto(rowId, colId) {
   var ix = function (id) { for (var i = 0; i < CT.qs.length; i++) if (CT.qs[i].id === id) return i; return null; };
   CTS.row = ix(rowId); CTS.col = ix(colId); ctSwap(); ctSwap();
@@ -1810,8 +1819,8 @@ function ctCopy() {
   try { navigator.clipboard.writeText(txt).catch(fb); } catch (e) { fb(); }
   toast('Tabel disalin — tempel di Excel / Google Sheets');
 }
-function repInit() {
-  if (!SUM) return loadHome();
+function repInit(tries) {
+  if (!SUM) { if ((tries || 0) < 120) setTimeout(function () { repInit((tries || 0) + 1); }, 500); return; }
   var e = $('rp-v'), cur = e.value || (SV || 'v1');
   e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
