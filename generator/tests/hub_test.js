@@ -24,5 +24,8 @@ const root = path.join(__dirname, '../../site'); const SP = '/tmp/claude-0/-home
   await p.goto('https://milgiftclub.github.io/milgiftclub-survei/s/?id=' + cs.id + '&ig=ani&ok=1'); await p.waitForTimeout(2000);
   console.log('custom:', await p.evaluate(() => window.__ST && window.__ST.cur), await p.evaluate(() => window.__ST && window.__ST.a.Z2));
   await p.goto('https://milgiftclub.github.io/milgiftclub-survei/?ig=ani&ok=1'); await p.waitForTimeout(1200); console.log('kembali ke daftar:', (await p.textContent('#app')).slice(0, 60));
+  await p.goto('https://milgiftclub.github.io/milgiftclub-survei/?ig=ani&ok=1'); await p.waitForTimeout(1500);
+  await p.screenshot({ path: SP + 'hub_tukar.png', fullPage: true });
+  console.log('tombol tukar:', await p.locator('.kt button').count(), 'aktif', await p.locator('.kt button:not([disabled])').count());
   console.log('JS errors:', errs); await b.close();
 })();

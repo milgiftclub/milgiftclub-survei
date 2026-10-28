@@ -1,0 +1,21 @@
+const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
+const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id'; const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/';
+let st = ctx.adminSimulasiMulai(); while (!st.selesai) st = ctx.adminSimulasiBatch(); ctx.snapBuild_();
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept('Tidak bisa dihubungi'));
+  await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
+  await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
+  await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
+  await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(2500);
+  await p.waitForTimeout(1500);
+  await p.locator('nav.side button', { hasText: 'Tukar Hadiah' }).click(); await p.waitForTimeout(2500);
+  console.log('katalog:', await p.locator('#kt-t tbody tr').count(), '| penukaran:', await p.locator('#tk-t tbody tr').count());
+  await p.screenshot({ path: SP + 'adm_tukar.png', fullPage: false });
+  await p.locator('nav.side button', { hasText: 'Survei & Pengaturan' }).click(); await p.waitForTimeout(1500);
+  console.log('kupon v1:', await p.$eval('#kup-V1', e => e.value));
+  console.log('JS errors:', errs); await b.close();
+})();

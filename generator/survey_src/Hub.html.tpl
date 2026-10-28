@@ -16,6 +16,11 @@ __STYLE__
   .kup{display:flex;gap:14px;align-items:center;background:var(--yellow-l);border:2px solid var(--yellow);border-radius:18px;padding:14px 16px;margin-top:14px;color:var(--brown)}
   .kup .kn{font-family:var(--display);font-size:30px;font-weight:700;flex:none} .kup p{margin:2px 0 0;font-size:14px;color:var(--brown2);line-height:1.45}
   .small{font-size:12.5px;color:var(--brown2);margin-top:14px;line-height:1.5} .small a{color:var(--coral-d);font-weight:800}
+  .kt-h{font-family:var(--display);font-size:20px;margin:4px 0 4px;color:var(--brown)}
+  .kt .kt-img{width:56px;height:56px;border-radius:14px;object-fit:cover;flex:none;background:var(--cream)} .kt-ph{display:flex;align-items:center;justify-content:center;font-size:26px}
+  .kt button.go{border:0;font:inherit;cursor:pointer} .kt button.go:disabled{background:#D9D3CB;color:#7d756d;cursor:not-allowed} .kt.kurang{opacity:.85}
+  .ck{background:var(--white);border:2px solid var(--line);border-radius:18px;padding:14px 16px;margin-top:14px} .tk-r{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px} .tk-r small{color:var(--brown2)}
+  .verdict{border-radius:18px;padding:14px 16px;margin:0 0 12px;font-weight:700;line-height:1.5} .verdict.ok{background:#E7F5EC;color:#22663F;border:2px solid #9fd6b3} .verdict.no{background:#FDECEC;color:#7A2323;border:2px solid #F3B9B9}
   .pr-r{display:flex;justify-content:space-between;gap:12px;border-top:1px dashed var(--line);padding:6px 0}
 </style>
 </head>
@@ -60,7 +65,7 @@ var SK_HTML = __SK_JSON__;
     if (ST.step === 'o1') {
       nb.textContent = 'Mulai';
       app.innerHTML = '<div class="section">Selamat datang</div>' + promo() +
-        '<p class="intro">Terima kasih sudah mau berbagi pengalaman belanja online kamu. Setelah setuju, kamu bisa memilih survei yang ingin diisi. <b>Setiap survei yang diisi valid = 1 kupon undian</b>, jadi makin banyak survei, makin besar peluang menang.</p>' +
+        '<p class="intro">Terima kasih sudah mau berbagi pengalaman belanja online kamu. Setelah setuju, kamu bisa memilih survei yang ingin diisi. <b>Setiap survei yang diisi dengan serius memberi 1–3 kupon</b>. Kupon menambah peluang undian dan bisa ditukar hadiah dari katalog.</p>' +
         '<h1>Apakah Anda bersedia mengikuti survei ini?</h1>' + skBox() + '<div id="body"><div class="opts">' +
         ['Ya, saya setuju dan bersedia mengikuti survei', 'Tidak bersedia'].map(function (t, i) { return '<label class="opt' + (ST.ok === (i === 0) ? ' on' : '') + '" data-i="' + i + '"><input type="radio" name="o1"' + (ST.ok === (i === 0) ? ' checked' : '') + '><span>' + t + '</span></label>'; }).join('') + '</div></div><div class="err" id="err"></div>';
       [].forEach.call(app.querySelectorAll('label.opt'), function (l) { l.onclick = function (e) { e.preventDefault(); ST.ok = l.dataset.i === '0'; [].forEach.call(app.querySelectorAll('label.opt'), function (x) { x.classList.toggle('on', x === l); x.querySelector('input').checked = x === l; }); $('err').textContent = ''; }; });
@@ -81,14 +86,24 @@ var SK_HTML = __SK_JSON__;
     var show = function (d, checking) {
       var todo = d.list.filter(function (x) { return !x.done; }).length;
       var h = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1>' +
-        '<div class="kup"><div class="kn">🎟️ ' + (checking ? '…' : d.kupon) + '</div><div><b>Kupon undian kamu di ' + esc(d.periode || 'periode ini') + '</b><p>' + (checking ? 'Memeriksa survei yang sudah kamu isi…' : todo ? 'Masih ada <b>' + todo + ' survei</b> yang bisa kamu isi untuk menambah kupon.' : 'Kamu sudah mengisi semua survei yang sedang dibuka. Terima kasih!') + '</p></div></div>';
+        '<div class="kup"><div class="kn">🎟️ ' + (checking ? '…' : d.saldo ? d.saldo.sisa : d.kupon) + '</div><div><b>Kupon kamu</b><p>' + (checking ? 'Memeriksa survei yang sudah kamu isi…' : 'Bisa ditukar hadiah di bawah, dan ' + d.kupon + ' kupon ikut undian ' + esc(d.periode || 'periode ini') + '. ' + (todo ? 'Isi <b>' + todo + ' survei lagi</b> untuk menambah kupon.' : 'Semua survei yang dibuka sudah kamu isi. Terima kasih!')) + '</p></div></div>';
       h += d.list.map(function (x) {
         var u = x.link + (x.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '&ok=1&src=' + encodeURIComponent(SRC);
         return '<a class="sv' + (x.done ? ' done' : '') + '" href="' + esc(u) + '"><div class="t"><b>' + (x.done ? '✓ ' : '') + esc(x.name) + '</b><small>' + esc(x.desc) + '</small>' +
-          '<div class="m">' + (x.done ? 'Sudah diisi' + (x.valid ? '' : ' · tidak valid') : '±' + x.est + ' menit · +1 kupon') + '</div></div><span class="go">' + (x.done ? '✓ Selesai' : 'Mulai →') + '</span></a>';
+          '<div class="m">' + (x.done ? 'Sudah diisi' + (x.valid ? '' : ' · tidak valid') : '±' + x.est + ' menit · +' + (x.nilai || 1) + ' kupon') + '</div></div><span class="go">' + (x.done ? '✓ Selesai' : 'Mulai →') + '</span></a>';
       }).join('') + (d.list.length ? '' : '<p class="intro">Belum ada survei yang dibuka. Pantau Instagram ' + esc(IGH()) + ' ya!</p>');
+      if (!checking && d.katalog && d.katalog.length) {
+        var sisa = d.saldo ? d.saldo.sisa : 0;
+        h += '<div class="section" style="margin-top:22px">Tukar kupon</div><h2 class="kt-h">🎁 Tukar kupon dengan hadiah</h2>' + d.katalog.map(function (k) {
+          var bisa = sisa >= k.kupon && k.stok > 0;
+          return '<div class="sv kt' + (bisa ? '' : ' kurang') + '">' + (k.gambar ? '<img src="' + esc(k.gambar) + '" alt="" class="kt-img">' : '<div class="kt-img kt-ph">🎁</div>') + '<div class="t"><b>' + esc(k.nama) + '</b><small>' + esc((k.brand ? k.brand + ' · ' : '') + (k.deskripsi || '')) + '</small>' +
+            '<div class="m">' + (k.stok > 0 ? 'Sisa ' + k.stok : 'Stok habis') + (bisa || k.stok <= 0 ? '' : ' · kurang ' + (k.kupon - sisa) + ' kupon') + '</div></div><button class="go" type="button" data-id="' + esc(k.id) + '"' + (bisa ? '' : ' disabled') + '>🎟️ ' + k.kupon + '</button></div>';
+        }).join('');
+        if (d.tukar && d.tukar.length) h += '<div class="ck"><b>Riwayat penukaran</b>' + d.tukar.map(function (t) { return '<div class="tk-r"><span>' + esc(t.hadiah) + ' <small>(' + t.kupon + ' kupon · ' + esc(t.waktu) + ')</small></span><b>' + esc(t.status) + '</b></div>'; }).join('') + '</div>';
+      }
       h += '<p class="small">Bukan akun kamu? Klik "Ganti akun" di bawah. · <a href="cek/?ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '">🔎 Cek status giveaway</a></p>';
       app.innerHTML = h;
+      [].forEach.call(app.querySelectorAll('.kt button[data-id]'), function (b) { b.onclick = function () { tukar(d.katalog.filter(function (k) { return k.id === b.dataset.id; })[0]); }; });
     };
     if (PRE) show(PRE, true);
     else { app.innerHTML = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1><div class="wait on"><i></i><span>Memuat daftar survei…</span></div>'; preload() && PREP.then(function (d) { if (d && my === list.n && !list.got) show(d, true); }); }
@@ -99,6 +114,17 @@ var SK_HTML = __SK_JSON__;
       show(d, false);
     }, function () { app.innerHTML = '<div class="err">Koneksi bermasalah. <a href="#" onclick="location.reload();return false">Coba lagi</a></div>'; });
   }
+  function tukar(k) {
+    var l4 = prompt('Tukar ' + k.kupon + ' kupon dengan "' + k.nama + '"?\n\nUntuk keamanan, ketik 4 digit terakhir nomor WhatsApp yang kamu isi di survei:');
+    if (l4 === null) return;
+    var box = document.createElement('div'); box.className = 'wait on'; box.innerHTML = '<i></i><span>Memproses penukaran…</span>'; app.insertBefore(box, app.firstChild); window.scrollTo(0, 0);
+    api('tukarKupon', [ST.ig, l4, k.id]).then(function (r) {
+      box.remove();
+      if (!r.ok) { alertBox('❌ ' + r.msg, 'no'); return; }
+      list(); setTimeout(function () { alertBox('🎉 Penukaran tercatat: <b>' + esc(r.hadiah) + '</b>. Tim kami akan menghubungi kamu lewat WhatsApp untuk pengiriman. Sisa kupon: ' + r.sisa + '.', 'ok'); }, 50);
+    }, function () { box.remove(); alertBox('Koneksi bermasalah, coba lagi.', 'no'); });
+  }
+  function alertBox(html, cls) { var b = document.createElement('div'); b.className = 'verdict ' + cls; b.innerHTML = html; app.insertBefore(b, app.firstChild); window.scrollTo(0, 0); }
   function next() {
     if (ST.step === 'o1') { if (ST.ok == null) { $('err').textContent = 'Pilih salah satu jawaban dulu ya.'; return; } ST.step = ST.ok ? 'ig' : 'bye'; return render(); }
     if (ST.step === 'ig') {

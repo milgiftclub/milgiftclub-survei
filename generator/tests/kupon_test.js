@@ -1,6 +1,6 @@
 // Uji: 1 survei valid = 1 kupon per periode, undian berbobot, cek status menampilkan kupon & survei lain
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id'; ctx.adminSaveSettings({ KUPON_V1: 1, KUPON_V2: 1 }); ctx.SET_MEMO_ = null;
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 const sub = (sid, v, ig, wa, extra) => ctx.submitResponse({ sid, variant: v, answers: Object.assign({}, base, { Z2: ig, Z3: wa }, extra || {}) });
 sub('a1', 'v1', '@ani', '081211110001'); sub('a2', 'v2', '@ani', '081211110001'); sub('a3', 'v1', '@ani', '081211110001');   // a3 duplikat

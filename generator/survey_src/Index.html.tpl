@@ -600,11 +600,48 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
   function payload(extra) {
     var fp = [navigator.userAgent, navigator.language, screen.width + 'x' + screen.height, (Intl.DateTimeFormat().resolvedOptions().timeZone || '')].join('|');
     var hsh = 0; for (var i = 0; i < fp.length; i++) { hsh = ((hsh << 5) - hsh + fp.charCodeAt(i)) | 0; }
-    var o = { sid: ST.sid, ver: VERSION, variant: VARIANT, prefilled: !!(ST.pre && ST.pre.length), profOk: !!ST.profOk, answers: ST.a, cats: ST.cats || [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: CFG.src, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
+    var o = { careless: !!(ST.warned && carelessFlags(ST.a, ST.start, true).length), sid: ST.sid, ver: VERSION, variant: VARIANT, prefilled: !!(ST.pre && ST.pre.length), profOk: !!ST.profOk, answers: ST.a, cats: ST.cats || [], durasi: ST.start ? Math.round((Date.now() - ST.start) / 1000) : '', src: CFG.src, ua: navigator.userAgent, fp: 'fp' + (hsh >>> 0).toString(36) };
     for (var x in extra) o[x] = extra[x];
     return o;
   }
+
+  // ---------- deteksi pengisian asal-asalan (sebelum dikirim) ----------
+  function carelessFlags(A, start, attention) {
+    if (window.__TEST_NO_CARELESS) return [];
+    var f = [], skip = { O1: 1, Z2: 1, Z3: 1, PV: 1, PR: 1, Z1: 1 }, n = 0;
+    Object.keys(A).forEach(function (k) {
+      if (skip[k] || /_lainnya$/.test(k) || A[k] === '' || A[k] == null) return;
+      var v = A[k];
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        var ks = Object.keys(v); n += ks.length;
+        var vals = ks.map(function (r) { return String(v[r]); });
+        if (ks.length >= 4 && vals.every(function (x) { return x === vals[0]; }) && !/^Tidak/.test(vals[0])) f.push('pola');
+      } else n++;
+    });
+    var dur = start ? (Date.now() - start) / 1000 : 999;
+    if (n >= 6 && (dur / n < 2.5 || dur < 45)) f.push('cepat');
+    if (attention && A.QC1 && A.QC1 !== 'Biru') f.push('perhatian');
+    return f.filter(function (x, i) { return f.indexOf(x) === i; });
+  }
+  function carelessScreen(app, flags, retry, leave) {
+    var why = { cepat: 'mengisi terlalu cepat untuk membaca setiap pertanyaan', perhatian: 'jawaban pertanyaan pengecekan tidak sesuai petunjuk', pola: 'memilih jawaban yang sama berulang-ulang' };
+    var nav = document.getElementById('nav'); if (nav) nav.style.display = 'none';
+    app.innerHTML = '<div class="section">Peringatan</div><h1>Kami mendeteksi kamu mengisi survei asal-asalan</h1>' +
+      '<p class="intro">Sistem kami melihat kamu ' + flags.map(function (x) { return why[x]; }).join(', dan ') + '. Jawaban yang serius penting untuk riset ini.</p>' +
+      '<p class="intro">Silakan <b>ulangi pengisian survei</b> dengan membaca setiap pertanyaan, atau keluar. Kalau tetap diisi asal-asalan, jawaban dianggap tidak valid, tidak mendapat kupon, dan akun bisa diblokir dari giveaway.</p>' +
+      '<div class="ctas"><a class="cta" href="#" id="cl-retry">Ulangi pengisian survei</a><a class="cta cta2" href="#" id="cl-leave">Keluar</a></div>';
+    document.getElementById('cl-retry').onclick = function (e) { e.preventDefault(); if (nav) nav.style.display = ''; retry(); };
+    document.getElementById('cl-leave').onclick = function (e) { e.preventDefault(); leave(); };
+    window.scrollTo(0, 0);
+  }
   function submit() {
+    var fl = carelessFlags(ST.a, ST.start, true);
+    if (fl.length && !ST.warned) {
+      callP('logScreenout', payload({ reason: 'Peringatan asal-asalan (' + fl.join(', ') + ')' }), function () {}, function () {});
+      return carelessScreen(app, fl, function () {
+        ST.a = { O1: ST.a.O1, Z2: ST.a.Z2 }; ST.warned = 1; ST.start = Date.now(); ST.cur = { id: 'Z2' }; save(); render();
+      }, function () { clearSave(); finish('Terima kasih', 'Kamu bisa kembali mengisi survei kapan saja dengan lebih teliti.', '', '', ctaButtons(false)); });
+    }
     ST.lastIg = ST.a.Z2;
     busy(true); btnN.textContent = 'Mengirim...'; waitMsg('Mohon tunggu, kami sedang mengirimkan data Anda…');
     callP('submitResponse', payload({}), function () { waitMsg(''); clearSave(); done(); }, function (e) {

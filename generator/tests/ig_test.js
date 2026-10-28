@@ -30,7 +30,7 @@ ctx.adminSaveSettings({ SYARAT_KOMENTAR_WAJIB: true }); ctx.SET_MEMO_ = null;
 const el = ctx.adminEligible('all'); console.log('eligible wajib komentar:', el.count, el.rows.map(r => r[1]));
 assert.strictEqual(el.count, 1);
 (async () => {
-  const bz = await chromium.launch(); const p = await (await bz.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  const bz = await chromium.launch(); const p = await (await bz.newContext({ viewport: { width: 390, height: 844 } })).newPage(); await p.addInitScript('window.__TEST_NO_CARELESS=1');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.route('https://survei.test/**', rt => { let u = new URL(rt.request().url()).pathname; if (u.endsWith('/')) u += 'index.html'; let body = fs.readFileSync(path.join(ROOT, u), 'utf8'); if (u.endsWith('config.js')) body = body.replace(/https:\/\/script[^']*/g, 'https://api.test/exec'); rt.fulfill({ body, contentType: u.endsWith('.js') ? 'application/javascript' : 'text/html' }); });
   await p.route('https://api.test/**', rt => { const out = ctx.doPost({ postData: { contents: rt.request().postData() } }); rt.fulfill({ body: out.getContent(), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }); });

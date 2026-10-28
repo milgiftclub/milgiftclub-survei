@@ -307,6 +307,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <button data-p="panel"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .4 5.5 2.8 5.5 5.8"/></svg>Panel Responden</button>
   <div class="grp">OPERASIONAL</div>
   <button data-p="draw"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z"/></svg>Undian Pemenang</button>
+  <button data-p="tukar"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v3H3zM5 12v9h14v-9M12 9v12M12 9c-1.5-3-5-4-5-1.5S10 9 12 9zm0 0c1.5-3 5-4 5-1.5S14 9 12 9z"/></svg>Tukar Hadiah</button>
   <button data-p="blok"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Daftar Blokir</button>
   <div class="grp">PENGATURAN</div>
   <button data-p="set"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Survei &amp; Pengaturan</button>
@@ -409,6 +410,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div class="kv"><label>Nama survei</label><input id="b-name" placeholder="mis. Skincare di TikTok Shop"></div>
         <div class="kv"><label>Kalimat pembuka (opsional)</label><textarea class="bwide" id="b-intro" rows="3" placeholder="Terima kasih telah berpartisipasi dalam survei tentang…"></textarea></div>
         <div class="kv"><label>Perkiraan waktu isi (menit)</label><input id="b-est" type="number" min="1" placeholder="dihitung otomatis"></div>
+        <div class="kv"><label>Nilai kupon</label><div><select id="b-kupon" style="width:auto"><option value="">Otomatis (sesuai panjang survei)</option><option value="1">1 kupon (survei pendek)</option><option value="2">2 kupon (survei panjang)</option><option value="3">3 kupon (survei sangat panjang)</option></select><div class="muted" style="font-size:12px;margin-top:4px">Kupon bisa ditukar hadiah di katalog dan menambah peluang undian.</div></div></div>
         <div class="kv"><label>Target respons valid</label><input id="b-target" type="number" min="0" value="300"></div>
         <label class="row"><span>Tutup otomatis saat target tercapai</span><span class="switch"><input type="checkbox" id="b-auto" checked><span></span></span></label>
         <div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="b-tutup"><div class="muted">Survei tertutup sendiri di tanggal & jam ini, dan tanggalnya tampil di halaman survei & gambar IG. Kosongkan bila tanpa batas waktu.</div></div>
@@ -548,6 +550,15 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 </section>
 
 <!-- UNDIAN -->
+<section class="page" id="p-tukar">
+  <div class="top"><div><div class="eyebrow">Operasional</div><h1>Tukar Hadiah</h1><p class="desc">Responden mengumpulkan kupon dari survei (nilai kupon diatur per survei: 1 pendek, 2 panjang, 3 sangat panjang) lalu menukarnya dengan hadiah di katalog ini lewat halaman depan survei. Penukaran tidak mengurangi peluang undian.</p></div></div>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">Katalog hadiah</h2><span style="flex:1"></span><span class="muted" id="kt-msg"></span><button class="btn sec sm" onclick="ktAdd()">+ Tambah hadiah</button><button class="btn sm" onclick="ktSave()">Simpan katalog</button></div>
+    <div class="tw" style="margin-top:10px"><table id="kt-t"></table></div></div>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">Permintaan penukaran</h2><span style="flex:1"></span><select id="tk-f" onchange="tkDraw()" style="width:auto"><option value="">Semua status</option><option>Menunggu</option><option>Diproses</option><option>Dikirim</option><option>Ditolak</option></select></div>
+    <p class="muted" style="font-size:12.5px">Hubungi responden lewat WhatsApp untuk alamat pengiriman. "Ditolak" otomatis mengembalikan kupon & stok.</p>
+    <div class="tw" style="max-height:60vh"><table id="tk-t"></table></div></div>
+</section>
+
 <section class="page" id="p-draw">
   <div class="top"><div><div class="eyebrow">Operasional</div><h1>Undian pemenang</h1><p class="desc">Undi pemenang secara acak dari jawaban yang valid. Hasil tersimpan otomatis dan bisa digugurkan bila pemenang tidak memenuhi syarat.</p></div></div>
   <div class="grid g2">
@@ -688,7 +699,7 @@ function bindNav(b) {
     if ($('p-build').classList.contains('on')) markDirty(false);
     showPage(b.dataset.p, b);
     if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
-    var f = { period: loadPeriod, people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    var f = { tukar: loadTukar, period: loadPeriod, people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
     if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
   };
 }
@@ -1124,7 +1135,36 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
+var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
+// ---------- tukar hadiah ----------
+var KT = null;
+function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); }
+function ktDraw() {
+  var h = '<thead><tr><th>Aktif</th><th>Hadiah</th><th>Brand</th><th>Kupon</th><th>Stok</th><th>Gambar (URL)</th><th>Deskripsi</th><th></th></tr></thead><tbody>';
+  KT.katalog.forEach(function (x, i) {
+    var inp = function (f, w, t) { return '<input data-i="' + i + '" data-f="' + f + '"' + (t ? ' type="' + t + '"' : '') + ' value="' + esc(x[f] == null ? '' : x[f]) + '" style="width:' + w + 'px">'; };
+    h += '<tr><td><input type="checkbox" data-i="' + i + '" data-f="aktif"' + (x.aktif ? ' checked' : '') + '></td><td>' + inp('nama', 190) + '</td><td>' + inp('brand', 110) + '</td><td>' + inp('kupon', 64, 'number') + '</td><td>' + inp('stok', 64, 'number') + '</td><td>' + inp('gambar', 150) + '</td><td>' + inp('deskripsi', 200) +
+      '</td><td><button class="trash" title="Hapus" onclick="KT.katalog.splice(' + i + ',1);ktDraw()">' + TRASH + '</button></td></tr>';
+  });
+  $('kt-t').innerHTML = h + '</tbody>';
+  [].forEach.call($('kt-t').querySelectorAll('input[data-f]'), function (e) { e.onchange = function () { var x = KT.katalog[+e.dataset.i]; x[e.dataset.f] = e.type === 'checkbox' ? e.checked : e.type === 'number' ? +e.value : e.value; }; });
+}
+function ktAdd() { KT.katalog.push({ id: '', nama: '', brand: '', kupon: 10, stok: 10, gambar: '', deskripsi: '', aktif: true }); ktDraw(); }
+function ktSave() { $('kt-msg').textContent = 'Menyimpan…'; run('adminKatalogSave', KT.katalog).then(function (d) { KT = d; ktDraw(); tkDraw(); $('kt-msg').textContent = ''; toast('Katalog tersimpan'); }); }
+function tkDraw() {
+  var f = $('tk-f').value, rows = KT.tukar.filter(function (r) { return !f || r.status === f; });
+  var h = '<thead><tr><th>Waktu</th><th>ID</th><th>Instagram</th><th>WhatsApp</th><th>Hadiah</th><th>Kupon</th><th>Status</th><th>Catatan</th></tr></thead><tbody>';
+  h += rows.map(function (r) {
+    return '<tr><td>' + esc(String(r.waktu).slice(0, 16)) + '</td><td>' + esc(r.id_penukaran) + '</td><td>' + esc(r.instagram) + '</td><td><a href="https://wa.me/62' + esc(String(r.nomor_wa).replace(/^0/, '')) + '" target="_blank" rel="noopener">' + esc(r.nomor_wa) + '</a></td><td>' + esc(r.hadiah) + '</td><td>' + esc(r.kupon) + '</td>' +
+      '<td><select data-row="' + r._row + '" style="width:auto">' + ['Menunggu', 'Diproses', 'Dikirim', 'Ditolak'].map(function (s) { return '<option' + (s === r.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></td><td>' + esc(r.catatan || '') + '</td></tr>';
+  }).join('') + (rows.length ? '' : '<tr><td colspan="8" class="loading">Belum ada permintaan penukaran.</td></tr>');
+  $('tk-t').innerHTML = h + '</tbody>';
+  [].forEach.call($('tk-t').querySelectorAll('select[data-row]'), function (e) { e.onchange = function () {
+    var c = e.value === 'Ditolak' ? prompt('Alasan penolakan (kupon & stok dikembalikan):', '') : '';
+    if (c === null) { tkDraw(); return; }
+    run('adminTukarStatus', +e.dataset.row, e.value, c).then(function (d) { KT = d; ktDraw(); tkDraw(); toast('Status: ' + e.value); });
+  }; });
+}
 // ---------- data simulasi ----------
 function simDraw(st) {
   $('sim-go').style.display = st.ada && st.selesai ? 'none' : ''; $('sim-del').style.display = st.ada ? '' : 'none';
@@ -1158,6 +1198,7 @@ function loadSet() {
       return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
         '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (s.switchOn ? ' checked' : '') + '><span></span></label>' + (s.tutupLewat && s.switchOn ? '<div class="muted" style="color:var(--red);font-weight:700">Tertutup otomatis: tanggal tutup sudah lewat. Ubah tanggal di bawah untuk membuka lagi.</div>' : '') + '</div>' +
         '<div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="tut-' + k + '" value="' + esc(s.tutup || '') + '"><div class="muted">Kosongkan bila tanpa batas waktu. Tampil di survei sebagai "Hingga …"</div></div>' +
+        '<div class="kv"><label>Nilai kupon</label><select id="kup-' + k + '" style="width:auto">' + [1, 2, 3].map(function (n) { return '<option value="' + n + '"' + (n === s.kupon ? ' selected' : '') + '>' + n + ' kupon' + (n === 1 ? ' (pendek)' : n === 2 ? ' (panjang)' : ' (sangat panjang)') + '</option>'; }).join('') + '</select></div>' +
         '<div class="kv"><label>Target respons valid</label><input type="number" id="tgt-' + k + '" value="' + s.target + '"></div>' +
         '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link) + '"></div>' +
         '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab) + '</span></div>' +
@@ -1169,7 +1210,7 @@ function loadSet() {
   });
 }
 function saveSurvey(k) {
-  var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value; o['TUTUP_' + k] = $('tut-' + k).value;
+  var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value; o['TUTUP_' + k] = $('tut-' + k).value; o['KUPON_' + k] = +$('kup-' + k).value || 2;
   run('adminSaveSettings', o).then(function () { toast('Tersimpan. Berlaku langsung untuk responden.'); loadHome(); });
 }
 function delFill(d) {
@@ -1241,7 +1282,7 @@ function bDefaults() {
 }
 function bFill() {
   $('b-title').textContent = B.id ? 'Edit: ' + (B.name || B.id) : 'Survei baru';
-  $('b-name').value = B.name || ''; $('b-intro').value = B.intro || ''; $('b-est').value = B.estimasi || '';
+  $('b-name').value = B.name || ''; $('b-intro').value = B.intro || ''; $('b-est').value = B.estimasi || ''; $('b-kupon').value = B.kupon ? String(B.kupon) : '';
   $('b-target').value = B.target == null ? '' : B.target; $('b-auto').checked = B.autoClose !== false;
   $('b-g').checked = B.giveaway !== false; $('b-p').checked = B.profile !== false; $('b-ind').checked = B.screenIndustri !== false;
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
@@ -1268,7 +1309,7 @@ function perPrev() {
     (lewat ? '<br><span style="color:var(--red);font-weight:700">Tanggal tutup sudah lewat — survei akan tertutup.</span>' : '');
 }
 function bRead() {
-  B.name = $('b-name').value.trim(); B.intro = $('b-intro').value.trim(); B.estimasi = Number($('b-est').value) || '';
+  B.name = $('b-name').value.trim(); B.intro = $('b-intro').value.trim(); B.estimasi = Number($('b-est').value) || ''; B.kupon = Number($('b-kupon').value) || '';
   B.target = Number($('b-target').value) || 0; B.autoClose = $('b-auto').checked;
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
   B.gender = $('b-gender').value;
@@ -1329,7 +1370,7 @@ function imageUpload(file, maxPx, done) {
   };
   fr.readAsDataURL(file);
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
+['b-name', 'b-intro', 'b-est', 'b-kupon', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
   var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); perPrev(); }); e.addEventListener('change', function () { bRead(); markDirty(); perPrev(); });
 });
 [].forEach.call($('b-src').children, function (b) {

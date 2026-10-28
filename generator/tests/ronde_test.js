@@ -1,6 +1,6 @@
 // Uji: refresh survei -> responden lama boleh isi lagi, ronde tercatat, kupon tetap 1 per survei per periode
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id'; ctx.adminSaveSettings({ KUPON_V1: 1, KUPON_V2: 1 }); ctx.SET_MEMO_ = null;
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Ya, bersedia', S1: '25-34 tahun', S2: 'Wanita' };
 const sub = (sid, v, ig, wa) => ctx.submitResponse({ sid, variant: v, answers: Object.assign({}, base, { Z2: ig, Z3: wa }) });
 sub('a1', 'v1', '@ani', '081211110001');

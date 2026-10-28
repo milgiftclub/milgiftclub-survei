@@ -27,7 +27,7 @@ async function respondent(browser, i, scenario) {
   let V2 = !!process.env.V2; if (/^v[12]:/.test(scenario)) { V2 = scenario[1] === '2'; scenario = scenario.slice(3); }
   const who = (scenario.match(/(alice|bob|carol)/) || [])[1];
   const PH = { alice: '081200001111', bob: '081200002222', carol: '081200003333' };
-  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage(); if (!process.env.CARELESS) await page.addInitScript('window.__TEST_NO_CARELESS=1');
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   if (process.env.APPS) {

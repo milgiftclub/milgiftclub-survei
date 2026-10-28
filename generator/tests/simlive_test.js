@@ -5,7 +5,7 @@ const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru',
 ctx.submitResponse({ sid: 'asli1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@asli', Z3: '081211110001' }) });
 ctx.submitResponse({ sid: 'asli2', variant: 'v1', answers: Object.assign({}, base, { Z2: '@asal', Z3: '081211110002', QC1: 'Merah' }) });
 const snap = () => JSON.stringify(Object.fromEntries(Object.entries(sheets).filter(([k]) => /^(Jawaban|Panel|Daftar Blokir|Pemenang)/.test(k)).map(([k, v]) => [k, v.d.filter(r => r.some(x => x !== '' && x != null)).length])));
-const before = snap(); console.log('awal', before);
+const stok0 = JSON.stringify(ctx.adminKatalog().katalog.map(x => x.stok)); const before = snap(); console.log('awal', before);
 let t = Date.now(), st = ctx.adminSimulasiMulai(), steps = 0;
 while (!st.selesai && steps < 40) { st = ctx.adminSimulasiBatch(); steps++; }
 console.log('selesai', st, steps, 'langkah', ((Date.now() - t) / 1000).toFixed(1) + 'd');
@@ -19,6 +19,6 @@ const ct = ctx.adminCrosstab('all', 'Valid'); console.log('crosstab gabungan n',
 const ins = ctx.CT_LIB.insights(ct.qs, ct.data, { banners: ct.banners }); console.log('temuan:', ins.slice(0, 3).map(x => x.title).join(' || '));
 const pc = ctx.adminPanelSearch([{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }]); console.log('panel wanita', pc.rows.length);
 const h = ctx.adminSimulasiHapus(); console.log('hapus', JSON.stringify(h));
-const after = snap(); console.log('akhir', after); assert.strictEqual(after, before);
+ctx.MEMO_ = null; const stok1 = JSON.stringify(ctx.adminKatalog().katalog.map(x => x.stok)); console.log('stok', stok0, stok1); assert.strictEqual(stok1, stok0); const after = snap(); console.log('akhir', after); assert.strictEqual(after, before);
 assert.strictEqual(ctx.adminSimulasiStatus().ada, false); assert(!ctx.adminSummary().surveys.some(s => /Simulasi/.test(s.name)));
 console.log('OK simlive_test');

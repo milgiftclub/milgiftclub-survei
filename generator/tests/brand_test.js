@@ -10,7 +10,7 @@ const r = ctx.adminBuilderSave({ name: 'Survei Camilan Pedas', target: 100, bran
   questions: [{ text: 'Seberapa sering Anda ngemil keripik pedas?', type: 'single', options: [{ t: 'Setiap hari' }, { t: 'Seminggu sekali' }, { t: 'Jarang' }] }] }, true);
 (async () => {
   const b = await chromium.launch(); const errs = [];
-  const pg = await b.newPage({ viewport: { width: 390, height: 844 } }); pg.on('pageerror', e => errs.push(e.message));
+  const pg = await b.newPage({ viewport: { width: 390, height: 844 } }); pg.on('pageerror', e => errs.push(e.message)); await pg.addInitScript('window.__TEST_NO_CARELESS=1');
   await pg.route('https://survei.test/**', rt => { let u = new URL(rt.request().url()).pathname; if (u.endsWith('/')) u += 'index.html'; let body = fs.readFileSync(path.join(ROOT, u), 'utf8'); if (u.endsWith('config.js')) body = body.replace(/https:\/\/script[^']*/g, 'https://api.test/exec'); rt.fulfill({ body, contentType: u.endsWith('.js') ? 'application/javascript' : 'text/html' }); });
   await pg.route('https://api.test/**', rt => { const out = ctx.doPost({ postData: { contents: rt.request().postData() } }); rt.fulfill({ body: out.getContent(), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }); });
   await pg.route('https://fonts.googleapis.com/**', rt => rt.abort());

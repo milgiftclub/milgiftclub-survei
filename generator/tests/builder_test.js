@@ -83,7 +83,7 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
 
   // ---------- 2. Isi survei di halaman /s/ ----------
   async function respond(who) {
-    const r = await b.newPage({ viewport: { width: 390, height: 844 } });
+    const r = await b.newPage({ viewport: { width: 390, height: 844 } }); await r.addInitScript('window.__TEST_NO_CARELESS=1');
     r.on('pageerror', e => errs.push(who.name + ': ' + e.message));
     await r.route('https://survei.test/**', rt => { let u = new URL(rt.request().url()).pathname; if (u.endsWith('/')) u += 'index.html'; let body = fs.readFileSync(path.join(ROOT, u), 'utf8'); if (u.endsWith('config.js')) body = body.replace(/https:\/\/script[^']*/g, 'https://api.test/exec'); rt.fulfill({ body, contentType: u.endsWith('.js') ? 'application/javascript' : 'text/html' }); });
     await r.route('https://api.test/**', rt => { const out = ctx.doPost({ postData: { contents: rt.request().postData() } }); rt.fulfill({ body: out.getContent(), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }); });
