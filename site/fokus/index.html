@@ -162,7 +162,7 @@
     // Teks tampilan diambil dari config.js (bagian TAMPILAN) -> langsung tampil, tanpa menunggu server
     var T = C.TAMPILAN || {};
     var MAP = { PERIODE_LABEL: 'periodeLabel', HADIAH_UTAMA: 'hadiahUtama', HADIAH: 'hadiah', PERIODE_GIVEAWAY: 'periode',
-      PENGUMUMAN_PEMENANG: 'announce', IG_HANDLE: 'ig', LANGKAH_PENUTUP: 'langkah', PESAN_PENUTUP: 'pesanPenutup', PRIVACY_URL: 'privacy', TNC_URL: 'tnc', TEKS_PEMBUKA: 'intro', PERTANYAAN_PEMBUKA: 'o1q', TEKS_TIDAK_ELIGIBLE: 'teksTidakEligible', TEKS_MENOLAK: 'teksMenolak', TEKS_SUDAH_ISI: 'teksSudahIsi', LINK_SURVEI_LAIN: 'linkLain', TOMBOL_SURVEI_LAIN: 'tombolLain', LINK_INSTAGRAM: 'linkIg', TOMBOL_INSTAGRAM: 'tombolIg' };
+      PENGUMUMAN_PEMENANG: 'announce', LINK_CEK_STATUS: 'linkCek', IG_HANDLE: 'ig', LANGKAH_PENUTUP: 'langkah', PESAN_PENUTUP: 'pesanPenutup', PRIVACY_URL: 'privacy', TNC_URL: 'tnc', TEKS_PEMBUKA: 'intro', PERTANYAAN_PEMBUKA: 'o1q', TEKS_TIDAK_ELIGIBLE: 'teksTidakEligible', TEKS_MENOLAK: 'teksMenolak', TEKS_SUDAH_ISI: 'teksSudahIsi', LINK_SURVEI_LAIN: 'linkLain', TOMBOL_SURVEI_LAIN: 'tombolLain', LINK_INSTAGRAM: 'linkIg', TOMBOL_INSTAGRAM: 'tombolIg' };
     for (var t in MAP) if (T[t] !== undefined) CFG[MAP[t]] = T[t];
     CFG.src = src; CFG.variant = FIXED_VARIANT;
     document.getElementById('nav').style.display = '';
@@ -362,7 +362,8 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     var st = CFG.langkah || [];
     if (!st.length) return '';
     return '<div class="steps"><div class="pr-s">Supaya bisa ikut diundi, lanjutkan langkah berikut:</div><ol>' +
-      '<li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>';
+      '<li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+      (CFG.linkCek ? '<a class="cta cta2" style="display:block;margin-top:10px;text-align:center" href="' + esc(CFG.linkCek + '?ig=' + encodeURIComponent(String(ST.lastIg || ''))) + '" target="_blank" rel="noopener">🔎 Cek status giveaway kamu</a>' : '') + '</div>';
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 
@@ -658,6 +659,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     return o;
   }
   function submit() {
+    ST.lastIg = ST.a.Z2;
     busy(true); btnN.textContent = 'Mengirim...'; waitMsg('Mohon tunggu, kami sedang mengirimkan data Anda…');
     callP('submitResponse', payload({}), function () { waitMsg(''); clearSave(); done(); }, function (e) {
       waitMsg(''); busy(false); btnN.textContent = 'Coba kirim lagi';

@@ -48,7 +48,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     linkLain: T.LINK_SURVEI_LAIN, tombolLain: T.TOMBOL_SURVEI_LAIN, linkIg: T.LINK_INSTAGRAM, tombolIg: T.TOMBOL_INSTAGRAM,
     teksTidakEligible: T.TEKS_TIDAK_ELIGIBLE, teksSudahIsi: T.TEKS_SUDAH_ISI, teksMenolak: T.TEKS_MENOLAK,
     periodeLabel: T.PERIODE_LABEL, hadiahUtama: T.HADIAH_UTAMA, hadiah: T.HADIAH || [], periode: T.PERIODE_GIVEAWAY, announce: T.PENGUMUMAN_PEMENANG,
-    ig: T.IG_HANDLE || '@milgiftclub', langkah: T.LANGKAH_PENUTUP || [], pesanPenutup: T.PESAN_PENUTUP, privacy: T.PRIVACY_URL, tnc: T.TNC_URL
+    ig: T.IG_HANDLE || '@milgiftclub', linkCek: T.LINK_CEK_STATUS || '', langkah: T.LANGKAH_PENUTUP || [], pesanPenutup: T.PESAN_PENUTUP, privacy: T.PRIVACY_URL, tnc: T.TNC_URL
   };
   function ctaButtons(igFirst) {
     var ig = CFG.linkIg ? '<a class="cta ' + (igFirst ? '' : 'cta2') + '" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || ('Follow ' + CFG.ig)) + '</a>' : '';
@@ -87,7 +87,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var nv = document.getElementById('nav'); if (nv) nv.style.background = bg;
     var h = String(B.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
     CFG.ig = h; CFG.linkIg = h ? 'https://www.instagram.com/' + h.slice(1) + '/' : ''; CFG.tombolIg = h ? 'Follow ' + h + ' di Instagram' : '';
-    CFG.linkLain = ''; CFG.pesanPenutup = ''; CFG.periodeLabel = 'Giveaway ' + B.name;
+    CFG.linkLain = ''; CFG.linkCek = ''; CFG.pesanPenutup = ''; CFG.periodeLabel = 'Giveaway ' + B.name;
     CFG.langkah = (CFG.langkah || []).map(function (t) { return String(t).replace(/@milgift_club|@milgiftclub/gi, h || 'kami'); }).filter(function (t) { return h || !/follow/i.test(t); });
     CFG.teksTidakEligible = 'Kamu belum termasuk kriteria survei ini. Terima kasih banyak atas waktumu!';
     CFG.teksSudahIsi = 'Akun Instagram ini sudah pernah mengisi survei ini. Satu akun hanya bisa ikut satu kali. Terima kasih!';
@@ -211,7 +211,8 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     }
     function stepsBox() {
       var st = CFG.langkah || []; if (!G || !st.length) return '';
-      return '<div class="steps"><div class="pr-s">Supaya bisa ikut diundi, lanjutkan langkah berikut:</div><ol><li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>';
+      return '<div class="steps"><div class="pr-s">Supaya bisa ikut diundi, lanjutkan langkah berikut:</div><ol><li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+        (CFG.linkCek ? '<a class="cta cta2" style="display:block;margin-top:10px;text-align:center" href="' + esc(CFG.linkCek + '?ig=' + encodeURIComponent(String(ST.a.Z2 || ''))) + '" target="_blank" rel="noopener">🔎 Cek status giveaway kamu</a>' : '') + '</div>';
     }
     function cur() { var s = seq(), i = ST.cur ? s.indexOf(ST.cur) : 0; return { s: s, i: Math.max(i, 0) }; }
     function render() {

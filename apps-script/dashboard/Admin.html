@@ -498,10 +498,24 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
       <div class="kv"><label>Hadiah</label><input id="d-prize" placeholder="mis. AirPods"></div>
       <div class="kv"><label>Jumlah pemenang</label><input id="d-n" type="number" min="1" value="1"></div>
       <p class="muted" id="d-elig">Menghitung peserta eligible…</p>
-      <p class="muted">Peserta eligible: jawaban berstatus Valid, tidak sedang diblokir/suspend, dan belum pernah menang (1 nomor WA = 1 kesempatan).</p>
+      <p class="muted">Peserta eligible: jawaban berstatus Valid, tidak sedang diblokir/suspend, belum pernah menang (1 nomor WA = 1 kesempatan), dan — bila diaktifkan di bawah — sudah komentar & tag teman.</p>
       <button class="btn" onclick="draw()">Undi sekarang</button>
       <div id="d-res" style="margin-top:14px"></div></div>
     <div class="card"><h2>Riwayat pemenang</h2><div class="tw" style="max-height:52vh"><table id="w-t"></table></div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h2>📷 Syarat Instagram (komentar & tag teman)</h2>
+    <p class="muted">Komentar di postingan giveaway dibaca otomatis lewat Instagram resmi. Follow, like, dan share Story tidak bisa dibaca Instagram — tetap dicek manual saat undian.</p>
+    <div id="ig-st" class="muted">Memuat…</div>
+    <div id="ig-con" style="display:none">
+      <div class="kv"><label>Token dari Meta</label><div class="toolbar" style="margin:0"><input id="ig-tok" type="password" autocomplete="off" placeholder="tempel token di sini" style="max-width:340px"><button class="btn sm" onclick="igConnect()">Sambungkan</button></div></div>
+    </div>
+    <div id="ig-on" style="display:none">
+      <div class="kv"><label>Link postingan giveaway</label><input id="ig-post" placeholder="https://www.instagram.com/p/…  (pisahkan dengan koma bila lebih dari satu)"></div>
+      <div class="kv"><label>Minimal teman di-tag</label><input id="ig-min" type="number" min="0" style="max-width:100px"></div>
+      <label class="row"><span>Wajib komentar + tag untuk ikut undian<small>Bila aktif, peserta yang belum komentar & tag tidak ikut diundi</small></span><span class="switch"><input type="checkbox" id="ig-wajib"><span></span></span></label>
+      <label class="row"><span>Sinkron otomatis tiap jam</span><span class="switch"><input type="checkbox" id="ig-auto" onchange="igAuto()"><span></span></span></label>
+      <div class="toolbar"><button class="btn sm" onclick="igSave(true)">Simpan & sinkron sekarang</button><button class="btn sec sm" onclick="igDisc()">Putuskan</button><span class="muted" id="ig-msg"></span></div>
+    </div>
   </div>
 </section>
 
@@ -777,7 +791,25 @@ function searchPanel() {
 function csvPanel() { csv('panel', PRES.cols, PRES.rows); }
 
 // ---------- undian ----------
-function loadDraw() { loadElig(); loadWin(); }
+function loadDraw() { loadElig(); loadWin(); igLoad(); }
+function igShow(d) {
+  $('ig-con').style.display = d.connected ? 'none' : ''; $('ig-on').style.display = d.connected ? '' : 'none';
+  $('ig-st').innerHTML = d.connected ? '✅ Tersambung ke <b>@' + esc(d.username) + '</b> (Page: ' + esc(d.page) + ') · ' + fmt(d.comments) + ' komentar tersimpan' + (d.lastSync ? ' · sinkron terakhir ' + esc(d.lastSync) : '') + (d.lastMsg ? '<br><span class="muted">' + esc(d.lastMsg) + '</span>' : '')
+    : 'Belum tersambung. Ikuti panduan, lalu tempel token dari Meta di bawah.';
+  if (d.connected) { $('ig-post').value = d.posts; $('ig-min').value = d.minTag; $('ig-wajib').checked = d.wajib; $('ig-auto').checked = d.auto; }
+}
+function igLoad() { run('adminIgStatus').then(igShow); }
+function igConnect() { var t = $('ig-tok').value.trim(); if (!t) return toast('Tempel token dulu'); toast('Menyambungkan…'); run('adminIgConnect', t).then(function (d) { $('ig-tok').value = ''; igShow(d); toast('Instagram tersambung'); }); }
+function igSave(sync) {
+  $('ig-msg').textContent = 'Menyimpan…';
+  run('adminSaveSettings', { IG_POST_GIVEAWAY: $('ig-post').value.trim(), IG_MIN_TAG: +$('ig-min').value || 0, SYARAT_KOMENTAR_WAJIB: $('ig-wajib').checked }).then(function () {
+    if (!sync) return igLoad();
+    $('ig-msg').textContent = 'Membaca komentar…';
+    run('adminIgSync').then(function (d) { $('ig-msg').textContent = ''; igShow(d); loadElig(); toast('Komentar tersinkron'); }, function () { $('ig-msg').textContent = ''; });
+  });
+}
+function igAuto() { run('adminIgAuto', $('ig-auto').checked).then(igShow); }
+function igDisc() { if (confirm('Putuskan sambungan Instagram?')) run('adminIgDisconnect').then(igShow); }
 function loadElig() { $('d-elig').textContent = 'Menghitung…'; run('adminEligible', $('d-v').value).then(function (d) { $('d-elig').innerHTML = '<b>' + fmt(d.count) + '</b> peserta eligible.'; }); }
 function loadWin() { run('adminWinners').then(function (d) { table($('w-t'), d.cols, d.rows.slice().reverse(), { cell: function (c, v) { return c === 'status' ? badge(v) : esc(String(v).replace(/^'/, '')); }, action: function (r, i) { return String(r[7]).indexOf('Gugur') === 0 ? '' : '<button class="btn sec sm" onclick="voidWin(' + (d.rows.length - i + 1) + ')">Gugurkan</button>'; } }); }); }
 function draw() {
@@ -805,7 +837,7 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN'];
+var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
 function loadSet() {
   run('adminSettings').then(function (d) {
     SET = d; delFill(d);

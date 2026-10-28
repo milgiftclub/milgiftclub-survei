@@ -99,6 +99,9 @@ var SET_DEFAULTS = [
   ['TUTUP_V2', '2026-12-31T23:59', 'Survei Fashion Wanita, Tas & Aksesori, Hijab tutup otomatis pada tanggal & jam ini (WIB)'],
   ['PERIODE_KE', 1, 'Periode giveaway survei utama (angka)'],
   ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama'],
+  ['IG_POST_GIVEAWAY', '', 'Link postingan giveaway Instagram (pisahkan dengan koma bila lebih dari satu). Komentar & tag di postingan ini dicek otomatis'],
+  ['IG_MIN_TAG', 3, 'Jumlah teman minimal yang harus di-tag di komentar'],
+  ['SYARAT_KOMENTAR_WAJIB', false, 'TRUE = hanya yang sudah komentar + tag teman yang ikut diundi (aktifkan setelah Instagram tersambung)'],
   ['GARIS_KEMISKINAN', 669235, 'Garis kemiskinan nasional BPS (Rp/kapita/bulan) untuk menghitung kelas ekonomi & SES. Maret 2026 = 669235; perbarui tiap rilis BPS']
 ];
 
@@ -227,6 +230,7 @@ function doPost(e) {
     else if (req.fn === 'lookupIg') data = lookupIg(a[0], a[1]);
     else if (req.fn === 'verifyProfile') data = verifyProfile(a[0], a[1]);
     else if (req.fn === 'getSurvey') data = getSurvey(a[0], a[1]);
+    else if (req.fn === 'giveawayStatus') data = giveawayStatus(a[0]);
     else throw new Error('Fungsi tidak dikenal: ' + req.fn);
     out = { ok: true, data: data };
   } catch (err) {
@@ -1165,11 +1169,12 @@ function adminBlokAdd(ig, wa, reason) { var who = requireAdmin_(); addViolation_
 function eligible_(v) {
   var won = {}, w = sheet_(SH.WIN);
   if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) { if (String(r[7]).indexOf('Gugur') !== 0) won[String(r[4]).replace(/^'/, '')] = 1; });
-  var seen = {};
+  var seen = {}, tags = bool_(set_('SYARAT_KOMENTAR_WAJIB')) ? igTags_() : null, minTag = num_('IG_MIN_TAG') || 3;
   return readAll_().filter(function (r) {
     if (r.status !== 'Valid' || (v !== 'all' && r._v !== v)) return false;
     var k = String(r.wa_normal); if (!k || won[k] || seen[k]) return false;
     if (accessStatus_(String(r.ig_normal), k).state !== 'ok') return false;
+    if (tags && (tags[String(r.ig_normal).toLowerCase()] || 0) < minTag) return false;   // wajib komentar + tag teman
     seen[k] = 1; return true;
   });
 }
@@ -1297,6 +1302,117 @@ function ctShort_(t) {
 }
 function adminCrosstab(v, status) { requireAdmin_(); return ctData_(v, status); }
 function ctIdx_(d, id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; throw new Error('Pertanyaan tidak ditemukan: ' + id + '. Lihat daftar di ?api=questions'); }
+
+// ====== INSTAGRAM: CEK KOMENTAR & TAG DI POSTINGAN GIVEAWAY ======
+// Token Meta disimpan di Script Properties proyek Dashboard (tidak di Sheet). Hasil sinkron ditulis ke tab "Komentar IG".
+var IGC_TAB = 'Komentar IG', IGC_COLS = ['username', 'jumlah_tag', 'teman_ditag', 'komentar', 'waktu', 'postingan', 'comment_id'];
+var IG_API = 'https://graph.facebook.com/v21.0/';
+function igProps_() { return PropertiesService.getScriptProperties(); }
+function igGet_(path, params, token) {
+  var q = Object.keys(params || {}).map(function (k) { return k + '=' + encodeURIComponent(params[k]); }).join('&');
+  var url = /^https:/.test(path) ? path : IG_API + path + '?' + q + (q ? '&' : '') + 'access_token=' + encodeURIComponent(token || igProps_().getProperty('IG_PAGE_TOKEN') || '');
+  var r = UrlFetchApp.fetch(url, { muteHttpExceptions: true }), j = JSON.parse(r.getContentText() || '{}');
+  if (j.error) throw new Error('Instagram: ' + (j.error.message || 'gagal') + (j.error.code === 190 ? ' (token kedaluwarsa / tidak valid, sambungkan ulang)' : ''));
+  return j;
+}
+/** Simpan token dari Meta, cari Page & akun Instagram bisnis yang tersambung. */
+function adminIgConnect(token) {
+  requireAdmin_(); token = String(token || '').trim();
+  if (!token) throw new Error('Tempel token dari Meta dulu.');
+  var pages = igGet_('me/accounts', { fields: 'name,access_token,instagram_business_account{id,username}' }, token).data || [];
+  var pg = pages.filter(function (p) { return p.instagram_business_account; })[0];
+  if (!pg) throw new Error('Tidak ada Facebook Page dengan akun Instagram profesional yang tersambung pada token ini. Pastikan izin pages_show_list & instagram_basic dicentang.');
+  var pr = igProps_();
+  pr.setProperty('IG_PAGE_TOKEN', pg.access_token); pr.setProperty('IG_USER_ID', pg.instagram_business_account.id);
+  pr.setProperty('IG_USERNAME', pg.instagram_business_account.username || ''); pr.setProperty('IG_PAGE_NAME', pg.name || '');
+  return adminIgStatus();
+}
+function adminIgStatus() {
+  requireAdmin_(); var pr = igProps_(), s = sheet_(IGC_TAB);
+  var auto = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'igSyncAuto'; });
+  return { connected: !!pr.getProperty('IG_PAGE_TOKEN'), username: pr.getProperty('IG_USERNAME') || '', page: pr.getProperty('IG_PAGE_NAME') || '', lastSync: pr.getProperty('IG_LAST_SYNC') || '',
+    lastMsg: pr.getProperty('IG_LAST_MSG') || '', comments: s ? Math.max(0, s.getLastRow() - 1) : 0, posts: String(set_('IG_POST_GIVEAWAY') || ''), auto: auto, minTag: num_('IG_MIN_TAG') || 3, wajib: bool_(set_('SYARAT_KOMENTAR_WAJIB')) };
+}
+function adminIgDisconnect() { requireAdmin_(); var pr = igProps_(); ['IG_PAGE_TOKEN', 'IG_USER_ID', 'IG_USERNAME', 'IG_PAGE_NAME'].forEach(function (k) { pr.deleteProperty(k); }); return adminIgStatus(); }
+function shortcode_(u) { var m = String(u || '').match(/instagram\.com\/(?:[^\/]+\/)?(?:p|reel|tv)\/([A-Za-z0-9_-]+)/); return m ? m[1] : ''; }
+/** Ambil semua komentar (dan balasan) di postingan giveaway, hitung jumlah teman yang di-tag. */
+function igSync_() {
+  var pr = igProps_(), ig = pr.getProperty('IG_USER_ID'); if (!ig) throw new Error('Instagram belum tersambung.');
+  var codes = String(set_('IG_POST_GIVEAWAY') || '').split(/[\s,]+/).map(shortcode_).filter(String);
+  if (!codes.length) throw new Error('Isi link postingan giveaway dulu.');
+  var media = {}, page = igGet_(ig + '/media', { fields: 'id,permalink,shortcode', limit: 50 }), guard = 0;
+  while (page && guard++ < 10) {
+    (page.data || []).forEach(function (m) { var c = m.shortcode || shortcode_(m.permalink); if (codes.indexOf(c) >= 0) media[c] = m; });
+    if (codes.every(function (c) { return media[c]; }) || !(page.paging && page.paging.next)) break;
+    page = igGet_(page.paging.next);
+  }
+  var own = String(pr.getProperty('IG_USERNAME') || '').toLowerCase(), rows = [];
+  var add = function (c, code) {
+    var u = String(c.username || '').toLowerCase(), tags = {};
+    (String(c.text || '').match(/@([A-Za-z0-9._]+)/g) || []).forEach(function (t) { t = t.slice(1).toLowerCase().replace(/\.$/, ''); if (t && t !== u && t !== own) tags[t] = 1; });
+    rows.push([u, Object.keys(tags).length, Object.keys(tags).map(function (t) { return '@' + t; }).join(' '), String(c.text || '').slice(0, 300), c.timestamp ? new Date(c.timestamp) : '', code, c.id]);
+  };
+  Object.keys(media).forEach(function (code) {
+    var pg = igGet_(media[code].id + '/comments', { fields: 'id,username,text,timestamp,replies{id,username,text,timestamp}', limit: 50 }), g = 0;
+    while (pg && g++ < 200) {
+      (pg.data || []).forEach(function (c) { add(c, code); ((c.replies && c.replies.data) || []).forEach(function (r) { add(r, code); }); });
+      if (!(pg.paging && pg.paging.next)) break;
+      pg = igGet_(pg.paging.next);
+    }
+  });
+  var ss = ss_(), s = ss.getSheetByName(IGC_TAB) || ss.insertSheet(IGC_TAB);
+  s.clear(); s.getRange(1, 1, 1, IGC_COLS.length).setValues([IGC_COLS]).setFontWeight('bold');
+  if (rows.length) s.getRange(2, 1, rows.length, IGC_COLS.length).setValues(rows);
+  var missing = codes.filter(function (c) { return !media[c]; });
+  var msg = rows.length + ' komentar dari ' + Object.keys(media).length + ' postingan' + (missing.length ? '. Postingan tidak ditemukan di akun ini: ' + missing.join(', ') : '');
+  pr.setProperty('IG_LAST_SYNC', Utilities.formatDate(new Date(), 'Asia/Jakarta', 'd MMM yyyy HH:mm')); pr.setProperty('IG_LAST_MSG', msg);
+  return msg;
+}
+function adminIgSync() { requireAdmin_(); igSync_(); return adminIgStatus(); }
+function igSyncAuto() { try { igSync_(); } catch (e) { igProps_().setProperty('IG_LAST_MSG', 'Gagal: ' + e.message); } }
+function adminIgAuto(on) {
+  requireAdmin_();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'igSyncAuto') ScriptApp.deleteTrigger(t); });
+  if (on) ScriptApp.newTrigger('igSyncAuto').timeBased().everyHours(1).create();
+  return adminIgStatus();
+}
+/** komentar terbaik per username: { username: jumlah_tag } */
+function igTags_() {
+  // teman yang di-tag dihitung unik dari SEMUA komentar orang yang sama (boleh dipecah ke beberapa komentar)
+  var s = sheet_(IGC_TAB), set = {}, o = {}; if (!s || s.getLastRow() < 2) return null;
+  s.getRange(2, 1, s.getLastRow() - 1, 3).getValues().forEach(function (r) {
+    var u = String(r[0]).toLowerCase(); if (!u) return; set[u] = set[u] || {};
+    String(r[2] || '').split(/\s+/).filter(String).forEach(function (t) { set[u][t.toLowerCase()] = 1; });
+  });
+  Object.keys(set).forEach(function (u) { o[u] = Object.keys(set[u]).length; });
+  return o;
+}
+/** Halaman "Cek status giveaway": apa saja syarat yang sudah / belum dipenuhi. */
+function giveawayStatus(ig) {
+  ensureSetup_();
+  var n = normIg_(ig); if (!n) return { ok: false, msg: 'Tulis username Instagram kamu.' };
+  var acc = accessStatus_(n, '');
+  var rows = readAll_().filter(function (r) { return String(r.ig_normal) === n; });
+  var why = function (st) {
+    st = String(st || '');
+    if (st === 'Valid') return '';
+    if (/attention/.test(st)) return 'Jawaban tidak lolos pengecekan perhatian (salah menjawab pertanyaan "pilih Biru").';
+    if (/speeder/.test(st)) return 'Survei diisi terlalu cepat sehingga dianggap tidak valid.';
+    if (/manual/.test(st)) return 'Jawaban dinilai asal-asalan oleh tim.';
+    if (/Duplikat/.test(st)) return 'Kamu sudah pernah mengisi survei ini sebelumnya; hanya jawaban pertama yang dihitung.';
+    if (/setelah survei ditutup/.test(st)) return 'Jawaban masuk setelah survei ditutup.';
+    if (/Diblokir/.test(st)) return 'Akun sedang diblokir karena riwayat jawaban asal-asalan.';
+    return st;
+  };
+  var names = {}; surveyList_().forEach(function (x) { names[x.v] = x.name; });
+  var surveys = rows.map(function (r) { return { name: names[r._v] || r.survei || '', valid: r.status === 'Valid', status: r.status, reason: why(r.status), time: iso_(r.timestamp) }; });
+  var tags = igTags_(), min = num_('IG_MIN_TAG') || 3, t = tags ? tags[n] : null;
+  var komentar = tags == null ? { state: 'manual' } : t == null ? { state: 'belum', min: min } : t >= min ? { state: 'ok', n: t, min: min } : { state: 'kurang', n: t, min: min };
+  var surveyOk = surveys.some(function (x) { return x.valid; }) && acc.state === 'ok';
+  return { ok: true, ig: '@' + n, blocked: acc.state !== 'ok' ? { state: acc.state, until: acc.until ? fmt_(acc.until) : '', email: set_('EMAIL_BUKA_AKSES') } : null,
+    surveys: surveys, surveyOk: surveyOk, komentar: komentar, periode: mainPeriode_('v1').label, posts: String(set_('IG_POST_GIVEAWAY') || '').split(/[\s,]+/).filter(String),
+    eligible: surveyOk && (komentar.state === 'ok' || komentar.state === 'manual') };
+}
 
 // ====== HAPUS DATA (mis. data uji coba) ======
 // Baris dihapus dari tab; salinannya disimpan dulu di tab tersembunyi "Arsip ..." (bisa dikembalikan manual).

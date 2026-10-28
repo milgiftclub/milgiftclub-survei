@@ -44,6 +44,8 @@ window.SURVEI_CONFIG = {
     // Tombol Instagram di halaman penutup (terima kasih, tidak lolos, survei ditutup)
     TOMBOL_INSTAGRAM: 'Follow @milgiftclub di Instagram',
     LINK_INSTAGRAM: 'https://www.instagram.com/milgiftclub/',
+    // Halaman cek status giveaway (tombol di halaman terima kasih)
+    LINK_CEK_STATUS: 'https://milgiftclub.github.io/milgiftclub-survei/cek/',
 
     PRIVACY_URL: '',   // link Kebijakan Privasi (kosong = tidak ditampilkan)
     TNC_URL: ''        // link Syarat & Ketentuan giveaway (kosong = tidak ditampilkan)

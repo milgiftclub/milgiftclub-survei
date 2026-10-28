@@ -290,7 +290,8 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     var st = CFG.langkah || [];
     if (!st.length) return '';
     return '<div class="steps"><div class="pr-s">Supaya bisa ikut diundi, lanjutkan langkah berikut:</div><ol>' +
-      '<li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>';
+      '<li class="ok">✅ Isi survei ini <b>(selesai!)</b></li>' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+      (CFG.linkCek ? '<a class="cta cta2" style="display:block;margin-top:10px;text-align:center" href="' + esc(CFG.linkCek + '?ig=' + encodeURIComponent(String(ST.lastIg || ''))) + '" target="_blank" rel="noopener">🔎 Cek status giveaway kamu</a>' : '') + '</div>';
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 
@@ -586,6 +587,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     return o;
   }
   function submit() {
+    ST.lastIg = ST.a.Z2;
     busy(true); btnN.textContent = 'Mengirim...'; waitMsg('Mohon tunggu, kami sedang mengirimkan data Anda…');
     callP('submitResponse', payload({}), function () { waitMsg(''); clearSave(); done(); }, function (e) {
       waitMsg(''); busy(false); btnN.textContent = 'Coba kirim lagi';

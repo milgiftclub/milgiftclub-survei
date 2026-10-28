@@ -59,7 +59,7 @@ BOOT = r'''<script src="%(cfgpath)s"></script>
     // Teks tampilan diambil dari config.js (bagian TAMPILAN) -> langsung tampil, tanpa menunggu server
     var T = C.TAMPILAN || {};
     var MAP = { PERIODE_LABEL: 'periodeLabel', HADIAH_UTAMA: 'hadiahUtama', HADIAH: 'hadiah', PERIODE_GIVEAWAY: 'periode',
-      PENGUMUMAN_PEMENANG: 'announce', IG_HANDLE: 'ig', LANGKAH_PENUTUP: 'langkah', PESAN_PENUTUP: 'pesanPenutup', PRIVACY_URL: 'privacy', TNC_URL: 'tnc', TEKS_PEMBUKA: 'intro', PERTANYAAN_PEMBUKA: 'o1q', TEKS_TIDAK_ELIGIBLE: 'teksTidakEligible', TEKS_MENOLAK: 'teksMenolak', TEKS_SUDAH_ISI: 'teksSudahIsi', LINK_SURVEI_LAIN: 'linkLain', TOMBOL_SURVEI_LAIN: 'tombolLain', LINK_INSTAGRAM: 'linkIg', TOMBOL_INSTAGRAM: 'tombolIg' };
+      PENGUMUMAN_PEMENANG: 'announce', LINK_CEK_STATUS: 'linkCek', IG_HANDLE: 'ig', LANGKAH_PENUTUP: 'langkah', PESAN_PENUTUP: 'pesanPenutup', PRIVACY_URL: 'privacy', TNC_URL: 'tnc', TEKS_PEMBUKA: 'intro', PERTANYAAN_PEMBUKA: 'o1q', TEKS_TIDAK_ELIGIBLE: 'teksTidakEligible', TEKS_MENOLAK: 'teksMenolak', TEKS_SUDAH_ISI: 'teksSudahIsi', LINK_SURVEI_LAIN: 'linkLain', TOMBOL_SURVEI_LAIN: 'tombolLain', LINK_INSTAGRAM: 'linkIg', TOMBOL_INSTAGRAM: 'tombolIg' };
     for (var t in MAP) if (T[t] !== undefined) CFG[MAP[t]] = T[t];
     CFG.src = src; CFG.variant = FIXED_VARIANT;
     document.getElementById('nav').style.display = '';
@@ -122,3 +122,8 @@ html = tpl.replace('__STYLE__', style).replace('__STD__', json.dumps(std, ensure
 os.makedirs(os.path.join(OUT, 's'), exist_ok=True)
 open(os.path.join(OUT, 's', 'index.html'), 'w').write(html)
 print('ok s/')
+# ---- halaman cek status giveaway: /cek/?ig=... ----
+ck = open('survey_src/Cek.html.tpl').read().replace('__STYLE__', style)
+os.makedirs(os.path.join(OUT, 'cek'), exist_ok=True)
+open(os.path.join(OUT, 'cek', 'index.html'), 'w').write(ck)
+print('ok cek/')
