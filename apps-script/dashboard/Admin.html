@@ -138,12 +138,18 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .per-prev .pr-l{font-weight:800;margin-bottom:6px} .per-prev .pr-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
 #per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t input[type=date]{width:142px} #per-t th,#per-t td{padding-left:8px;padding-right:8px} #per-t td{vertical-align:middle}
 .rg-d{display:inline-flex;align-items:center;gap:6px} .rg-d input{width:auto;padding:6px 8px}
-.ms{position:relative} .ms summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:9px 34px 9px 12px;background:#fff;min-width:220px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
-.ms summary::-webkit-details-marker{display:none} .ms summary:after{content:'▾';position:absolute;right:12px;top:8px;color:var(--muted)}
-.ms-l{position:absolute;z-index:30;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,.14);padding:8px;width:340px;max-height:320px;overflow:auto}
-.ms-l label{display:flex;gap:8px;align-items:center;padding:6px 6px;border-radius:8px;cursor:pointer;font-size:13.5px} .ms-l label:hover{background:var(--navy-l, #eef1fb)}
-.ms-l label span{flex:1} .ms-l label small{color:var(--muted)} .ms-l input[type=checkbox]{width:auto} .ms-q{width:100%;margin-bottom:6px}
-.ronde{margin-top:8px;font-size:13.5px;line-height:1.6} .rd{display:inline-block} .rd summary{cursor:pointer;color:var(--navy);font-weight:700} .rd ul{margin:6px 0 8px;padding-left:18px}
+.crit{border:1px solid var(--line);border-radius:14px;margin:8px 0;background:#fff}
+.crit.view{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.crit .cn{font-weight:800;color:var(--navy);min-width:20px} .crit .ct{flex:1;line-height:1.6;font-size:14px}
+.crit .cv{display:inline-block;background:var(--navy-l, #eef1fb);color:var(--navy);border-radius:999px;padding:1px 10px;font-weight:700;font-size:13px;margin:1px 0}
+.crit .ib{border:0;background:none;cursor:pointer;color:var(--muted);padding:6px;border-radius:8px;display:inline-flex} .crit .ib:hover{background:var(--navy-l, #eef1fb);color:var(--navy)}
+.crit.edit{padding:12px;border-color:var(--navy);box-shadow:0 0 0 3px rgba(40,50,150,.08)}
+.ce-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .ce-h .c-col{flex:1;min-width:220px;width:auto} .ce-h .c-op{width:auto}
+.c-vw{margin-top:10px} .c-vw .ms-q{width:100%;max-width:360px;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;max-height:260px;overflow:auto}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;cursor:pointer;font-size:13.5px;background:#fff;user-select:none}
+.chip input{width:auto;margin:0} .chip small{color:var(--muted);font-size:11.5px} .chip:has(input:checked){border-color:var(--navy);background:var(--navy-l, #eef1fb);color:var(--navy);font-weight:700}
+.ce-f{display:flex;gap:8px;margin-top:12px}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
@@ -872,40 +878,65 @@ function setSt(v, sid, st, vio) {
 
 // ---------- panel ----------
 var PCOLS = [], PRES = { cols: [], rows: [] }, OPS = ['sama dengan', 'tidak sama dengan', 'mengandung', 'tidak mengandung'];
-// kriteria panel: pilihan jawaban mengikuti tipe pertanyaan (SA = pilih satu, MA = boleh lebih dari satu)
+// kriteria panel: semua jawaban bisa dipilih lebih dari satu; tampil sebagai kalimat, klik ✏️ untuk mengubah
 var POPS = { sa: [['adalah', 'adalah'], ['bukan', 'bukan']], ma: [['memilih salah satu', 'memilih salah satu dari'], ['memilih semua', 'memilih semua'], ['tidak memilih', 'tidak memilih']],
   num: [['minimal', 'minimal'], ['maksimal', 'maksimal']], text: [['mengandung', 'mengandung'], ['sama dengan', 'sama dengan']] };
+var PEN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 function loadPanel() {
   $('pn-crit').innerHTML = '<p class="loading">Memuat daftar profil…</p>';
-  run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', 'Wanita'); addCrit(); searchPanel(); });
+  run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true); searchPanel(); });
 }
 function pcol(name) { return PCOLS.filter(function (c) { return c.col === name; })[0] || PCOLS[0]; }
-function addCrit(col, op, val) {
-  var d = document.createElement('div'); d.className = 'toolbar crit'; d.style.margin = '6px 0';
-  d.innerHTML = '<select class="c-col">' + PCOLS.map(function (c) { return '<option value="' + esc(c.col) + '"' + (c.col === col ? ' selected' : '') + '>' + esc(c.label) + (c.type === 'ma' ? ' (pilihan ganda)' : '') + '</option>'; }).join('') + '</select>' +
-    '<select class="c-op"></select><span class="c-vw"></span><button class="btn sec sm">Hapus</button>';
-  d.querySelector('button').onclick = function () { d.remove(); };
-  d.querySelector('.c-col').onchange = function () { critVal(d); };
-  $('pn-crit').appendChild(d); critVal(d, op, val);
+function addCrit(col, op, val, done) {
+  var d = document.createElement('div'); d.className = 'crit';
+  d._k = { col: col || '', op: op || '', val: [].concat(val || []) };
+  $('pn-crit').appendChild(d);
+  if (done && d._k.col) critView(d); else critEdit(d);
+  critNum();
 }
-function critVal(d, op, val) {
-  var c = pcol(d.querySelector('.c-col').value), ops = POPS[c.type];
-  d.querySelector('.c-op').innerHTML = ops.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === op ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
-  var w = d.querySelector('.c-vw'), sel = [].concat(val || []), cnt = function (o) { return o[1] ? ' (' + fmt(o[1]) + ')' : ''; };
-  if (c.type === 'sa') w.innerHTML = '<select class="c-val"><option value="">— pilih jawaban —</option>' + c.opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (sel.indexOf(o[0]) >= 0 ? ' selected' : '') + '>' + esc(o[0]) + cnt(o) + '</option>'; }).join('') + '</select>';
-  else if (c.type === 'ma') {
-    w.innerHTML = '<details class="ms"><summary>Pilih jawaban</summary><div class="ms-l">' + (c.opts.length > 8 ? '<input class="ms-q" placeholder="Cari pilihan…">' : '') +
-      c.opts.map(function (o) { return '<label><input type="checkbox" value="' + esc(o[0]) + '"' + (sel.indexOf(o[0]) >= 0 ? ' checked' : '') + '> <span>' + esc(o[0]) + '</span><small>' + (o[1] ? fmt(o[1]) : '') + '</small></label>'; }).join('') +
-      (c.opts.length ? '' : '<p class="muted">Belum ada jawaban di panel.</p>') + '</div></details>';
-    var upd = function () { var v = critGet(d).val; w.querySelector('summary').textContent = v.length ? v.join(', ') : 'Pilih jawaban'; };
-    [].forEach.call(w.querySelectorAll('input[type=checkbox]'), function (x) { x.onchange = upd; });
-    var q = w.querySelector('.ms-q'); if (q) q.oninput = function () { var t = q.value.toLowerCase(); [].forEach.call(w.querySelectorAll('label'), function (l) { l.style.display = l.textContent.toLowerCase().indexOf(t) >= 0 ? '' : 'none'; }); };
-    upd();
+function critNum() { [].forEach.call($('pn-crit').querySelectorAll('.crit'), function (d, i) { var n = d.querySelector('.cn'); if (n) n.textContent = (i + 1) + '.'; }); }
+function critDel(d) { d.remove(); critNum(); searchPanel(); }
+function critText(k) {
+  var c = pcol(k.col), v = [].concat(k.val).filter(String), op = (POPS[c.type].filter(function (o) { return o[0] === k.op; })[0] || POPS[c.type][0])[1];
+  if (!v.length) return '<b>' + esc(c.label) + '</b> <span class="muted">— belum ada jawaban dipilih</span>';
+  var join = k.op === 'memilih semua' ? ' dan ' : ' atau ';
+  var list = v.map(function (x) { return '<span class="cv">' + esc(x) + '</span>'; });
+  var vs = list.length > 1 ? list.slice(0, -1).join(', ') + join + list[list.length - 1] : list[0];
+  return '<b>' + esc(c.label) + '</b> ' + esc(op) + ' ' + vs;
+}
+function critView(d) {
+  d.className = 'crit view';
+  d.innerHTML = '<span class="cn"></span><div class="ct">' + critText(d._k) + '</div><button class="ib" title="Ubah">' + PEN + '</button><button class="ib" title="Hapus">' + TRASH + '</button>';
+  var bt = d.querySelectorAll('.ib'); bt[0].onclick = function () { critEdit(d); critNum(); }; bt[1].onclick = function () { critDel(d); };
+  critNum();
+}
+function critEdit(d) {
+  d.className = 'crit edit';
+  d.innerHTML = '<div class="ce-h"><span class="cn"></span><select class="c-col">' + PCOLS.map(function (c) { return '<option value="' + esc(c.col) + '"' + (c.col === d._k.col ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') +
+    '</select><select class="c-op"></select></div><div class="c-vw"></div><div class="ce-f"><button class="btn sm">Selesai</button><button class="btn sec sm">Hapus</button></div>';
+  var colSel = d.querySelector('.c-col');
+  if (!d._k.col) d._k.col = colSel.value;
+  colSel.onchange = function () { d._k = { col: colSel.value, op: '', val: [] }; critOpts(d); };
+  var fb = d.querySelectorAll('.ce-f button');
+  fb[0].onclick = function () { d._k = critGet(d); critView(d); searchPanel(); };
+  fb[1].onclick = function () { critDel(d); };
+  critOpts(d); critNum();
+}
+function critOpts(d) {
+  var c = pcol(d._k.col), ops = POPS[c.type], sel = d._k.val;
+  d.querySelector('.c-op').innerHTML = ops.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === d._k.op ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  var w = d.querySelector('.c-vw');
+  if (c.type === 'sa' || c.type === 'ma') {
+    w.innerHTML = (c.opts.length > 12 ? '<input class="ms-q" placeholder="Cari pilihan…">' : '') + '<div class="chips">' +
+      c.opts.map(function (o) { return '<label class="chip"><input type="checkbox" value="' + esc(o[0]) + '"' + (sel.indexOf(o[0]) >= 0 ? ' checked' : '') + '><span>' + esc(o[0]) + '</span>' + (o[1] ? '<small>' + fmt(o[1]) + '</small>' : '') + '</label>'; }).join('') +
+      (c.opts.length ? '' : '<p class="muted">Belum ada jawaban di panel.</p>') + '</div><p class="muted" style="font-size:12px;margin:6px 0 0">' + (c.type === 'ma' ? 'Pertanyaan pilihan ganda. ' : '') + 'Boleh pilih lebih dari satu jawaban.</p>';
+    var q = w.querySelector('.ms-q'); if (q) q.oninput = function () { var t = q.value.toLowerCase(); [].forEach.call(w.querySelectorAll('.chip'), function (l) { l.style.display = l.textContent.toLowerCase().indexOf(t) >= 0 ? '' : 'none'; }); };
   } else w.innerHTML = '<input class="c-val"' + (c.type === 'num' ? ' type="number"' : '') + ' placeholder="' + (c.type === 'num' ? 'angka' : 'ketik teks') + '" value="' + esc(sel[0] || '') + '">';
 }
 function critGet(d) {
+  if (!d.classList.contains('edit')) return d._k;
   var c = pcol(d.querySelector('.c-col').value), op = d.querySelector('.c-op').value;
-  var val = c.type === 'ma' ? [].map.call(d.querySelectorAll('.ms-l input[type=checkbox]:checked'), function (x) { return x.value; }) : d.querySelector('.c-val').value;
+  var val = c.type === 'sa' || c.type === 'ma' ? [].map.call(d.querySelectorAll('.chip input:checked'), function (x) { return x.value; }) : d.querySelector('.c-val').value;
   return { col: c.col, op: op, val: val };
 }
 function searchPanel() {

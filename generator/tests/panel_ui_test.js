@@ -39,22 +39,27 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   console.log('types:', ['usia', 'jenis_kelamin', 'platform_dipakai_1bln', 'media_sosial_harian', 'ses', 'kota', 'jumlah_survei', 'instagram'].map(n => n + '=' + (by(n) || {}).type + '/' + ((by(n) || {}).opts || []).length).join(' '));
   console.log('usia opts:', JSON.stringify(by('usia').opts.slice(0, 6)));
   await p.locator('nav.side button', { hasText: 'Panel' }).click(); await p.waitForTimeout(1500);
-  console.log('awal:', await p.textContent('#pn-n'));
-  // baris 2: usia (SA)
-  const r2 = p.locator('#pn-crit .crit').nth(1);
-  await r2.locator('.c-col').selectOption('usia'); await p.waitForTimeout(100);
-  console.log('usia val options:', (await r2.locator('select.c-val option').allTextContents()).slice(0, 5).join(' | '));
-  await r2.locator('select.c-val').selectOption('25-34 tahun');
-  // baris 3: platform (MA)
+  const txt = async () => (await p.$$eval('#pn-crit .crit', l => l.map(x => x.innerText.replace(/\s+/g, ' ').trim()))).join(' || ');
+  console.log('awal:', await txt(), '|', await p.textContent('#pn-n'));
+  // ubah kriteria 1: Pria + Wanita
+  await p.locator('#pn-crit .crit').nth(0).locator('.ib').first().click();
+  await p.locator('#pn-crit .crit').nth(0).locator('.chip', { hasText: 'Pria' }).click();
+  await p.locator('#pn-crit .crit').nth(0).locator('text=Selesai').click(); await p.waitForTimeout(1200);
+  console.log('setelah edit:', await txt(), '|', await p.textContent('#pn-n'));
+  // tambah usia 18-24 & 25-34
+  await p.click('text=+ Tambah kriteria'); const r2 = p.locator('#pn-crit .crit').nth(1);
+  await r2.locator('.c-col').selectOption('usia');
+  await r2.locator('.chip', { hasText: '18-24' }).click(); await r2.locator('.chip', { hasText: '25-34' }).click();
+  await p.screenshot({ path: SP + 'adm_panel_edit.png' });
+  await r2.locator('text=Selesai').click(); await p.waitForTimeout(1000);
+  // platform MA
   await p.click('text=+ Tambah kriteria'); const r3 = p.locator('#pn-crit .crit').nth(2);
-  await r3.locator('.c-col').selectOption('platform_dipakai_1bln'); await r3.locator('summary').click();
-  const boxes = r3.locator('.ms-l input[type=checkbox]'); console.log('platform choices:', await boxes.count(), (await r3.locator('.ms-l label').allTextContents()).slice(0, 4).join(' | '));
-  await boxes.nth(0).check(); await boxes.nth(1).check(); console.log('summary:', await r3.locator('summary').textContent());
-  await r3.locator('summary').click();
-  await p.locator('#p-panel button', { hasText: /^Cari$/ }).click(); await p.waitForTimeout(1500);
-  console.log('hasil:', await p.textContent('#pn-n'));
+  await r3.locator('.c-col').selectOption('platform_dipakai_1bln'); await r3.locator('.c-op').selectOption('memilih semua');
+  await r3.locator('.chip', { hasText: 'Shopee' }).click(); await r3.locator('.chip', { hasText: 'TikTok Shop' }).click();
+  await r3.locator('text=Selesai').click(); await p.waitForTimeout(1200);
+  console.log('kalimat:', await txt(), '|', await p.textContent('#pn-n'));
   const crit = await p.evaluate(() => [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet)); console.log('crit:', JSON.stringify(crit));
-  const n = ctx.adminPanelSearch(crit).rows.length; console.log('server cek:', n);
-  await r3.locator('summary').click(); await p.screenshot({ path: SP + 'adm_panel.png' });
+  console.log('server cek:', ctx.adminPanelSearch(crit).rows.length);
+  await p.screenshot({ path: SP + 'adm_panel.png' });
   console.log('JS errors:', errs); await b.close();
 })();
