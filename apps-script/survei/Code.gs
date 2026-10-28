@@ -1171,6 +1171,126 @@ function adminRunTask(name) {
   return { ok: true };
 }
 
+// ====== CROSS TAB (Dashboard & API ATLAS) ======
+// ====== CROSS TAB & INSIGHT OTOMATIS (dipakai bersama: Code.gs untuk API ATLAS, Admin.html untuk Dashboard) ======
+// Format data: qs[i] = { id, text, sect, multi, cats: [...] }; data[r][i] = daftar indeks jawaban responden r untuk pertanyaan i.
+var CT_LIB = {
+  /** Satu tabel silang. o: { mode: 'col'|'row'|'count', hideEmpty: true, sort: 'orig'|'desc', rows: [indeks responden] } */
+  table: function (qs, data, ri, ci, o) {
+    o = o || {};
+    var mode = o.mode || 'col', rq = qs[ri], cq = qs[ci];
+    var R = o.rows ? o.rows.map(function (i) { return data[i]; }) : data;
+    var nr = rq.cats.length, nc = cq.cats.length, totN = 0, colN = [], tn = [], rb = [], cnt = [], a, b, r, x, y;
+    for (a = 0; a < nc; a++) colN.push(0);
+    for (a = 0; a < nr; a++) { tn.push(0); rb.push(0); cnt.push(colN.slice()); }
+    for (x = 0; x < R.length; x++) {
+      r = R[x]; var rv = r[ri], cv = r[ci];
+      if (!rv.length) continue;
+      totN++;
+      for (b = 0; b < cv.length; b++) colN[cv[b]]++;
+      for (a = 0; a < rv.length; a++) { tn[rv[a]]++; if (cv.length) rb[rv[a]]++; for (y = 0; y < cv.length; y++) cnt[rv[a]][cv[y]]++; }
+    }
+    var cols = cq.cats.map(function (name, k) { return { name: name, k: k, n: colN[k] }; });
+    if (o.hideEmpty !== false) cols = cols.filter(function (c) { return c.n; });
+    var lines = rq.cats.map(function (name, k) {
+      var line = { name: name, k: k, rowBase: tn[k], tot: { n: tn[k], v: mode === 'count' ? tn[k] : mode === 'row' ? 100 : CT_LIB.pct(tn[k], totN) }, cells: [] };
+      cols.forEach(function (c) {
+        var n = cnt[k][c.k];
+        var v = mode === 'count' ? n : mode === 'row' ? CT_LIB.pct(n, rb[k]) : CT_LIB.pct(n, c.n);
+        // uji beda proporsi: kelompok kolom vs responden lainnya (z, 95%)
+        var p1 = c.n ? n / c.n : 0, n2 = totN - c.n, p2 = n2 > 0 ? (tn[k] - n) / n2 : 0, pp = totN ? tn[k] / totN : 0;
+        var se = Math.sqrt(pp * (1 - pp) * (1 / Math.max(1, c.n) + 1 / Math.max(1, n2)));
+        var z = se > 0 && n2 > 0 ? (p1 - p2) / se : 0;
+        var d = c.n && totN ? (p1 - tn[k] / totN) * 100 : 0;
+        line.cells.push({ n: n, v: v, d: Math.round(d * 10) / 10, z: Math.round(z * 100) / 100, sig: Math.abs(z) >= 1.96 && c.n >= 10 });
+      });
+      return line;
+    });
+    if (o.sort === 'desc') lines.sort(function (a, b) { return b.tot.n - a.tot.n; });
+    return { row: { id: rq.id, text: rq.text, multi: !!rq.multi }, col: { id: cq.id, text: cq.text, multi: !!cq.multi }, mode: mode, base: totN,
+      cols: cols.map(function (c) { return { name: c.name, n: c.n, small: c.n < 10 }; }), lines: lines };
+  },
+  pct: function (a, b) { return b ? Math.round(a / b * 1000) / 10 : null; },
+  /** Temuan otomatis: kelompok (banner) yang jawabannya berbeda nyata dari rata-rata. o: { banners: [id], minBase, max, rows } */
+  insights: function (qs, data, o) {
+    o = o || {};
+    var idx = {}; qs.forEach(function (q, i) { idx[q.id] = i; });
+    var R = o.rows ? o.rows.map(function (i) { return data[i]; }) : data, N = R.length;
+    var minBase = o.minBase || (N >= 300 ? 30 : N >= 100 ? 20 : 10), max = o.max || 8;
+    var banners = (o.banners || []).map(function (id) { return idx[id]; }).filter(function (i) { return i != null && qs[i].cats.length >= 2 && qs[i].cats.length <= 12; });
+    // yang dicari: perbedaan jawaban PERTANYAAN UTAMA antar kelompok profil (bukan profil vs profil, mis. SES vs pengeluaran)
+    var skipSect = o.skipSect || /^(Profil|Screening|Tentang kamu)/i;
+    var targets = qs.map(function (q, i) { return i; }).filter(function (i) { return banners.indexOf(i) < 0 && qs[i].cats.length >= 2 && qs[i].cats.length <= 30 && !skipSect.test(qs[i].sect || '') && (!o.skip || o.skip.indexOf(qs[i].id) < 0); });
+    var found = [];
+    targets.forEach(function (ti) {
+      banners.forEach(function (bi) {
+        var t = CT_LIB.table(qs, data, ti, bi, { mode: 'col', rows: o.rows });
+        if (t.base < minBase * 2) return;
+        t.lines.forEach(function (l) {
+          if (l.tot.v == null || l.tot.v < 5) return;   // jawaban yang sangat jarang dipilih dilewati
+          l.cells.forEach(function (c, j) {
+            var col = t.cols[j];
+            if (col.n < minBase || !c.sig || Math.abs(c.d) < 10) return;
+            found.push({ score: Math.abs(c.d) * Math.sqrt(col.n), row: qs[ti].id, col: qs[bi].id, rowText: qs[ti].text, colText: qs[bi].text, segment: col.name, answer: l.name,
+              pct: c.v, avg: l.tot.v, diff: c.d, n: col.n, z: c.z, multi: !!qs[ti].multi });
+          });
+        });
+      });
+    });
+    found.sort(function (a, b) { return b.score - a.score; });
+    var out = [], perRow = {}, perCol = {};
+    for (var i = 0; i < found.length && out.length < max; i++) {
+      var f = found[i];
+      if (perRow[f.row] || (perCol[f.col] || 0) >= Math.ceil(max / 3)) continue;
+      perRow[f.row] = 1; perCol[f.col] = (perCol[f.col] || 0) + 1;
+      f.title = f.segment + (f.diff > 0 ? ' lebih banyak' : ' lebih sedikit') + ' memilih "' + f.answer + '"';
+      f.text = f.pct + '% dari ' + f.segment + ' (n=' + f.n + ') memilih "' + f.answer + '" pada ' + f.row + ' (' + f.rowText + '), dibanding ' + f.avg + '% rata-rata semua responden — selisih ' + (f.diff > 0 ? '+' : '') + f.diff + ' poin (signifikan, 95%).';
+      out.push(f);
+    }
+    return out;
+  }
+};
+
+var CT_BANNERS = ['S1', 'S2', 'ses', 'kelas_ekonomi', 'wilayah', 'A4', 'A5', 'A18', 'A13', 'A6', 'S5', 'D0'];
+var CT_SKIP = ['O1', 'Z1', 'QC1', 'PR', 'S0B', 'PV', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'kategori_ditugaskan', 'kategori_2', 'pengeluaran_per_kapita', 'profil_diperbarui', 'S0'];
+function wilayah_(r) {
+  var JAWA = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur'], SUM = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung'];
+  if (!r.provinsi) return '';
+  return r.jabodetabek === 'Ya' ? 'Jabodetabek' : JAWA.indexOf(r.provinsi) >= 0 ? 'Jawa lainnya' : SUM.indexOf(r.provinsi) >= 0 ? 'Sumatera' : 'Kalimantan, Sulawesi & Indonesia Timur';
+}
+/** Data ringkas untuk cross tab: hanya pertanyaan pilihan (tanpa teks bebas & data pribadi). */
+function ctData_(v, status) {
+  var rows = readAll_().filter(function (r) { return r._v === v && (status === 'all' || r.status === 'Valid'); });
+  rows.forEach(function (r) { r.wilayah = wilayah_(r); });
+  var s = sheet_(respTab_(v)), header = s && s.getLastColumn() ? s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0] : [];
+  var meta = reportMeta_(v), base = function (col) { return col.replace(/^L\d_/, ''); };
+  meta.wilayah = { text: 'Wilayah (otomatis dari kota)', topic: 'Profil', opts: ['Jabodetabek', 'Jawa lainnya', 'Sumatera', 'Kalimantan, Sulawesi & Indonesia Timur'] };
+  meta.kategori_1 = meta.kategori_1 || { text: 'Kategori yang dibahas', topic: 'Belanja terakhir' };
+  var cols = header.filter(function (c) { return c && (META.indexOf(c) < 0 || c === 'kategori_1') && !/_lainnya$/.test(c) && CT_SKIP.indexOf(base(c).split(': ')[0]) < 0 && ['Z2', 'Z3'].indexOf(c) < 0; });
+  if (cols.indexOf('provinsi') >= 0 || header.indexOf('provinsi') >= 0) cols.splice(Math.max(0, cols.indexOf('S2') + 1), 0, 'wilayah');
+  var qs = [], data = rows.map(function () { return []; });
+  cols.forEach(function (col) {
+    var mx = col.match(/^(.+?): (.+)$/), id = mx ? mx[1] : col, m = meta[base(id)] || {};
+    var vals = rows.map(function (r) { var x = r[col]; return x === '' || x == null ? [] : String(x).split(' | '); });
+    var seen = {}, nAns = 0; vals.forEach(function (a) { if (a.length) nAns++; a.forEach(function (x) { seen[x] = (seen[x] || 0) + 1; }); });
+    if (!nAns) return;
+    var keys = Object.keys(seen), opts = (m.opts || []).slice();
+    if (!opts.length && keys.length > 25) return;                 // teks bebas / angka bebas -> tidak bisa di-cross tab
+    var cats = opts.filter(function (x) { return seen[x]; });
+    keys.sort(function (a, b) { return seen[b] - seen[a]; }).forEach(function (k) { if (cats.indexOf(k) < 0) cats.push(k); });
+    if (cats.length > 40) cats = cats.slice(0, 40);
+    var multi = vals.some(function (a) { return a.length > 1; }) || m.type === 'multi';
+    var qi = qs.length;
+    qs.push({ id: col, text: (m.text || id) + (mx ? ' — ' + mx[2] : '') + (/^L\d_/.test(col) ? ' (modul kategori)' : ''), sect: m.topic || 'Lainnya', multi: multi, cats: cats });
+    vals.forEach(function (a, i) { data[i][qi] = a.map(function (x) { return cats.indexOf(x); }).filter(function (k) { return k >= 0; }); });
+  });
+  var ts = rows.map(function (r) { return new Date(r.timestamp).getTime(); }).filter(function (x) { return !isNaN(x); }).sort();
+  return { qs: qs, data: data, meta: { n: rows.length, first: ts.length ? fmt_(new Date(ts[0])) : '', last: ts.length ? fmt_(new Date(ts[ts.length - 1])) : '', status: status === 'all' ? 'Semua jawaban' : 'Hanya jawaban valid' },
+    banners: CT_BANNERS.filter(function (b) { return qs.some(function (q) { return q.id === b; }); }) };
+}
+function adminCrosstab(v, status) { requireAdmin_(); return ctData_(v, status); }
+function ctIdx_(d, id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; throw new Error('Pertanyaan tidak ditemukan: ' + id + '. Lihat daftar di ?api=questions'); }
+
 // ====== HAPUS DATA (mis. data uji coba) ======
 // Baris dihapus dari tab; salinannya disimpan dulu di tab tersembunyi "Arsip ..." (bisa dikembalikan manual).
 // Definisi survei (pertanyaan, link) TIDAK ikut terhapus.
@@ -1250,7 +1370,13 @@ function apiGet_(p) {
       var since = p.since ? new Date(p.since) : null, st = p.status || 'Valid';
       out = readAll_().filter(function (r) { return (v === 'all' || r._v === v) && (st === 'all' || r.status === st) && (!since || new Date(r.timestamp) >= since); })
         .map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { if (API_HIDE.indexOf(k) < 0) o[k] = iso_(r[k]); }); o.survei_id = r._v; return o; });
-    } else throw new Error('Endpoint tidak dikenal. Gunakan: summary, daily, quota, responses');
+    } else if (p.api === 'questions' || p.api === 'crosstab' || p.api === 'insights') {
+      if (v === 'all') throw new Error('Isi parameter survei, mis. &survei=v1');
+      var cd = ctData_(v, p.status === 'all' ? 'all' : 'Valid');
+      if (p.api === 'questions') out = { n: cd.meta.n, banners: cd.banners, questions: cd.qs.map(function (q) { return { id: q.id, text: q.text, section: q.sect, multi: q.multi, answers: q.cats }; }) };
+      else if (p.api === 'crosstab') out = CT_LIB.table(cd.qs, cd.data, ctIdx_(cd, p.row), ctIdx_(cd, p.col || 'S1'), { mode: p.mode || 'col', sort: p.sort });
+      else out = { n: cd.meta.n, insights: CT_LIB.insights(cd.qs, cd.data, { banners: p.banners ? String(p.banners).split(',') : cd.banners, max: Number(p.max) || 8 }) };
+    } else throw new Error('Endpoint tidak dikenal. Gunakan: summary, daily, quota, responses, questions, crosstab, insights');
     out = { ok: true, data: out };
   } catch (e) { out = { ok: false, error: String(e.message || e) }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);

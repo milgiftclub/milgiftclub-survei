@@ -100,6 +100,36 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .loading{color:var(--ink2);padding:30px;text-align:center}
 .kv{display:grid;grid-template-columns:minmax(140px,200px) 1fr;gap:12px;align-items:center;margin:12px 0}
 .kv input,.kv select{width:100%}
+.ct-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0}
+.ct-cards .card{margin:0;padding:14px 16px} .ct-cards .num{font-size:24px;font-weight:800;color:var(--navy)} .ct-cards .num small{font-size:12px;color:var(--muted);font-weight:600} .ct-cards .lab{font-size:12px;color:var(--ink2)}
+.ct-findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:10px}
+.ct-find{border-top:3px solid var(--navy);padding-top:10px} .ct-find.neg{border-top-color:var(--amber)} .ct-find b{display:block;font-size:13.5px;margin-bottom:4px;line-height:1.4} .ct-find p{font-size:12.5px;color:var(--ink2);margin:0 0 8px;line-height:1.55}
+.ct-controls{display:grid;grid-template-columns:1fr auto 1fr;gap:12px 16px;align-items:start} .ct-swap{align-self:center;margin-top:10px}
+.ct-lbl{display:block;font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.ct-qtext{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+.ct-opts{grid-column:1/-1;display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;padding-top:12px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--ink2)}
+.ct-opts label{display:flex;align-items:center;gap:6px} .ct-opts select{width:auto;padding:6px 8px;font-size:12.5px}
+.ct-combo{position:relative} .ct-combo input{width:100%;padding-right:34px} .ct-combo .arr{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer}
+.ct-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:340px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh);z-index:30}
+.ct-sect{padding:7px 10px 4px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:var(--navy-l)}
+.ct-item{padding:8px 10px;font-size:12.5px;cursor:pointer;border-bottom:1px solid var(--line);line-height:1.4} .ct-item b{color:var(--navy)} .ct-item:hover,.ct-item.act{background:var(--navy-l)}
+.ct-frow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;margin-top:8px}
+.ct-fcats{display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-top:10px}
+.ct-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer} .ct-chip input{width:auto;margin:0} .ct-chip.on{background:var(--navy-l);border-color:var(--navy);font-weight:700} .ct-chip small{color:var(--muted)}
+.ct-ftags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px} .ct-tag{display:inline-flex;align-items:center;gap:8px;background:var(--navy-l);border:1px solid var(--navy-m);border-radius:999px;padding:5px 6px 5px 12px;font-size:12px}
+.ct-tag button{width:18px;height:18px;border-radius:50%;background:var(--navy);color:#fff;border:0;cursor:pointer;font-size:10px}
+.ct-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px} .ct-head>div:first-child{flex:1 1 320px} .ct-head h2{font-size:15px;line-height:1.4}
+.ct-legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);flex-wrap:wrap} .ct-lbar{display:inline-block;width:120px;height:10px;border-radius:5px;background:linear-gradient(to right,#fff,var(--navy));border:1px solid var(--line)}
+.ct-up{color:var(--green)} .ct-down{color:var(--red)}
+.ct-scroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+.ct-scroll table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.ct-scroll th,.ct-scroll td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;background:#fff}
+.ct-scroll th:first-child,.ct-scroll td:first-child{text-align:left;position:sticky;left:0;font-weight:700;min-width:180px;max-width:280px;white-space:normal;z-index:1;border-right:1px solid var(--line)}
+.ct-scroll thead th{background:#F4F5FA;font-weight:800;position:sticky;top:0;z-index:2;white-space:normal;min-width:100px;vertical-align:bottom;text-align:center;font-size:12px}
+.ct-scroll thead th:first-child{z-index:4;text-align:left} .ct-scroll .ban th{background:var(--navy-l);color:var(--navy)} .ct-scroll .ban th.blank{background:#F4F5FA}
+.ct-scroll .baser th{color:var(--muted);font-weight:700;font-size:11.5px} .ct-scroll .tot{border-right:2px solid var(--line)} .ct-scroll .bcol{border-left:2px solid var(--line);color:var(--muted);font-weight:700}
+.ct-scroll .small{opacity:.55} .ct-scroll .stag{display:block;font-size:10px;color:var(--red);font-weight:700} .ct-scroll .mk{font-size:10px;margin-left:3px;font-weight:800}
+@media (max-width:760px){.ct-controls{grid-template-columns:1fr}.ct-swap{justify-self:start;margin-top:0}}
 .card.danger{border:1.5px solid #f3c1bd} .card.danger h2{color:var(--red)} .card.danger .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)}
 .chk{display:flex;justify-content:flex-start;gap:10px;align-items:center;font-weight:600;margin:6px 0;cursor:pointer;text-align:left} .kv .chk input{width:18px;height:18px;flex:0 0 auto;margin:0}
 code.k{background:var(--navy-l);color:var(--navy);padding:4px 8px;border-radius:8px;font-size:12px;word-break:break-all}
@@ -230,6 +260,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="grp">DATA</div>
   <button data-p="resp"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Jawaban</button>
   <button data-p="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Laporan</button>
+  <button data-p="ct"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>Cross Tab</button>
   <button data-p="people"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Database Responden</button>
   <button data-p="panel"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .4 5.5 2.8 5.5 5.8"/></svg>Panel Responden</button>
   <div class="grp">OPERASIONAL</div>
@@ -266,7 +297,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <!-- SURVEI (per survei) -->
 <section class="page" id="p-survey">
   <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
-    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
@@ -381,6 +412,34 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 </section>
 
 <!-- LAPORAN -->
+<section class="page" id="p-ct">
+  <div class="svhead"><div><div class="eyebrow">Data survei</div><h1>Cross Tab</h1><p class="desc">Silangkan dua pertanyaan, saring responden, dan lihat temuan otomatis: kelompok yang jawabannya berbeda nyata dari rata-rata.</p></div>
+    <div class="acts"><button class="btn sec sm" onclick="ctCopy()">Salin tabel (untuk Excel)</button></div></div>
+  <div class="card rep-bar"><div class="toolbar" style="margin:0">
+    <select id="ct-v" onchange="ctLoad()"></select>
+    <select id="ct-st" onchange="ctLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
+    <span style="flex:1"></span><span class="muted" id="ct-meta"></span></div></div>
+  <div class="ct-cards" id="ct-cards"></div>
+  <div class="card"><h2>💡 Temuan otomatis</h2><p class="muted" id="ct-ins-sub">Kelompok responden (usia, gender, SES, wilayah, dll.) yang jawabannya berbeda nyata dari rata-rata: selisih ≥10 poin dan signifikan secara statistik (95%). Klik "Lihat tabel" untuk membuka cross tab-nya.</p><div class="ct-findings" id="ct-ins"></div></div>
+  <div class="card"><div class="ct-controls">
+    <div><label class="ct-lbl">Baris (pertanyaan yang dibaca)</label><div class="ct-combo" id="ct-row"></div><div class="ct-qtext" id="ct-rowt"></div></div>
+    <button class="btn sec sm ct-swap" onclick="ctSwap()" title="Tukar baris dan kolom">⇄ Tukar</button>
+    <div><label class="ct-lbl">Kolom / banner (pembanding)</label><div class="ct-combo" id="ct-col"></div><div class="ct-qtext" id="ct-colt"></div></div>
+    <div class="ct-opts">
+      <label>Tampilkan <select id="ct-mode" onchange="ctRender()"><option value="col">% kolom (komposisi tiap kelompok)</option><option value="row">% baris (sebaran tiap jawaban)</option><option value="count">Jumlah responden</option></select></label>
+      <label>Urutan baris <select id="ct-sort" onchange="ctRender()"><option value="orig">Urutan asli kuesioner</option><option value="desc">Total tertinggi dulu</option></select></label>
+      <label><input type="checkbox" id="ct-lift" checked onchange="ctRender()"> Tandai beda nyata vs Total</label>
+      <select id="ct-liftm" onchange="ctRender()"><option value="sig">signifikan 95%</option><option value="15">selisih ≥15 poin</option></select>
+      <label><input type="checkbox" id="ct-empty" checked onchange="ctRender()"> Sembunyikan kolom kosong</label>
+    </div></div></div>
+  <div class="card"><h2>Filter responden</h2><p class="muted">Pilih pertanyaan, lalu centang jawaban. Dalam satu pertanyaan berlaku "atau", antar pertanyaan berlaku "dan".</p>
+    <div class="ct-frow"><div class="ct-combo" id="ct-fq"></div><button class="btn sec sm" onclick="ctClearF()">Hapus semua filter</button></div>
+    <div class="ct-fcats" id="ct-fcats" hidden></div><div class="ct-ftags" id="ct-ftags"></div><div class="muted" id="ct-fsum" style="margin-top:8px"></div></div>
+  <div class="card"><div class="ct-head"><div><h2 id="ct-title"></h2><div class="muted" id="ct-note"></div></div>
+    <div class="ct-legend"><span>0%</span><i class="ct-lbar"></i><span id="ct-lmax">maks</span> <b class="ct-up">▲</b> lebih tinggi <b class="ct-down">▼</b> lebih rendah dari Total</div></div>
+    <div class="ct-scroll" id="ct-tbl"></div></div>
+</section>
+
 <section class="page" id="p-report">
   <div class="svhead"><div><div class="eyebrow">Data survei</div><h1>Laporan</h1><p class="desc">Grafik otomatis untuk setiap pertanyaan: jumlah dan persentase jawaban. Pilih survei, saring responden, lalu unduh grafik atau seluruh laporan.</p></div>
     <div class="acts"><button class="btn sec sm" onclick="repCsv()">Unduh tabel (CSV)</button><button class="btn sm" onclick="window.print()">Cetak / simpan PDF</button></div></div>
@@ -526,7 +585,7 @@ function bindNav(b) {
     if ($('p-build').classList.contains('on')) markDirty(false);
     showPage(b.dataset.p, b);
     if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
-    var f = { people: function () { pplLoad(true); }, report: function () { repInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    var f = { people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
     if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
   };
 }
@@ -762,7 +821,7 @@ function loadApi() {
   run('adminSettings').then(function (d) {
     KEY = (d.list.filter(function (x) { return x.key === 'API_KEY'; })[0] || {}).val || '';
     var base = d.execUrl || '<link web app>';
-    var eps = [['summary', 'Ringkasan per survei: total, valid, tidak valid, hari ini, median durasi, status buka/tutup'], ['daily', 'Jumlah respons valid per hari (30 hari terakhir)'], ['quota', 'Progres kuota (usia, gender, wilayah, kategori). Tambah &survei=v1 atau v2'], ['responses', 'Jawaban tanpa data pribadi. Opsi: &survei=v1|v2|all, &since=2026-11-01, &status=Valid|all']];
+    var eps = [['summary', 'Ringkasan per survei: total, valid, tidak valid, hari ini, median durasi, status buka/tutup'], ['daily', 'Jumlah respons valid per hari (30 hari terakhir)'], ['quota', 'Progres kuota (usia, gender, wilayah, kategori). Tambah &survei=v1 atau v2'], ['responses', 'Jawaban tanpa data pribadi. Opsi: &survei=v1|v2|all, &since=2026-11-01, &status=Valid|all'], ['questions', 'Daftar pertanyaan yang bisa di-cross tab beserta pilihan jawabannya. Wajib &survei=v1 (atau ID survei)'], ['crosstab', 'Tabel silang: &survei=v1&row=L1_PU1&col=S1 (opsi &mode=col|row|count). Berisi %, jumlah, base, selisih vs Total & tanda signifikan'], ['insights', 'Temuan otomatis: kelompok yang jawabannya beda nyata dari rata-rata. &survei=v1 (opsi &banners=S1,S2,ses &max=8)']];
     table($('a-t'), ['Endpoint', 'Isi', 'Link'], eps.map(function (e) { return [e[0], e[1], base + '?api=' + e[0] + '&key=KUNCI']; }), { cell: function (c, v) { return c === 'Link' ? '<code class="k">' + esc(v) + '</code>' : esc(v); } });
   });
 }
@@ -1527,6 +1586,147 @@ function pmCopy() { var t = $('pm-cap'); t.select(); try { navigator.clipboard.w
 // =====================================================================
 var REP = null, repCharts = [], repObs = null;
 var REP_COL = ['#25339A', '#2BA7E0', '#F2C94C', '#E8833A', '#2F8A57', '#7B61FF', '#C2367A', '#0F9BB5', '#B26A00', '#8A90A2', '#5E6478', '#C9CFF2'];
+// ---------- cross tab ----------
+__CROSSTAB_LIB__
+var CT = null, CTS = { row: null, col: null, filters: {}, fq: null };
+function ctInit() {
+  if (!SUM) return loadHome();
+  var e = $('ct-v'), cur = e.value || (SV || 'v1');
+  e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
+  if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+  if (!CT || CT.v !== e.value) ctLoad();
+}
+function ctOpen(v) { navTo('ct'); $('ct-v').value = v; ctLoad(); }
+function ctLoad() {
+  var v = $('ct-v').value; if (!v) return;
+  $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '';
+  run('adminCrosstab', v, $('ct-st').value).then(function (d) {
+    CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
+    var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
+    var ban = d.banners.map(ix).filter(function (x) { return x != null; });
+    CTS.col = ban.length ? ban[0] : (d.qs.length > 1 ? 1 : 0);
+    var prof = /^(Profil|Screening|Tentang)/i;
+    CTS.row = null; for (var i = 0; i < d.qs.length; i++) if (ban.indexOf(i) < 0 && !prof.test(d.qs[i].sect) && i !== CTS.col) { CTS.row = i; break; }
+    if (CTS.row == null) CTS.row = CTS.col === 0 ? 1 : 0;
+    $('ct-meta').textContent = d.meta.n + ' responden · ' + d.meta.status + (d.meta.first ? ' · ' + d.meta.first + ' – ' + d.meta.last : '');
+    ctCombo('ct-row', function (i) { CTS.row = i; ctRender(); }, function () { return CTS.row; });
+    ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; });
+    ctCombo('ct-fq', function (i) { CTS.fq = i; ctRender(); }, function () { return CTS.fq; }, 'Tambah filter: cari pertanyaan…');
+    ctRender();
+  });
+}
+function ctRows() {
+  var fs = Object.keys(CTS.filters).filter(function (k) { return CTS.filters[k].length; }), out = [];
+  CT.data.forEach(function (r, i) { if (fs.every(function (q) { return (r[q] || []).some(function (x) { return CTS.filters[q].indexOf(x) >= 0; }); })) out.push(i); });
+  return out;
+}
+function ctQ(i) { var q = CT.qs[i]; return q.id + '. ' + q.text; }
+function ctCombo(host, onPick, getVal, ph) {
+  var h = $(host); h.innerHTML = '<input placeholder="' + (ph || 'Cari pertanyaan…') + '" autocomplete="off"><button class="arr" type="button">▼</button><div class="ct-dd" hidden></div>';
+  var inp = h.querySelector('input'), dd = h.querySelector('.ct-dd'), act = -1;
+  var sync = function () { var v = getVal(); inp.value = v == null ? '' : ctQ(v); };
+  var draw = function (t) {
+    t = (t || '').toLowerCase(); var out = '', sect = null;
+    CT.qs.forEach(function (q, i) {
+      if (t && (q.id + ' ' + q.text).toLowerCase().indexOf(t) < 0) return;
+      if (q.sect !== sect) { sect = q.sect; out += '<div class="ct-sect">' + esc(sect) + '</div>'; }
+      out += '<div class="ct-item" data-i="' + i + '"><b>' + esc(q.id) + '</b> ' + esc(q.text) + (q.multi ? ' <small class="muted">(pilihan ganda)</small>' : '') + '</div>';
+    });
+    dd.innerHTML = out || '<div class="ct-item muted">Tidak ada pertanyaan yang cocok</div>'; act = -1;
+  };
+  var pick = function (i) { onPick(i); dd.hidden = true; inp.blur(); sync(); };
+  inp.onfocus = function () { inp.select(); draw(''); dd.hidden = false; };
+  inp.oninput = function () { draw(inp.value); dd.hidden = false; };
+  inp.onblur = function () { setTimeout(function () { dd.hidden = true; sync(); }, 150); };
+  h.querySelector('.arr').onclick = function () { if (dd.hidden) inp.focus(); else inp.blur(); };
+  dd.onmousedown = function (e) { var it = e.target.closest('.ct-item[data-i]'); if (!it) return; e.preventDefault(); pick(+it.dataset.i); };
+  inp.onkeydown = function (e) {
+    var els = [].slice.call(dd.querySelectorAll('.ct-item[data-i]'));
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); act = Math.max(0, Math.min(els.length - 1, act + (e.key === 'ArrowDown' ? 1 : -1))); els.forEach(function (x, k) { x.classList.toggle('act', k === act); }); if (els[act]) els[act].scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'Enter') { e.preventDefault(); var it = els[act >= 0 ? act : 0]; if (it) pick(+it.dataset.i); }
+    else if (e.key === 'Escape') inp.blur();
+  };
+  sync();
+}
+function ctSwap() { var t = CTS.row; CTS.row = CTS.col; CTS.col = t; ctCombo('ct-row', function (i) { CTS.row = i; ctRender(); }, function () { return CTS.row; }); ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; }); ctRender(); }
+function ctGoto(rowId, colId) {
+  var ix = function (id) { for (var i = 0; i < CT.qs.length; i++) if (CT.qs[i].id === id) return i; return null; };
+  CTS.row = ix(rowId); CTS.col = ix(colId); ctSwap(); ctSwap();
+  $('ct-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function ctClearF() { CTS.filters = {}; CTS.fq = null; ctCombo('ct-fq', function (i) { CTS.fq = i; ctRender(); }, function () { return CTS.fq; }, 'Tambah filter: cari pertanyaan…'); ctRender(); }
+var CT_LAST = null;
+function ctRender() {
+  if (!CT) return;
+  var rows = ctRows(), N = CT.data.length, fl = Object.keys(CTS.filters).some(function (k) { return CTS.filters[k].length; });
+  // kartu
+  var c = function (num, lab) { return '<div class="card"><div class="num">' + num + '</div><div class="lab">' + lab + '</div></div>'; };
+  $('ct-cards').innerHTML = c(rows.length + '<small> / ' + N + '</small>', 'Responden sesuai filter') + c(CT.qs.length, 'Pertanyaan yang bisa disilangkan') + c(CT.banners.length, 'Banner profil untuk temuan otomatis') + c(CT.meta.first ? CT.meta.first : '–', 'Jawaban pertama' + (CT.meta.last ? ' · terakhir ' + CT.meta.last : ''));
+  // temuan otomatis
+  var ins = CT_LIB.insights(CT.qs, CT.data, { banners: CT.banners, rows: fl ? rows : null, max: 8 });
+  $('ct-ins').innerHTML = ins.length ? ins.map(function (f) {
+    return '<div class="ct-find' + (f.diff < 0 ? ' neg' : '') + '"><b>' + esc(f.title) + '</b><p>' + esc(f.text) + '</p><button class="btn sec sm" onclick="ctGoto(\'' + esc(f.row) + '\',\'' + esc(f.col) + '\')">Lihat tabel</button></div>';
+  }).join('') : '<p class="muted">Belum ada perbedaan yang nyata. Biasanya muncul setelah ±100 responden valid, atau coba lepaskan filter.</p>';
+  // filter
+  var fq = CTS.fq, box = $('ct-fcats');
+  if (fq == null) box.hidden = true; else {
+    var sel = CTS.filters[fq] || [];
+    box.innerHTML = '<div style="flex:1 1 100%;font-size:12px" class="muted"><b style="color:var(--ink)">' + esc(CT.qs[fq].id) + '</b> ' + esc(CT.qs[fq].text) + '</div>' + CT.qs[fq].cats.map(function (cat, k) {
+      var n = CT.data.filter(function (r) { return (r[fq] || []).indexOf(k) >= 0; }).length;
+      return '<label class="ct-chip' + (sel.indexOf(k) >= 0 ? ' on' : '') + '"><input type="checkbox" data-k="' + k + '"' + (sel.indexOf(k) >= 0 ? ' checked' : '') + '> ' + esc(cat) + ' <small>' + n + '</small></label>';
+    }).join('');
+    box.hidden = false;
+    [].forEach.call(box.querySelectorAll('input'), function (x) { x.onchange = function () { var a = CTS.filters[fq] = CTS.filters[fq] || [], k = +x.dataset.k; if (x.checked) { if (a.indexOf(k) < 0) a.push(k); } else a.splice(a.indexOf(k), 1); ctRender(); }; });
+  }
+  var ent = Object.keys(CTS.filters).filter(function (k) { return CTS.filters[k].length; });
+  $('ct-ftags').innerHTML = ent.map(function (q) { return '<span class="ct-tag"><span><b>' + esc(CT.qs[q].id) + '</b>: ' + CTS.filters[q].map(function (k) { return esc(CT.qs[q].cats[k]); }).join(' / ') + '</span><button onclick="delete CTS.filters[' + q + '];ctRender()" aria-label="Hapus filter">✕</button></span>'; }).join('');
+  $('ct-fsum').innerHTML = ent.length ? 'Menampilkan <b>' + rows.length + '</b> dari ' + N + ' responden.' + (rows.length < 30 ? ' Base kecil, baca hasil sebagai indikasi.' : '') : 'Belum ada filter. Semua ' + N + ' responden ditampilkan.';
+  // tabel
+  var ri = CTS.row, ci = CTS.col, mode = $('ct-mode').value;
+  $('ct-rowt').textContent = (CT.qs[ri].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ri].length; }).length + ' responden menjawab';
+  $('ct-colt').textContent = (CT.qs[ci].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ci].length; }).length + ' responden menjawab';
+  $('ct-title').textContent = ctQ(ri) + '  ×  ' + ctQ(ci);
+  $('ct-note').textContent = { col: 'Persentase kolom: dari responden di tiap kelompok kolom, berapa persen yang memilih jawaban baris.', row: 'Persentase baris: dari responden yang memilih jawaban baris, bagaimana sebarannya ke kelompok kolom.', count: 'Jumlah responden.' }[mode] +
+    (CT.qs[ri].multi || CT.qs[ci].multi ? ' Ada pertanyaan pilihan ganda, jadi total bisa lebih dari 100%.' : '') + (fl ? ' Filter aktif.' : '');
+  if (ri === ci) { $('ct-tbl').innerHTML = '<p class="loading">Pilih pertanyaan yang berbeda untuk baris dan kolom.</p>'; CT_LAST = null; return; }
+  var t = CT_LIB.table(CT.qs, CT.data, ri, ci, { mode: mode, sort: $('ct-sort').value, hideEmpty: $('ct-empty').checked, rows: rows });
+  if (!t.base) { $('ct-tbl').innerHTML = '<p class="loading">Tidak ada responden yang menjawab pertanyaan baris dengan filter ini.</p>'; CT_LAST = null; return; }
+  var max = 0; t.lines.forEach(function (l) { l.cells.forEach(function (c, j) { if (c.v != null && (t.cols[j].n >= 10 || mode === 'count')) max = Math.max(max, c.v); }); });
+  if (!max) t.lines.forEach(function (l) { l.cells.forEach(function (c) { max = Math.max(max, c.v || 0); }); }); max = max || 1;
+  $('ct-lmax').textContent = mode === 'count' ? max : Math.round(max) + '%';
+  var show = function (v) { return v == null ? '–' : mode === 'count' ? v : Math.round(v) + '%'; };
+  var bg = function (v) { if (v == null) return ''; var p = Math.round(Math.max(0, Math.min(1, v / max)) * 85); return 'background:color-mix(in srgb, var(--navy) ' + p + '%, #fff);' + (p > 50 ? 'color:#fff;font-weight:800' : ''); };
+  var liftOn = $('ct-lift').checked, lm = $('ct-liftm').value;
+  var h = '<table><thead><tr class="ban"><th class="blank"></th><th class="blank tot"></th><th colspan="' + t.cols.length + '">' + esc(ctQ(ci)) + '</th><th class="blank bcol"></th></tr>';
+  h += '<tr><th>' + esc(ctQ(ri)) + '</th><th class="tot">Total</th>' + t.cols.map(function (c) { return '<th class="' + (c.small ? 'small' : '') + '">' + esc(c.name) + (c.small ? '<span class="stag">n kecil</span>' : '') + '</th>'; }).join('') + '<th class="bcol">Base baris</th></tr>';
+  h += '<tr class="baser"><th>Base (n)</th><th class="tot">' + t.base + '</th>' + t.cols.map(function (c) { return '<th class="' + (c.small ? 'small' : '') + '">' + c.n + '</th>'; }).join('') + '<th class="bcol"></th></tr></thead><tbody>';
+  t.lines.forEach(function (l) {
+    h += '<tr><td>' + esc(l.name) + '</td><td class="tot" style="' + (mode === 'row' ? '' : bg(l.tot.v)) + '">' + (mode === 'row' ? '100%' : show(l.tot.v)) + '</td>';
+    l.cells.forEach(function (c, j) {
+      var mk = '';
+      if (liftOn && mode === 'col' && !t.cols[j].small && c.v != null && l.tot.v != null) {
+        var hit = lm === 'sig' ? c.sig : Math.abs(c.d) >= 15;
+        if (hit && c.d > 0) mk = '<span class="mk ct-up">▲</span>'; else if (hit && c.d < 0) mk = '<span class="mk ct-down">▼</span>';
+      }
+      h += '<td class="' + (t.cols[j].small ? 'small' : '') + '" style="' + bg(c.v) + '" title="' + esc(l.name) + ' · ' + esc(t.cols[j].name) + ': ' + c.n + ' responden' + (mode === 'col' ? ' · selisih ' + c.d + ' poin vs Total' : '') + '">' + show(c.v) + mk + '</td>';
+    });
+    h += '<td class="bcol">' + l.rowBase + '</td></tr>';
+  });
+  $('ct-tbl').innerHTML = h + '</tbody></table>';
+  var trs = $('ct-tbl').querySelectorAll('thead tr'), top = 0;
+  [].forEach.call(trs, function (tr) { [].forEach.call(tr.querySelectorAll('th'), function (th) { th.style.top = top + 'px'; }); top += tr.getBoundingClientRect().height; });
+  CT_LAST = { t: t, show: show, ri: ri, ci: ci };
+}
+function ctCopy() {
+  if (!CT_LAST) return toast('Belum ada tabel');
+  var t = CT_LAST.t, L = [[ctQ(CT_LAST.ri) + ' × ' + ctQ(CT_LAST.ci), 'Total'].concat(t.cols.map(function (c) { return c.name; })).concat(['Base baris'])];
+  L.push(['Base (n)', t.base].concat(t.cols.map(function (c) { return c.n; })).concat(['']));
+  t.lines.forEach(function (l) { L.push([l.name, t.mode === 'row' ? '100%' : CT_LAST.show(l.tot.v)].concat(l.cells.map(function (c) { return CT_LAST.show(c.v); })).concat([l.rowBase])); });
+  var txt = L.map(function (r) { return r.join('\t'); }).join('\n');
+  var fb = function () { var a = document.createElement('textarea'); a.value = txt; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} a.remove(); };
+  try { navigator.clipboard.writeText(txt).catch(fb); } catch (e) { fb(); }
+  toast('Tabel disalin — tempel di Excel / Google Sheets');
+}
 function repInit() {
   if (!SUM) return loadHome();
   var e = $('rp-v'), cur = e.value || (SV || 'v1');

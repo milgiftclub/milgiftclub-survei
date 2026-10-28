@@ -82,10 +82,10 @@ for sch in (S1, S2):
     for q in sch:
         o=[x['t'] for x in q.get('options',[]) if isinstance(x,dict) and x.get('t')] or q.get('cols') or []
         if o and q['id'] not in qopts: qopts[q['id']]=o
-gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False)).replace('__SURVEY_DEPLOY__',json.load(open('../apps-script/deployments.json'))['survei'])
+gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False)).replace('__SURVEY_DEPLOY__',json.load(open('../apps-script/deployments.json'))['survei']).replace('__CROSSTAB_LIB__',open('survey_src/crosstab.js').read())
 open('survey_out/Code.gs','w').write(gs)
 print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 
 import base64, glob
 _assets = {os.path.basename(f)[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('assets/promo/*.webp'))}
-open('survey_out/Admin.html', 'w').write(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)))
+open('survey_out/Admin.html', 'w').write(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)).replace('__CROSSTAB_LIB__', open('survey_src/crosstab.js').read()))
