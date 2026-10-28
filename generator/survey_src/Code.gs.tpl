@@ -57,12 +57,12 @@ var PANEL_COLS = [
   ['porsi_belanja_online_offline', 'D0'], ['kategori_fokus_dibeli_1bln', 'SC1'], ['riwayat_channel_kategori', 'L1_OF1'], ['sumber_tahu_produk', 'L1_AW5'],
   ['tahun_lahir', 'S0'], ['status_pernikahan', 'A4M'], ['jumlah_anak', 'A4N'], ['usia_anak', 'A4K'], ['peran_belanja_rumah_tangga', 'A9'],
   ['media_sosial_harian', 'A10'], ['durasi_media_sosial', 'A11'], ['metode_pembayaran', 'A12'], ['jenis_hp', 'A13'], ['minat_hobi', 'A14'],
-  ['hijab', 'A15'], ['kendaraan', 'A16'], ['profil_diperbarui', 'profil_diperbarui'], ['jenis_tempat_tinggal', 'A18'], ['status_tempat_tinggal', 'A19'], ['jumlah_anggota_rumah_tangga', 'A7N'], ['pengeluaran_per_kapita', 'pengeluaran_per_kapita'], ['kelas_ekonomi', 'kelas_ekonomi'], ['ses', 'ses'], ['pengalaman_live_shopping', 'D1']
+  ['hijab', 'A15'], ['kendaraan', 'A16'], ['profil_diperbarui', 'profil_diperbarui'], ['jenis_tempat_tinggal', 'A18'], ['status_tempat_tinggal', 'A19'], ['jumlah_anggota_rumah_tangga', 'A7N'], ['harga_hp', 'A13H'], ['segmen_hp', 'segmen_hp'], ['generasi', 'generasi'], ['pengeluaran_per_kapita', 'pengeluaran_per_kapita'], ['kelas_ekonomi', 'kelas_ekonomi'], ['ses', 'ses'], ['pengalaman_live_shopping', 'D1']
 ];
 var BLOK_COLS = ['instagram', 'nomor_wa', 'jumlah_pelanggaran', 'pelanggaran_terakhir', 'alasan_terakhir', 'status', 'jumlah_dibuka', 'tanggal_dibuka_terakhir', 'suspend_sampai', 'keterangan', 'buka_akses (centang)', 'sesi_tercatat'];
 var WIN_COLS = ['waktu_undian', 'survei', 'hadiah', 'instagram', 'nomor_wa', 'session_id', 'diundi_oleh', 'status', 'catatan'];
 var PROFILE_KEYS = ['S0', 'S1', 'S2', 'S3', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'A8',
-  'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
+  'A9', 'A10', 'A11', 'A12', 'A13', 'A13H', 'A14', 'A15', 'A16'];
 var PROFILE_MULTI = ['S3', 'A4K', 'A10', 'A12', 'A14', 'A16'];   // jawaban pilihan ganda (disimpan "a | b")
 var PROFILE_REFRESH_DAYS = 183;   // profil > 6 bulan -> responden diminta konfirmasi / isi ulang
 function respTab_(variant) {
@@ -429,6 +429,8 @@ function submitResponse(p) {
     if (a.A4M) a.A4 = deriveA4_(a);
     if (a.A18 === 'Kos / kamar sewa' && !a.A19) a.A19 = 'Sewa / kontrak (bulanan atau tahunan)';
     var ses = deriveSes_(a); if (ses) { a.pengeluaran_per_kapita = ses.perKapita; a.kelas_ekonomi = ses.kelas; a.ses = ses.ses; }
+    var hp = segmenHp_(a); if (hp) a.segmen_hp = hp;
+    var gen = generasi_(a.S0); if (gen) a.generasi = gen;
     var flat = flatten_(a);
     var row = {
       timestamp: new Date(), survei: sname, varian: varianLabel_(p.variant), versi_kuesioner: p.ver || '', session_id: p.sid, status: status, durasi_detik: p.durasi || '',
@@ -591,17 +593,33 @@ function deriveA4_(a) {
 // ---- Kelas ekonomi & SES dari pengeluaran rumah tangga per kapita ----
 // Kelas ekonomi mengikuti BPS / Bank Dunia (Aspiring Indonesia, 2019): kelipatan garis kemiskinan (GK) per kapita.
 //   Miskin < 1x GK | Rentan miskin 1-1,5x | Menuju kelas menengah 1,5-3,5x | Kelas menengah 3,5-17x | Kelas atas > 17x
-// SES (A-E) = konvensi MIL: kelas menengah dibelah di 7,5x GK menjadi B (menengah atas) & C1 (menengah).
+// SES (A+ s.d. E) = konvensi MIL: kelas menengah dibelah di 7,5x GK (B / C1), kelas atas dibelah di 34x GK (A+ / A).
 var SES_KELAS = ['Miskin', 'Rentan miskin', 'Menuju kelas menengah', 'Kelas menengah', 'Kelas atas'];
-var SES_HURUF = ['E (miskin)', 'D (rentan miskin)', 'C2 (menuju kelas menengah)', 'C1 (kelas menengah)', 'B (kelas menengah atas)', 'A (kelas atas)'];
+var SES_HURUF = ['E', 'D', 'C2', 'C1', 'B', 'A', 'A+'];
+var SES_KET = { 'A+': 'kelas atas teratas (> 34x GK)', A: 'kelas atas (17-34x GK)', B: 'menengah atas (7,5-17x GK)', C1: 'kelas menengah (3,5-7,5x GK)', C2: 'menuju kelas menengah (1,5-3,5x GK)', D: 'rentan miskin (1-1,5x GK)', E: 'miskin (< 1x GK)' };
 var A7_TENGAH = [1500000, 2500000, 4000000, 6250000, 8750000, 12500000, 20000000, 32500000, 50000000];   // titik tengah tiap rentang A7
 function deriveSes_(a) {
   var o = (QOPTS.A7 || []), i = o.indexOf(a.A7), n = parseInt(String(a.A7N || ''), 10);
   if (i < 0 || !n) return null;
   var pk = A7_TENGAH[i] / n, gk = num_('GARIS_KEMISKINAN') || 669235, r = pk / gk;
   var k = r < 1 ? 0 : r < 1.5 ? 1 : r < 3.5 ? 2 : r < 17 ? 3 : 4;
-  var h = k === 4 ? 5 : k === 3 ? (r >= 7.5 ? 4 : 3) : k;
+  var h = k === 4 ? (r >= 34 ? 6 : 5) : k === 3 ? (r >= 7.5 ? 4 : 3) : k;
   return { perKapita: Math.round(pk), kelas: SES_KELAS[k], ses: SES_HURUF[h] };
+}
+/** segmen HP: iPhone / Android atas / menengah / bawah (dari merek + kisaran harga) */
+var HP_SEGMEN = ['iPhone', 'Android atas', 'Android menengah', 'Android bawah'];
+function segmenHp_(a) {
+  if (!a.A13) return '';
+  if (a.A13 === 'iPhone') return 'iPhone';
+  var o = QOPTS.A13H || [], i = o.indexOf(a.A13H);
+  if (i < 0) return '';
+  return i <= 1 ? 'Android bawah' : i <= 3 ? 'Android menengah' : 'Android atas';
+}
+/** generasi dari tahun lahir */
+var GENERASI = ['Gen Z (1997-2012)', 'Milenial (1981-1996)', 'Gen X (1965-1980)', 'Baby Boomer (1946-1964)', 'Pra-Boomer (≤1945)'];
+function generasi_(y) {
+  var n = parseInt(String(y || ''), 10); if (!n) return /sebelum/.test(String(y || '')) ? GENERASI[4] : '';
+  return n >= 1997 ? GENERASI[0] : n >= 1981 ? GENERASI[1] : n >= 1965 ? GENERASI[2] : n >= 1946 ? GENERASI[3] : GENERASI[4];
 }
 function profileRows_(rows, ig) {
   return rows.filter(function (r) {
@@ -1174,7 +1192,7 @@ function adminRunTask(name) {
 // ====== CROSS TAB (Dashboard & API ATLAS) ======
 __CROSSTAB_LIB__
 var CT_LABELS = __LABELS__;   // label pendek per pertanyaan (questions.py)
-var CT_BANNERS = ['S1', 'S2', 'ses', 'kelas_ekonomi', 'wilayah', 'A4', 'A5', 'A18', 'A13', 'A6', 'S5', 'D0'];
+var CT_BANNERS = ['S1', 'generasi', 'S2', 'ses', 'kelas_ekonomi', 'wilayah', 'A4', 'A5', 'A18', 'segmen_hp', 'A6', 'S5', 'D0'];
 var CT_SKIP = ['O1', 'Z1', 'QC1', 'PR', 'S0B', 'PV', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'kategori_ditugaskan', 'kategori_2', 'pengeluaran_per_kapita', 'profil_diperbarui', 'S0'];
 function wilayah_(r) {
   var JAWA = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur'], SUM = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung'];
@@ -1186,7 +1204,7 @@ var CT_GROUPS = ['PROFIL RESPONDEN', 'KEBIASAAN BELANJA ONLINE', 'KATEGORI & PRO
 function ctGroup_(id, topic, custom) {
   var b = id.replace(/^L\d_/, '').split(': ')[0], t = String(topic || '');
   if (/^(S4|S5|SC1)$/.test(b)) return [CT_GROUPS[1], ''];
-  if (/^(Screening|Profil|Tentang)/i.test(t) || /^(wilayah|ses|kelas_ekonomi)$/.test(b)) return [CT_GROUPS[0], ''];
+  if (/^(Screening|Profil|Tentang)/i.test(t) || /^(wilayah|ses|kelas_ekonomi|segmen_hp|generasi)$/.test(b)) return [CT_GROUPS[0], ''];
   if (/^Lanskap|^Tren/i.test(t)) return [CT_GROUPS[1], t.replace(/^Tren & Perilaku Baru$/, 'Tren & perilaku baru').replace(/^Lanskap Platform$/, 'Platform belanja')];
   if (/^(Penetrasi|Funneling - Produk|Belanja terakhir)/i.test(t) || b === 'kategori_1') return [CT_GROUPS[2], ''];
   if (/^Funneling - /i.test(t)) return [CT_GROUPS[3], t.replace(/^Funneling - /i, '')];
@@ -1197,7 +1215,7 @@ function ctGroup_(id, topic, custom) {
 function ctData_(v, status) {
   var c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
   var rows = readAll_().filter(function (r) { return r._v === v && (status === 'all' || r.status === 'Valid'); });
-  rows.forEach(function (r) { r.wilayah = wilayah_(r); });
+  rows.forEach(function (r) { r.wilayah = wilayah_(r); if (!r.generasi) r.generasi = generasi_(r.S0); if (!r.segmen_hp) r.segmen_hp = segmenHp_(r); });
   var s = sheet_(respTab_(v)), header = s && s.getLastColumn() ? s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0] : [];
   var meta = reportMeta_(v), base = function (col) { return col.replace(/^L\d_/, ''); };
   meta.wilayah = { text: 'Wilayah (otomatis dari kota)', topic: 'Profil', opts: ['Jabodetabek', 'Jawa lainnya', 'Sumatera', 'Kalimantan, Sulawesi & Indonesia Timur'] };
@@ -1206,9 +1224,9 @@ function ctData_(v, status) {
   var cols = header.filter(ok);
   // pertanyaan yang belum punya kolom (belum ada jawaban) tetap dimasukkan dari kuesioner
   var prof = !c || c.schema.profile !== false;
-  var known = c ? (prof ? ['S1', 'S2', 'S3', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'] : []).concat((c.schema.questions || []).map(function (q) { return q.id; }))
+  var known = c ? (prof ? ['S1', 'S2', 'S3', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A13H', 'A14', 'A15', 'A16'] : []).concat((c.schema.questions || []).map(function (q) { return q.id; }))
     : DICTIONARY.map(function (d) { return d[0]; });
-  if (prof) known = known.concat(['ses', 'kelas_ekonomi']);
+  if (prof) known = known.concat(['ses', 'kelas_ekonomi', 'segmen_hp', 'generasi']);
   var bases = cols.map(function (x) { return base(x).split(': ')[0]; });
   known.forEach(function (id) { if (ok(id) && bases.indexOf(id) < 0 && meta[id] && meta[id].opts && meta[id].opts.length && !/per baris/i.test(meta[id].text || '')) { cols.push(id); bases.push(id); } });
   if (prof && cols.indexOf('wilayah') < 0) cols.push('wilayah');
@@ -1224,12 +1242,13 @@ function ctData_(v, status) {
     keys.sort(function (a, b) { return seen[b] - seen[a]; }).forEach(function (k) { if (cats.indexOf(k) < 0) cats.push(k); });
     if (cats.length > 40) cats = cats.slice(0, 40);
     var multi = vals.some(function (a) { return a.length > 1; }) || m.type === 'multi' || /\(boleh pilih|maksimal \d/i.test(m.text || '');
-    var g = ctGroup_(col, m.topic, !!c && !/^(S\d|A\d|ses|kelas|wilayah)/.test(base(id)));
+    var g = ctGroup_(col, m.topic, !!c && !/^(S\d|A\d|ses|kelas|wilayah|segmen_hp|generasi)/.test(base(id)));
     var full = String(m.text || id), lab = CT_LABELS[base(id)] || (c && ctCustomLabel_(c, base(id))) || ctShort_(full);
     qs.push({ id: col, text: lab + (mx ? ' — ' + mx[2] : ''), full: full + (mx ? ' — ' + mx[2] : ''), sect: m.topic || 'Lainnya', group: g[0], sub: g[1], multi: multi, cats: cats, _vals: vals });
   });
   // urutkan per kelompok (profil dulu), urutan kuesioner tetap di dalam kelompok
-  qs.forEach(function (q, i) { q._o = CT_GROUPS.indexOf(q.group) * 1000 + i; });
+  var PO = ['S1', 'generasi', 'S2', 'wilayah', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'ses', 'kelas_ekonomi', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A13H', 'segmen_hp', 'A14', 'A15', 'A16', 'S3'];
+  qs.forEach(function (q, i) { var p = PO.indexOf(q.id); q._o = CT_GROUPS.indexOf(q.group) * 1000 + (q.group === CT_GROUPS[0] && p >= 0 ? p : 100 + i); });
   qs.sort(function (a, b) { return a._o - b._o; });
   qs.forEach(function (q, qi) { q.no = qi + 1; q._vals.forEach(function (a, i) { data[i][qi] = a.map(function (x) { return q.cats.indexOf(x); }).filter(function (k) { return k >= 0; }); }); delete q._vals; delete q._o; });
   var ts = rows.map(function (r) { return new Date(r.timestamp).getTime(); }).filter(function (x) { return !isNaN(x); }).sort();
@@ -1572,6 +1591,8 @@ function reportMeta_(v) {
   meta.provinsi = { text: 'Provinsi (otomatis dari kota)', topic: 'Profil' };
   meta.kelas_ekonomi = { text: 'Kelas ekonomi (otomatis: pengeluaran per kapita vs garis kemiskinan BPS)', topic: 'Profil', opts: SES_KELAS };
   meta.ses = { text: 'SES (otomatis dari pengeluaran per kapita)', topic: 'Profil', opts: SES_HURUF.slice().reverse() };
+  meta.segmen_hp = { text: 'Segmen HP (otomatis dari merek & harga HP)', topic: 'Profil', opts: HP_SEGMEN };
+  meta.generasi = { text: 'Generasi (otomatis dari tahun lahir)', topic: 'Profil', opts: GENERASI };
   meta.kategori_1 = { text: 'Kategori yang dibahas di modul belanja', topic: 'Belanja terakhir' };
   return meta;
 }
@@ -1646,7 +1667,7 @@ function adminReportCore_(v, opt) {
 // ====== DATABASE RESPONDEN (1 orang = 1 baris, gabungan semua survei) ======
 // Kunci orang: nomor WA (bila ada), selain itu username IG.
 // =====================================================================
-var PEOPLE_PROFILE = ['S0', 'S1', 'S2', 'A1', 'provinsi', 'A18', 'A19', 'kelas_ekonomi', 'ses', 'A7N', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
+var PEOPLE_PROFILE = ['S0', 'generasi', 'S1', 'S2', 'segmen_hp', 'A1', 'provinsi', 'A18', 'A19', 'kelas_ekonomi', 'ses', 'A7N', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
 function personKey_(r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); return w ? 'wa:' + w : g ? 'ig:' + g : ''; }
 function peopleIndex_() {
   var rows = readAll_(), byKey = {}, igToKey = {}, names = {};

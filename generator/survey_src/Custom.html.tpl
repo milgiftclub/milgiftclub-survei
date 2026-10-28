@@ -115,7 +115,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var std = function (id) { var q = JSON.parse(JSON.stringify(STD[id])); q.std = true; BY[id] = q; return id; };
     var custom = (S.questions || []).map(function (q) {
       var t = { id: q.id, topic: q.topic || D.name, text: q.text, hint: q.hint || '', ct: q.type, optional: q.required === false, max: Number(q.max) || 0, rnd: !!q.random, showIf: q.showIf || null, scale: q.scale || {}, min: q.min, maxNum: q.maxNum,
-        options: (q.options || []).filter(function (o) { return String(o.t || '').trim(); }).map(function (o) { return { t: String(o.t).trim(), other: !!o.other, ex: !!o.exclusive, screen: !!o.screen }; }) };
+        options: (q.options || []).filter(function (o) { return String(o.t || '').trim(); }).map(function (o) { return { t: String(o.t).trim(), other: !!o.other || /^lainnya\b/i.test(String(o.t).trim()), ex: !!o.exclusive, screen: !!o.screen }; }) };
       t.type = { single: 'sa', multi: 'ma', dropdown: 'dropdown', text: 'oa', longtext: 'oa', number: 'num', scale: 'scale' }[q.type] || 'oa';
       if (q.type === 'longtext') t.long = true;
       BY[t.id] = t; return t.id;
@@ -126,10 +126,11 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     if (PROF || G) { PRE.push(std('S0')); PRE.push(std('S0B')); BY.S0B.showIf = { q: 'S0', op: 'is', val: String(CY - 18) }; }
     if (PROF) {
       PRE.push(std('S2')); if (S.screenIndustri !== false) PRE.push(std('S3'));
-      ['A1', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7N', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'].forEach(function (x) { PRE.push(std(x)); });
+      ['A1', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A5', 'A6', 'A7N', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A13H', 'A14', 'A15', 'A16'].forEach(function (x) { PRE.push(std(x)); });
       BY.A4N.showIf = { q: 'A4M', op: 'isnot', val: BY.A4M.options[0].t };
       BY.A4K.showIf = { q: 'A4N', op: 'isnot', val: BY.A4N.options[0].t };
       BY.A19.showIf = { q: 'A18', op: 'isnot', val: 'Kos / kamar sewa' };
+      BY.A13H.showIf = { q: 'A13', op: 'isnot', val: 'iPhone' };
     }
     else if (S.gender && S.gender !== 'all') PRE.push(std('S2'));
     if (BY.A15) BY.A15.showIf = { q: 'S2', op: 'is', val: 'Wanita' };
@@ -251,8 +252,10 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       optionsOf(q).forEach(function (o) {
         var e = optEl('radio', K, o, v === o.t);
         e.i.onchange = function () { ST.a[K] = o.t; if (!o.other) delete ST.a[K + '_lainnya']; save(); render(); };
+        if (o.ex || o.other) e.l.className += ' wide';
         w.appendChild(e.l); if (o.other) w.appendChild(otherBox(K, v === o.t));
       });
+      if (w.querySelectorAll('.opt').length > 6) w.className += ' two';
       body.appendChild(w);
     }
     function rMA(body, q, K, v) {
@@ -268,8 +271,10 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
           ST.a[K] = c; if (o.other && !e.i.checked) delete ST.a[K + '_lainnya'];
           save(); render();
         };
+        if (o.ex || o.other) e.l.className += ' wide';
         w.appendChild(e.l); if (o.other) w.appendChild(otherBox(K, on));
       });
+      if (w.querySelectorAll('.opt').length > 6) w.className += ' two';
       body.appendChild(w);
     }
     function rDrop(body, q, K, v) {

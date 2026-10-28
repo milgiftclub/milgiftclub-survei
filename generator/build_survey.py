@@ -61,6 +61,7 @@ def build_schema(QL, variant):
                   o={'t':a}
                   if '(eksklusif)' in a: o['t']=a.replace(' (eksklusif)','').strip(); o['ex']=True
                   if 'sebutkan: ___' in a: o['t']=a.split(', sebutkan')[0].strip(); o['other']=True
+                  if a.strip()=='Lainnya': o['other']=True   # setiap 'Lainnya' wajib disebutkan
                   ops.append(o)
               it['options']=ops
       if qid in RANDOMIZE: it['rnd']=True

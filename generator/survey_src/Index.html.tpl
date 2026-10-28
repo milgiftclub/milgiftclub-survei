@@ -36,6 +36,11 @@
   .intro{font-size:15px;color:var(--brown2);margin:0 0 14px;background:var(--white);border-radius:16px;padding:14px 16px;border:2px dashed var(--line)}
   .hint{font-size:14px;font-weight:700;color:var(--coral-d);margin:0 0 12px;line-height:1.4}
   .opts{display:flex;flex-direction:column;gap:9px}
+  .opts.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .opts.two .opt{padding:11px 12px;gap:9px;font-size:14.5px;min-height:0;align-items:center}
+  .opts.two .other,.opts.two .grp,.opts.two .opt.wide{grid-column:1/-1}
+  .opts.two .other{margin-left:0}
+  @media (max-width:340px){.opts.two{grid-template-columns:1fr}}
   .opt{display:flex;gap:12px;align-items:flex-start;background:var(--white);border:2px solid var(--line);border-radius:16px;padding:13px 15px;cursor:pointer;user-select:none;min-height:50px;font-weight:600;transition:transform .08s,border-color .15s,background .15s}
   .opt:active{transform:scale(.99)}
   .opt input{margin:2px 0 0;accent-color:var(--coral);width:20px;height:20px;flex:none}
@@ -120,7 +125,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
 
 (function () {
   var BY = {}; SCHEMA.forEach(function (q) { BY[q.id] = q; });
-  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A18','A19','A4M','A4N','A4K','A4','A5','A6','A7N','A7','A8','A9','A10','A11','A12','A13','A14','A15','A16','B2','B4','C1','C2'];
+  var PRE = ['O1','Z2','PV','PR','S0','S0B','S1','S2','S3','S4','SC1','S5','A1','A18','A19','A4M','A4N','A4K','A4','A5','A6','A7N','A7','A8','A9','A10','A11','A12','A13','A13H','A14','A15','A16','B2','B4','C1','C2'];
   var LOOP = SCHEMA.filter(function (q) { return q.loop; }).map(function (q) { return q.id; });
   var POST = ['D0','D1','D4','D5','Z1','Z3'];
   var CY = new Date().getFullYear();
@@ -192,7 +197,9 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       case 'C1': return BY.C1.pipe === 'SC1' ? sc1Cats().length > 1 : true;
       case 'B4': return colsOf(BY.B4).length > 2;
       case 'C2': return !!get('C1') && !isOtherCat(get('C1'));
-      case 'AW6': return /^(Video pendek|Live shopping|Konten kreator|Iklan di media sosial)/.test(get('AW5', k) || '');
+      case 'AW6': return /^(Video pendek|Live shopping|Konten kreator|Iklan di media sosial)/.test(get('AW5', k) || '') || /^Melihat konten/.test(get('AW3', k) || '');
+      case 'AW7': return visible('AW6', k) && arr(get('AW6', k)).length > 0;
+      case 'A13H': return !!get('A13') && get('A13') !== 'iPhone';
       case 'PU7': return [o('PU6')[0], o('PU6')[1]].indexOf(get('PU6', k)) >= 0;
       case 'LO2': var i = o('LO1').indexOf(get('LO1', k)); return i >= 0 && i < 4;
       case 'RE3': var r = arr(get('RE2', k)), rv = opts('RE2').slice(0, 6); return r.some(function (x) { return rv.indexOf(x) >= 0; });
@@ -324,10 +331,14 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       var e = optEl('radio', K, o, v === o.t);
       var ob = o.other ? otherBox(K, v === o.t) : null;
       e.i.onchange = function () { ST.a[K] = o.t; if (!o.other) delete ST.a[K + '_lainnya']; save(); render(); };
+      if (o.ex || o.other) e.l.className += ' wide';
       w.appendChild(e.l); if (ob) w.appendChild(ob);
     });
+    twoCol(w, q);
     body.appendChild(w);
   }
+  // pilihan lebih dari 6 -> dua kolom supaya mudah dibaca (kecuali daftar kategori yang dikelompokkan)
+  function twoCol(w, q) { if (q.id !== 'C1' && w.querySelectorAll('.opt').length > 6) w.className += ' two'; }
   function rDrop(body, q, k, K, v) {
     var s = document.createElement('select');
     s.innerHTML = '<option value="">— Pilih —</option>' + q.options.map(function (o) { return '<option' + (v === o.t ? ' selected' : '') + '>' + esc(o.t) + '</option>'; }).join('');
@@ -369,7 +380,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       if (q.id === 'C1' && GROUPS[o.t] && GROUPS[o.t] !== lastG) { lastG = GROUPS[o.t]; var g = document.createElement('div'); g.className = 'grp'; g.textContent = lastG; w.appendChild(g); }
       if (q.id === 'C1' && o.ex) { var g2 = document.createElement('div'); g2.className = 'grp'; g2.textContent = ' '; w.appendChild(g2); }
       var on = v.indexOf(o.t) >= 0, full = q.max && v.length >= q.max && !on;
-      var e = optEl('checkbox', K, o, on); if (full) { e.l.className += ' dis'; e.i.disabled = true; }
+      var e = optEl('checkbox', K, o, on); if (o.ex || o.other) e.l.className += ' wide'; if (full) { e.l.className += ' dis'; e.i.disabled = true; }
       e.i.onchange = function () {
         var cur = arr(ST.a[K]).slice();
         if (e.i.checked) {
@@ -382,6 +393,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       w.appendChild(e.l);
       if (o.other) w.appendChild(otherBox(K, on));
     });
+    twoCol(w, q);
     body.appendChild(w);
   }
   function rMatrix(body, q, k, K, v) {

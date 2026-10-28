@@ -127,5 +127,5 @@ w3['G11']=f'=ROUND(SUMIF(D{h0+1}:D{last},"Ya",G{h0+1}:G{last})/60,1)'; w3['G11']
 w3['D12']='Jumlah pertanyaan tampil (tanpa hidden & info)'; w3['D12'].font=Font(name=A,size=9)
 w3['G12']=f'=COUNTA(C{h0+1}:C{last})-COUNTIF(C{h0+1}:C{last},"Hidden")-COUNTIF(C{h0+1}:C{last},"Info")'; w3['G12'].font=Font(name=A,size=9)
 for k,v in {'A':14,'B':26,'C':14,'D':10,'E':11,'F':11,'G':12,'H':40}.items(): w3.column_dimensions[k].width=v
-wb.save('Kuesioner_v1_SemuaKategori_v29.xlsx' if VAR=='v1' else 'Kuesioner_v2_FashionTasHijab_v29.xlsx')
+wb.save('Kuesioner_v1_SemuaKategori_v30.xlsx' if VAR=='v1' else 'Kuesioner_v2_FashionTasHijab_v30.xlsx')
 print(len(Q))

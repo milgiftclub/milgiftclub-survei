@@ -1699,7 +1699,7 @@ function ctRender() {
   var ri = CTS.row, ci = CTS.col, mode = $('ct-mode').value;
   $('ct-rowt').textContent = '“' + (CT.qs[ri].full || '') + '” · ' + (CT.qs[ri].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ri].length; }).length + ' responden menjawab';
   $('ct-colt').textContent = '“' + (CT.qs[ci].full || '') + '” · ' + (CT.qs[ci].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ci].length; }).length + ' responden menjawab';
-  $('ct-title').textContent = ctQ(ri) + '  ×  ' + ctQ(ci);
+  $('ct-title').textContent = CT.qs[ri].text + '  ×  ' + CT.qs[ci].text;
   $('ct-note').textContent = { col: 'Persentase kolom: dari responden di tiap kelompok kolom, berapa persen yang memilih jawaban baris.', row: 'Persentase baris: dari responden yang memilih jawaban baris, bagaimana sebarannya ke kelompok kolom.', count: 'Jumlah responden.' }[mode] +
     (CT.qs[ri].multi || CT.qs[ci].multi ? ' Ada pertanyaan pilihan ganda, jadi total bisa lebih dari 100%.' : '') + (fl ? ' Filter aktif.' : '');
   if (ri === ci) { $('ct-tbl').innerHTML = '<p class="loading">Pilih pertanyaan yang berbeda untuk baris dan kolom.</p>'; CT_LAST = null; return; }
@@ -1711,8 +1711,8 @@ function ctRender() {
   var show = function (v) { return v == null ? '–' : mode === 'count' ? v : Math.round(v) + '%'; };
   var bg = function (v) { if (v == null) return ''; var p = Math.round(Math.max(0, Math.min(1, v / max)) * 85); return 'background:color-mix(in srgb, var(--navy) ' + p + '%, #fff);' + (p > 50 ? 'color:#fff;font-weight:800' : ''); };
   var liftOn = $('ct-lift').checked, lm = $('ct-liftm').value;
-  var h = '<table><thead><tr class="ban"><th class="blank"></th><th class="blank tot"></th><th colspan="' + t.cols.length + '">' + esc(ctQ(ci)) + '</th><th class="blank bcol"></th></tr>';
-  h += '<tr><th>' + esc(ctQ(ri)) + '</th><th class="tot">Total</th>' + t.cols.map(function (c) { return '<th class="' + (c.small ? 'small' : '') + '">' + esc(c.name) + (c.small ? '<span class="stag">n kecil</span>' : '') + '</th>'; }).join('') + '<th class="bcol">Base baris</th></tr>';
+  var h = '<table><thead><tr class="ban"><th class="blank"></th><th class="blank tot"></th><th colspan="' + t.cols.length + '">' + esc(CT.qs[ci].text) + '</th><th class="blank bcol"></th></tr>';
+  h += '<tr><th>' + esc(CT.qs[ri].text) + '</th><th class="tot">Total</th>' + t.cols.map(function (c) { return '<th class="' + (c.small ? 'small' : '') + '">' + esc(c.name) + (c.small ? '<span class="stag">n kecil</span>' : '') + '</th>'; }).join('') + '<th class="bcol">Base baris</th></tr>';
   h += '<tr class="baser"><th>Base (n)</th><th class="tot">' + t.base + '</th>' + t.cols.map(function (c) { return '<th class="' + (c.small ? 'small' : '') + '">' + c.n + '</th>'; }).join('') + '<th class="bcol"></th></tr></thead><tbody>';
   t.lines.forEach(function (l) {
     h += '<tr><td>' + esc(l.name) + '</td><td class="tot" style="' + (mode === 'row' ? '' : bg(l.tot.v)) + '">' + (mode === 'row' ? '100%' : show(l.tot.v)) + '</td>';
@@ -1733,7 +1733,7 @@ function ctRender() {
 }
 function ctCopy() {
   if (!CT_LAST) return toast('Belum ada tabel');
-  var t = CT_LAST.t, L = [[ctQ(CT_LAST.ri) + ' × ' + ctQ(CT_LAST.ci), 'Total'].concat(t.cols.map(function (c) { return c.name; })).concat(['Base baris'])];
+  var t = CT_LAST.t, L = [[CT.qs[CT_LAST.ri].text + ' × ' + CT.qs[CT_LAST.ci].text, 'Total'].concat(t.cols.map(function (c) { return c.name; })).concat(['Base baris'])];
   L.push(['Base (n)', t.base].concat(t.cols.map(function (c) { return c.n; })).concat(['']));
   t.lines.forEach(function (l) { L.push([l.name, t.mode === 'row' ? '100%' : CT_LAST.show(l.tot.v)].concat(l.cells.map(function (c) { return CT_LAST.show(c.v); })).concat([l.rowBase])); });
   var txt = L.map(function (r) { return r.join('\t'); }).join('\n');
@@ -1906,7 +1906,7 @@ function pplLoad(first) {
 function pplDetail(key) {
   $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
   run('adminPerson', key).then(function (d) {
-    var pr = d.profile, lab = { S0: 'Tahun lahir', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A18: 'Tempat tinggal', A19: 'Status hunian', ses: 'SES', kelas_ekonomi: 'Kelas ekonomi', A7N: 'Anggota RT', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan' };
+    var pr = d.profile, lab = { S0: 'Tahun lahir', generasi: 'Generasi', segmen_hp: 'Segmen HP', A13H: 'Harga HP', S1: 'Usia', S2: 'Gender', A1: 'Kota', provinsi: 'Provinsi', A18: 'Tempat tinggal', A19: 'Status hunian', ses: 'SES', kelas_ekonomi: 'Kelas ekonomi', A7N: 'Anggota RT', A4M: 'Status', A4N: 'Anak', A4K: 'Usia anak', A4: 'Life stage', A5: 'Pekerjaan', A6: 'Pendidikan', A7: 'Pengeluaran RT/bulan', A8: 'Belanja online/bulan', A9: 'Keputusan belanja RT', A10: 'Media sosial', A11: 'Sosmed/hari', A12: 'Pembayaran', A13: 'Merek HP', A14: 'Minat', A15: 'Hijab', A16: 'Kendaraan' };
     $('m-body').innerHTML = '<div class="top" style="margin-bottom:6px"><div><div class="eyebrow">Database Responden</div><h2 style="font-size:24px">' + esc(d.ig || d.wa) + '</h2><div class="muted">' + esc(d.wa) + ' · ikut ' + d.surveys.length + ' survei · pertama ' + esc(d.first) + ' · terakhir ' + esc(d.last) + (d.contact ? ' · ✅ bersedia dihubungi' : '') + '</div></div><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
       '<div class="stats" style="margin:10px 0 6px">' + Object.keys(lab).filter(function (k) { return pr[k]; }).map(function (k) { return '<div>' + lab[k] + '<b>' + esc(pr[k]) + '</b></div>'; }).join('') + '</div>' +
       d.surveys.map(function (s, i) {
