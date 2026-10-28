@@ -997,10 +997,15 @@ function summaryData_() {
   var region = function (r) { return r.jabodetabek === 'Ya' ? 'Jabodetabek' : JAWA.indexOf(r.provinsi) >= 0 ? 'Jawa lainnya' : SUM.indexOf(r.provinsi) >= 0 ? 'Sumatera' : 'Kalimantan, Sulawesi & Indonesia Timur'; };
   var days = []; for (var i = 29; i >= 0; i--) days.push(day_(new Date(Date.now() - i * 864e5)));
   out.daily.dates = days;
+  var whoA = function (r) { return String(r.wa_normal || '') || ('ig:' + String(r.ig_normal || '')); }, pa = {}, pv = {};
+  rows.forEach(function (r) { pa[whoA(r)] = 1; if (r.status === 'Valid') pv[whoA(r)] = 1; });
+  out.people = Object.keys(pa).length; out.peopleValid = Object.keys(pv).length;
   surveyList_().forEach(function (S) {
     var mine = rows.filter(function (r) { return r._v === S.v; }), valid = mine.filter(function (r) { return r.status === 'Valid'; });
     var cnt = function (f) { return mine.filter(f).length; };
     S.total = mine.length; S.valid = valid.length;
+    var who = function (r) { return String(r.wa_normal || '') || ('ig:' + String(r.ig_normal || '')) || r.session_id; }, uniq = function (a) { var o = {}; a.forEach(function (r) { o[who(r)] = 1; }); return Object.keys(o).length; };
+    S.people = uniq(mine); S.peopleValid = uniq(valid);   // orang unik (per nomor WA)
     S.invalid = cnt(function (r) { return /^(Tidak valid|Diblokir)/.test(String(r.status)); });
     S.dup = cnt(function (r) { return r.status === 'Duplikat'; });
     S.today = cnt(function (r) { return day_(r.timestamp) === today; });
@@ -1189,11 +1194,11 @@ function eligibleInfo_(v, per) {
     if (String(r[7]).indexOf('Gugur') !== 0) won[String(r[4]).replace(/^'/, '') + '|' + String(r[9] || '')] = 1;   // 1 nomor WA = 1 kali menang per periode
   });
   var tags = bool_(set_('SYARAT_KOMENTAR_WAJIB')) ? igTags_() : null, minTag = num_('IG_MIN_TAG') || 3;
-  var st = { jawaban: 0, valid: 0, orang: 0, diblokir: 0, sudahMenang: 0, kurangKomentar: 0, eligible: 0 }, seen = {}, out = [];
+  var st = { jawaban: 0, valid: 0, orang: 0, diblokir: 0, sudahMenang: 0, kurangKomentar: 0, eligible: 0 }, seen = {}, out = []; var allP = {}, valP = {};
   readAll_().forEach(function (r) {
     if (v !== 'all' && r._v !== v) return;
     if (per && periodeOf_(r) !== per) return;
-    st.jawaban++;
+    st.jawaban++; allP[String(r.wa_normal || r.ig_normal)] = 1; if (r.status === 'Valid') valP[String(r.wa_normal || r.ig_normal)] = 1;
     if (r.status !== 'Valid') return; st.valid++;
     var k = String(r.wa_normal); if (!k || seen[k]) return; seen[k] = 1; st.orang++;
     if (accessStatus_(String(r.ig_normal), k).state !== 'ok') { st.diblokir++; return; }
@@ -1201,6 +1206,7 @@ function eligibleInfo_(v, per) {
     if (tags && (tags[String(r.ig_normal).toLowerCase()] || 0) < minTag) { st.kurangKomentar++; return; }   // wajib komentar + tag teman
     st.eligible++; out.push(r);
   });
+  st.orangTotal = Object.keys(allP).length; st.orangValid = Object.keys(valP).length;
   return { rows: out, stats: st, wajibKomentar: !!tags };
 }
 function eligible_(v, per) { return eligibleInfo_(v, per).rows; }

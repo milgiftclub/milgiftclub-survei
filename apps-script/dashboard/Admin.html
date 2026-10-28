@@ -132,6 +132,7 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ct-scroll .small{opacity:.55} .ct-scroll .stag{display:block;font-size:10px;color:var(--red);font-weight:700} .ct-scroll .mk{font-size:10px;margin-left:3px;font-weight:800}
 @media (max-width:760px){.ct-controls{grid-template-columns:1fr}.ct-swap{justify-self:start;margin-top:0}}
 .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)} .btn:disabled{opacity:.5;cursor:not-allowed}
+.ppl{font-size:13px;color:var(--ink2);margin:8px 0 2px} .ppl b{color:var(--ink)}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
@@ -287,6 +288,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <section class="page on" id="p-home">
   <div class="hero"><div class="d" id="h-date"></div><h1 id="h-greet">Halo!</h1><p>Ini yang terjadi di survei MIL Gift Club hari ini.</p>
     <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span></div>
+    <div class="ppl" id="h-ppl" style="margin:12px 0 14px;font-size:14px"></div>
   <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted" id="h-upd">Memuat…</div></div>
     <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="loadHome()">Muat ulang</button></div></div>
   <div class="grid g4" id="h-kpi"><div class="loading">Memuat data…</div></div>
@@ -685,11 +687,13 @@ function loadHome() {
       var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
       return '<div class="card kpi"><div class="lab">' + esc(s.name) + ' <span class="badge ' + (s.open ? 'b-open">Dibuka' : 'b-closed">Ditutup') + '</span></div>' +
         '<span class="pct">' + pct + '%</span><div class="val">' + fmt(s.valid) + ' <small>/ ' + fmt(s.target) + ' valid</small></div>' +
+        '<div class="ppl">👥 <b>' + fmt(s.peopleValid || 0) + ' orang valid</b> dari ' + fmt(s.people || 0) + ' orang yang mengisi</div>' +
         '<div class="bar"><i class="' + (pct >= 100 ? 'full' : '') + '" style="width:' + Math.min(100, pct) + '%"></i></div>' +
         '<div class="stats"><div>Total masuk<b>' + fmt(s.total) + '</b></div><div>Hari ini<b>' + fmt(s.today) + '</b></div><div>Tidak valid<b>' + fmt(s.invalid) + '</b></div><div>Duplikat<b>' + fmt(s.dup) + '</b></div><div>Median durasi<b>' + s.medianMin + ' mnt</b></div><div>Pakai profil lama<b>' + fmt(s.prefilled) + '</b></div></div></div>';
     }).join('');
     var nOpen = d.surveys.filter(function (s) { return s.open; }).length, nToday = d.surveys.reduce(function (a, s) { return a + (s.today || 0); }, 0);
     $('h-chip1').textContent = nOpen + ' dari ' + d.surveys.length + ' survei dibuka';
+    if ($('h-ppl')) $('h-ppl').innerHTML = '👥 <b>' + fmt(d.peopleValid || 0) + '</b> orang valid dari <b>' + fmt(d.people || 0) + '</b> orang yang mengisi (semua survei)';
     $('h-chip2').textContent = fmt(nToday) + ' jawaban baru hari ini';
     var ctx = $('c-daily'); if (chart) chart.destroy();
     if (window.Chart) chart = new Chart(ctx, { type: 'line', data: { labels: d.daily.dates.map(function (x) { return x.slice(5); }), datasets: [
@@ -825,6 +829,7 @@ function loadElig() {
     }
     var s = d.stats;
     $('d-elig').innerHTML = '<span class="d-big">' + fmt(d.count) + '</span> orang eligible' + (d.periode ? ' untuk <b>' + esc(d.periode) + '</b>' : ' (semua periode)');
+    $('d-elig').innerHTML += '<div class="muted" style="margin-top:2px">👥 ' + fmt(s.orangValid) + ' orang valid dari ' + fmt(s.orangTotal) + ' orang yang mengisi</div>';
     var step = function (n, t, minus) { return '<div class="' + (minus ? 'out' : '') + '"><b>' + (minus ? '− ' : '') + fmt(n) + '</b> ' + t + '</div>'; };
     $('d-funnel').innerHTML = step(s.jawaban, 'jawaban masuk') + step(s.jawaban - s.valid, 'tidak valid', true) + step(s.valid - s.orang, 'jawaban ganda (WA sama)', true) +
       (s.diblokir ? step(s.diblokir, 'diblokir / suspend', true) : '') + (s.sudahMenang ? step(s.sudahMenang, 'sudah menang di periode ini', true) : '') +
