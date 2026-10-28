@@ -102,6 +102,10 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .kv input,.kv select{width:100%}
 .ct-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0}
 .ct-cards .card{margin:0;padding:14px 16px} .ct-cards .num{font-size:24px;font-weight:800;color:var(--navy)} .ct-cards .num small{font-size:12px;color:var(--muted);font-weight:600} .ct-cards .lab{font-size:12px;color:var(--ink2)}
+.st-key{background:#F4F6FD;border:1px solid #DCE2F5;border-radius:14px;padding:14px 18px;margin:6px 0 14px} .st-h{font-weight:800;color:var(--navy);margin-bottom:6px}
+.st-key ul,.st-p{margin:0;padding-left:20px} .st-key li,.st-p li{margin:6px 0;line-height:1.6;font-size:14px}
+.st-g{border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:0 16px} .st-g>summary{cursor:pointer;font-weight:800;padding:12px 0;letter-spacing:.03em;color:var(--navy)}
+.st-r{margin:0 0 6px;font-size:14px;color:var(--ink2);line-height:1.6} .st-p{padding-bottom:10px} .st-go{font-size:12.5px;font-weight:700;color:var(--navy);white-space:nowrap}
 .ct-findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:10px}
 .ct-find{border-top:3px solid var(--navy);padding-top:10px} .ct-find.neg{border-top-color:var(--amber)} .ct-find b{display:block;font-size:13.5px;margin-bottom:4px;line-height:1.4} .ct-find p{font-size:12.5px;color:var(--ink2);margin:0 0 8px;line-height:1.55}
 .ct-controls{display:grid;grid-template-columns:1fr auto 1fr;gap:12px 16px;align-items:start} .ct-swap{align-self:center;margin-top:10px}
@@ -339,7 +343,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn sec sm" onclick="svRefresh()" title="Buka ulang survei untuk responden yang sudah pernah mengisi">🔄 Refresh survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
-    <div class="card"><h2>💡 Insight survei ini</h2><p class="muted">Kelompok responden (usia, gender, SES, wilayah, dll.) yang jawabannya berbeda nyata dari rata-rata (selisih ≥10 poin, signifikan 95%). Hanya jawaban valid.</p><div class="ct-findings" id="sv-ins"><p class="loading">Menghitung insight…</p></div></div>
+    <div class="card"><h2>💡 Insight survei ini</h2><p class="muted">Hubungan antara profil responden dan jawaban yang terbukti secara statistik, dirangkum per topik. Hanya jawaban valid.</p><div id="sv-ins"><p class="loading">Menghitung insight…</p></div></div>
     <div class="card" id="sv-qcard"><h2 id="sv-qh">Kuota</h2><p class="muted" id="sv-qd">Jumlah valid dibanding target per kelompok.</p><div id="sv-quota"></div></div>
   </div>
 </section>
@@ -709,18 +713,23 @@ function drawSurveyNav() {
 
 // ---------- halaman per survei ----------
 var svChart, SVINS = {};
+function storyHtml(st, go) {
+  var h = '';
+  if (st.kesimpulan.length) h += '<div class="st-key"><div class="st-h">Kesimpulan utama</div><ul>' + st.kesimpulan.map(function (k) { return '<li>' + k + '</li>'; }).join('') + '</ul></div>';
+  st.groups.forEach(function (g, i) {
+    h += '<details class="st-g"' + (i === 0 ? ' open' : '') + '><summary>' + esc(g.name) + '</summary>' + (g.ringkasan ? '<p class="st-r">' + g.ringkasan + '</p>' : '') + '<ul class="st-p">' +
+      g.poin.map(function (p) { return '<li><span>' + p.text + '</span>' + (go ? ' <a href="#" class="st-go" onclick="' + go + '(\'' + esc(p.row) + '\',\'' + esc(p.col) + '\');return false">Lihat tabel →</a>' : '') + '</li>'; }).join('') + '</ul>' +
+      (g.lebih ? '<p class="muted" style="font-size:12.5px;margin:4px 0 10px">+ hubungan lain yang lebih lemah tersedia di Cross Tab.</p>' : '') + '</details>';
+  });
+  return h;
+}
 function svInsight(v) {
-  var box = $('sv-ins'), draw = function (ins, n) {
-    if (SV !== v) return;
-    box.innerHTML = ins.length ? ins.map(function (f) {
-      return '<div class="ct-find' + (f.diff < 0 ? ' neg' : '') + '"><b>' + esc(f.title) + '</b><p>' + esc(f.text) + '</p><button class="btn sec sm" onclick="svInsGo(\'' + esc(f.row) + '\',\'' + esc(f.col) + '\')">Lihat tabel</button></div>';
-    }).join('') : '<p class="muted">' + (n ? 'Belum ada perbedaan yang nyata. Biasanya muncul setelah ±100 responden valid.' : 'Belum ada jawaban valid di survei ini.') + '</p>';
-  };
-  if (SVINS[v]) return draw(SVINS[v].ins, SVINS[v].n);
+  var box = $('sv-ins'), draw = function (st) { if (SV !== v) return; box.innerHTML = storyHtml(st, 'svInsGo'); };
+  if (SVINS[v]) return draw(SVINS[v]);
   box.innerHTML = '<p class="loading">Menghitung insight…</p>';
   run('adminCrosstab', v, 'Valid', null).then(unpack).then(function (d) {
-    var ins = d && d.qs && d.qs.length > 1 ? CT_LIB.insights(d.qs, d.data, { banners: d.banners, max: 9 }) : [];
-    SVINS[v] = { ins: ins, n: d && d.data ? d.data.length : 0 }; draw(ins, SVINS[v].n);
+    var st = d && d.qs && d.qs.length > 1 ? CT_LIB.story(d.qs, d.data, { banners: d.banners }) : { kesimpulan: ['Belum ada jawaban valid di survei ini.'], groups: [] };
+    SVINS[v] = st; draw(st);
   }, function (e) { box.innerHTML = '<p class="loading">Gagal memuat insight: ' + esc((e && e.message) || e) + '</p>'; });
 }
 var CT_GO = null;

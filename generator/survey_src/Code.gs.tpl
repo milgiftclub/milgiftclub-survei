@@ -1854,12 +1854,13 @@ function apiGet_(p) {
       var since = p.since ? new Date(p.since) : null, st = p.status || 'Valid';
       out = readAll_().filter(function (r) { return (v === 'all' || r._v === v) && (st === 'all' || r.status === st) && (!since || new Date(r.timestamp) >= since); })
         .map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { if (API_HIDE.indexOf(k) < 0) o[k] = iso_(r[k]); }); o.survei_id = r._v; return o; });
-    } else if (p.api === 'questions' || p.api === 'crosstab' || p.api === 'insights') {
+    } else if (p.api === 'questions' || p.api === 'crosstab' || p.api === 'insights' || p.api === 'story') {
       var cd = v === 'all' ? ctDataAll_(p.status === 'all' ? 'all' : 'Valid', { periode: p.periode, dari: p.dari, sampai: p.sampai }, p.panel || null) : ctData_(v, p.status === 'all' ? 'all' : 'Valid', { periode: p.periode, dari: p.dari, sampai: p.sampai }, p.panel || null);
       if (p.api === 'questions') out = { n: cd.meta.n, banners: cd.banners, questions: cd.qs.map(function (q) { return { id: q.id, text: q.text, section: q.sect, multi: q.multi, answers: q.cats }; }) };
       else if (p.api === 'crosstab') out = CT_LIB.table(cd.qs, cd.data, ctIdx_(cd, p.row), ctIdx_(cd, p.col || 'S1'), { mode: p.mode || 'col', sort: p.sort });
+      else if (p.api === 'story') out = CT_LIB.story(cd.qs, cd.data, { banners: cd.banners });
       else out = { n: cd.meta.n, insights: CT_LIB.insights(cd.qs, cd.data, { banners: p.banners ? String(p.banners).split(',') : cd.banners, max: Number(p.max) || 8 }) };
-    } else throw new Error('Endpoint tidak dikenal. Gunakan: summary, daily, quota, responses, questions, crosstab, insights');
+    } else throw new Error('Endpoint tidak dikenal. Gunakan: summary, daily, quota, responses, questions, crosstab, insights, story');
     out = { ok: true, data: out };
   } catch (e) { out = { ok: false, error: String(e.message || e) }; }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);

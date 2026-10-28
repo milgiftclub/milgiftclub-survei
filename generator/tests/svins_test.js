@@ -13,7 +13,7 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.waitForTimeout(1500);
   await p.locator('#sv-list button[data-v="v2"]').click(); await p.waitForFunction(() => !/Menghitung/.test(document.getElementById('sv-ins').textContent), null, { timeout: 30000 });
   console.log('insight:', (await p.textContent('#sv-ins')).slice(0, 200)); await p.screenshot({ path: SP + 'sv_ins.png', fullPage: true });
-  await p.locator('#sv-ins button').first().click(); await p.waitForTimeout(3000);
+  await p.locator('#sv-ins a.st-go').first().click(); await p.waitForTimeout(3000);
   console.log('go:', await p.evaluate(() => JSON.stringify([CTS.row, CTS.col, CT && CT.qs[CTS.col] && CT.qs[CTS.col].id, CT_GO])));
   console.log('cross tab:', await p.textContent('#ct-title'), '|', await p.$eval('#ct-v', e => e.value));
   console.log('JS errors:', errs); await b.close();
