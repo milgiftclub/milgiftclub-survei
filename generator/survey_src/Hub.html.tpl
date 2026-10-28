@@ -74,20 +74,29 @@ var SK_HTML = __SK_JSON__;
       app.innerHTML = '<div class="section">Terima kasih</div><h1>Tidak apa-apa 😊</h1><p class="intro">Terima kasih sudah mampir. Kalau berubah pikiran, kamu bisa kembali kapan saja. Pantau Instagram ' + esc(IGH()) + ' untuk survei & giveaway berikutnya.</p>';
     } else list();
   }
+  var PRE = null, PREP = null;   // daftar survei dimuat di belakang layar sejak halaman dibuka
+  function preload() { if (!PREP && API) PREP = api('hubSurveys', []).then(function (d) { PRE = d; return d; }, function () { PREP = null; }); return PREP; }
   function list() {
-    app.innerHTML = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1><div class="wait on"><i></i><span>Memuat daftar survei…</span></div>';
-    api('hubList', [ST.ig]).then(function (d) {
-      if (d.blocked) { app.innerHTML = '<div class="section">Akun dibatasi</div><h1>Akun ' + esc(d.ig) + ' sedang ' + (d.blocked.state === 'suspend' ? 'disuspend' : 'diblokir') + '</h1><p class="intro">Karena riwayat jawaban yang tidak valid' + (d.blocked.until ? ', sampai ' + esc(d.blocked.until) : '') + '. Hubungi ' + esc(d.blocked.email) + ' untuk membuka akses.</p>'; return; }
+    var my = (list.n = (list.n || 0) + 1);
+    var show = function (d, checking) {
       var todo = d.list.filter(function (x) { return !x.done; }).length;
-      var h = '<div class="section">Pilih survei</div><h1>Halo ' + esc(d.ig) + '! Survei mana yang mau kamu isi?</h1>' +
-        '<div class="kup"><div class="kn">🎟️ ' + d.kupon + '</div><div><b>Kupon undian kamu di ' + esc(d.periode || 'periode ini') + '</b><p>' + (todo ? 'Masih ada <b>' + todo + ' survei</b> yang bisa kamu isi untuk menambah kupon.' : 'Kamu sudah mengisi semua survei yang sedang dibuka. Terima kasih!') + '</p></div></div>';
+      var h = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1>' +
+        '<div class="kup"><div class="kn">🎟️ ' + (checking ? '…' : d.kupon) + '</div><div><b>Kupon undian kamu di ' + esc(d.periode || 'periode ini') + '</b><p>' + (checking ? 'Memeriksa survei yang sudah kamu isi…' : todo ? 'Masih ada <b>' + todo + ' survei</b> yang bisa kamu isi untuk menambah kupon.' : 'Kamu sudah mengisi semua survei yang sedang dibuka. Terima kasih!') + '</p></div></div>';
       h += d.list.map(function (x) {
-        var u = x.link + (x.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(d.ig.replace(/^@/, '')) + '&ok=1&src=' + encodeURIComponent(SRC);
+        var u = x.link + (x.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '&ok=1&src=' + encodeURIComponent(SRC);
         return '<a class="sv' + (x.done ? ' done' : '') + '" href="' + esc(u) + '"><div class="t"><b>' + (x.done ? '✓ ' : '') + esc(x.name) + '</b><small>' + esc(x.desc) + '</small>' +
           '<div class="m">' + (x.done ? 'Sudah diisi' + (x.valid ? '' : ' · tidak valid') : '±' + x.est + ' menit · +1 kupon') + '</div></div><span class="go">' + (x.done ? '✓ Selesai' : 'Mulai →') + '</span></a>';
       }).join('') + (d.list.length ? '' : '<p class="intro">Belum ada survei yang dibuka. Pantau Instagram ' + esc(IGH()) + ' ya!</p>');
-      h += '<p class="small">Bukan akun kamu? Klik "Ganti akun" di bawah. · <a href="cek/?ig=' + encodeURIComponent(d.ig.replace(/^@/, '')) + '">🔎 Cek status giveaway</a></p>';
+      h += '<p class="small">Bukan akun kamu? Klik "Ganti akun" di bawah. · <a href="cek/?ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '">🔎 Cek status giveaway</a></p>';
       app.innerHTML = h;
+    };
+    if (PRE) show(PRE, true);
+    else { app.innerHTML = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1><div class="wait on"><i></i><span>Memuat daftar survei…</span></div>'; preload() && PREP.then(function (d) { if (d && my === list.n && !list.got) show(d, true); }); }
+    list.got = false;
+    api('hubList', [ST.ig]).then(function (d) {
+      if (my !== list.n) return; list.got = true;
+      if (d.blocked) { app.innerHTML = '<div class="section">Akun dibatasi</div><h1>Akun ' + esc(d.ig) + ' sedang ' + (d.blocked.state === 'suspend' ? 'disuspend' : 'diblokir') + '</h1><p class="intro">Karena riwayat jawaban yang tidak valid' + (d.blocked.until ? ', sampai ' + esc(d.blocked.until) : '') + '. Hubungi ' + esc(d.blocked.email) + ' untuk membuka akses.</p>'; return; }
+      show(d, false);
     }, function () { app.innerHTML = '<div class="err">Koneksi bermasalah. <a href="#" onclick="location.reload();return false">Coba lagi</a></div>'; });
   }
   function next() {
@@ -99,7 +108,7 @@ var SK_HTML = __SK_JSON__;
   }
   nb.onclick = next;
   bb.onclick = function () { ST.step = ST.step === 'list' ? 'ig' : 'o1'; render(); };
-  render();
+  render(); preload();
   if (API) api('config', ['v1', SRC]).then(function (c) { CFG = c; if (ST.step === 'o1') render(); }, function () {});
 })();
 </script>

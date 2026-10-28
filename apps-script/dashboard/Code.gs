@@ -249,6 +249,7 @@ function doPost(e) {
     else if (req.fn === 'getSurvey') data = getSurvey(a[0], a[1]);
     else if (req.fn === 'giveawayStatus') data = giveawayStatus(a[0]);
     else if (req.fn === 'hubList') data = hubList(a[0]);
+    else if (req.fn === 'hubSurveys') data = hubList('');
     else throw new Error('Fungsi tidak dikenal: ' + req.fn);
     out = { ok: true, data: data };
   } catch (err) {
@@ -257,10 +258,14 @@ function doPost(e) {
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 
+var SS_ = null;
 function ss_() {
   // SHEET_ID_FIXED (file Config.gs) dipakai proyek Dashboard yang berdiri sendiri; proyek survei memakai Sheet tempat script terpasang
+  // dibuka sekali per panggilan (membuka file Sheet besar berulang kali sangat lambat)
+  if (SS_) return SS_;
   var id = (typeof SHEET_ID_FIXED !== 'undefined' && SHEET_ID_FIXED) || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
-  return id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  SS_ = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+  return SS_;
 }
 function sheet_(name) { return ss_().getSheetByName(name); }
 
@@ -520,6 +525,26 @@ function cached_(f) { MEMO_DEPTH_++; if (MEMO_DEPTH_ === 1) MEMO_ = {}; try { re
 function memo_(k, f) { if (!MEMO_) return f(); if (!(k in MEMO_)) MEMO_[k] = f(); return MEMO_[k]; }
 function readAll_() { return memo_('readAll', readAllRaw_); }
 /** Baris jawaban milik satu akun IG saja (cepat: hanya kolom ig_normal yang dibaca untuk mencari). Dipakai di halaman responden. */
+/** Ringkasan cepat jawaban satu akun IG: dari indeks snapshot + baris baru sesudah snapshot. Hasil: [[v, ronde, valid, ts, periode, profilOk], ...] atau null. */
+function igIndex_(n) {
+  var o = snapRead_(); if (!o || !o.meta.rows) return null;
+  var idx = snapGet_('ig'); if (!idx) return null;
+  var out = (idx[n] || []).slice(), RA = rondeAll_(), tail = 0;
+  var ok = respTabs_().every(function (t) {
+    var s = sheet_(t[0]); if (!s) return true;
+    var from = (o.meta.rows[t[0]] || 1) + 1, lr = s.getLastRow(); if (lr < from) return true;
+    tail += lr - from + 1; if (tail > 3000) return false;   // snapshot terlalu lama -> pakai cara lengkap
+    var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0], rows = s.getRange(from, 1, lr - from + 1, h.length).getValues(), rl = (RA[t[1]] || []).slice().sort(function (a, b) { return a.ke - b.ke; });
+    var c = function (k) { return h.indexOf(k); };
+    rows.forEach(function (r) {
+      if (String(r[c('ig_normal')]) !== n) return;
+      var o2 = {}; h.forEach(function (k, j) { o2[k] = r[j]; }); o2._v = t[1];
+      out.push([t[1], rl.length ? rondeOf_(rl, o2.timestamp) : 1, o2.status === 'Valid' ? 1 : 0, new Date(o2.timestamp).getTime() || 0, periodeOf_(o2), o2.S1 && o2.wa_normal && !/^(Tidak valid|Diblokir)/.test(String(o2.status)) ? 1 : 0]);
+    });
+    return true;
+  });
+  return ok ? out : null;
+}
 function igRows_(n) {
   if (MEMO_ && MEMO_.readAll) return MEMO_.readAll.filter(function (r) { return String(r.ig_normal) === n; });
   var out = [], RA = rondeAll_();
@@ -647,7 +672,9 @@ function lookupIg(ig, variant) {
   var n = normIg_(ig); if (!n) return { state: 'ok', known: false };
   var acc = accessStatus_(n, '');
   if (acc.state !== 'ok') return { state: acc.state, until: acc.until || '', email: set_('EMAIL_BUKA_AKSES') };
-  var tab = respTab_(variant || 'v1');
+  var tab = respTab_(variant || 'v1'), vv = variant && variant !== 'v1' && variant !== 'v2' ? variant : String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1';
+  var fx = igIndex_(n);
+  if (fx) { var rn = rondeNow_(vv); if (fx.some(function (x) { return x[0] === vv && x[1] === rn; })) return { state: 'sudah_isi' }; return { state: 'ok', known: fx.some(function (x) { return x[5]; }) }; }
   var rows = igRows_(n);
   var rs = rondeStart_(variant && variant !== 'v1' && variant !== 'v2' ? variant : String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1');
   if (rows.some(function (r) { return r._tab === tab && String(r.ig_normal) === n && (!rs || new Date(r.timestamp) >= rs); })) return { state: 'sudah_isi' };
@@ -2628,7 +2655,11 @@ function snapBuild_() {
     var all = ctDataAll_('Valid', null, null, true), keys = all._wa; delete all._wa; all.meta.range = 'Semua waktu';
     items['ct:all'] = snapPack_(all); items['wa:all'] = snapPack_(keys);
     items['rep:all'] = snapPack_(adminReportAll_({ status: 'Valid' }));
-    var meta = { at: new Date().toISOString(), active: per, ms: Date.now() - t0, n: all.meta.n, sig: snapSig_() };
+    // indeks akun IG -> survei yang sudah diisi (untuk halaman depan & cek username yang cepat)
+    var igx = {}; readAll_().forEach(function (r) { var n = String(r.ig_normal || ''); if (!n) return; (igx[n] = igx[n] || []).push([r._v, r.ronde || 1, r.status === 'Valid' ? 1 : 0, new Date(r.timestamp).getTime() || 0, periodeOf_(r), r.S1 && r.wa_normal && !/^(Tidak valid|Diblokir)/.test(String(r.status)) ? 1 : 0]); });
+    items.ig = snapPack_(igx);
+    var rowsAt = {}; respTabs_().forEach(function (t) { var sh = sheet_(t[0]); rowsAt[t[0]] = sh ? sh.getLastRow() : 0; });
+    var meta = { at: new Date().toISOString(), active: per, ms: Date.now() - t0, n: all.meta.n, sig: snapSig_(), rows: rowsAt };
     snapWrite_(items, meta);
     return meta;
   });
@@ -2653,8 +2684,10 @@ function snapInfo_() { var o = snapRead_(); return o ? { at: o.meta.at, ms: o.me
 function hubList(ig) {
   return cached_(function () {
     ensureSetup_();
-    var n = normIg_(ig), acc = n ? accessStatus_(n, '') : { state: 'ok' }, rows = n ? igRows_(n) : [], per = activePeriode_(null), done = {}, kp = {};
-    rows.forEach(function (r) { if (r.ronde === rondeNow_(r._v)) done[r._v] = r.status || 'Masuk'; if (r.status === 'Valid' && periodeOf_(r) === per) kp[r._v] = 1; });
+    var n = normIg_(ig), acc = n ? accessStatus_(n, '') : { state: 'ok' }, per = activePeriode_(null), done = {}, kp = {};
+    var fx = n ? igIndex_(n) : [];
+    if (fx) fx.forEach(function (x) { if (x[1] === rondeNow_(x[0])) done[x[0]] = x[2] ? 'Valid' : 'Masuk'; if (x[2] && x[4] === per) kp[x[0]] = 1; });
+    else igRows_(n).forEach(function (r) { if (r.ronde === rondeNow_(r._v)) done[r._v] = r.status || 'Masuk'; if (r.status === 'Valid' && periodeOf_(r) === per) kp[r._v] = 1; });
     var list = surveyList_().filter(function (x) {
       if (!x.open || x.status === 'Draf') return false;
       var c = x.custom ? customById_(x.v) : null;
