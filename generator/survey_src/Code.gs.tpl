@@ -1536,15 +1536,17 @@ function ctShort_(t) {
 /** Gabungan semua survei: 1 baris per orang (nomor WA); tiap pertanyaan memakai jawaban terbaru orang itu. */
 function ctDataAll_(status, rg, panelId, withWa) {
   var svs = surveyList_().filter(function (x) { return x.status !== 'Draf'; }), Q = {}, order = [], P = {}, pid = [], ban = {}, f = '', l = '', pnl = '';
-  svs.forEach(function (sv) {
+  svs.forEach(function (sv, svi) {
     var cd = ctData_(sv.v, status, rg, panelId, true); if (!cd.meta.n) return;
     pnl = cd.meta.panel || pnl;
     if (cd.meta.first && (!f || cd.meta.first < f)) f = cd.meta.first; if (cd.meta.last && cd.meta.last > l) l = cd.meta.last;
     cd.banners.forEach(function (b) { ban[b] = 1; });
-    var STD = {}; DICTIONARY.forEach(function (d) { STD[d[0]] = 1; }); ['ses', 'kelas_ekonomi', 'segmen_hp', 'generasi', 'wilayah', 'kategori_1'].forEach(function (x) { STD[x] = 1; });
     cd.qs.forEach(function (q, qi) {
-      var own = sv.custom && !STD[q.id.replace(/^L\d_/, '').split(': ')[0]], key = own ? sv.v + '/' + q.id : q.id;   // pertanyaan khusus survei buatan Dashboard tidak digabung antar-survei
-      var m = Q[key]; if (!m) { m = Q[key] = { id: key, text: own ? q.text + ' (' + sv.name + ')' : q.text, full: q.full, sect: q.sect, group: q.group, sub: q.sub, multi: q.multi, cats: [] }; order.push(key); }
+      // hanya pertanyaan PROFIL yang sama di semua survei -> digabung per orang; pertanyaan topik lain tetap per survei
+      var prof = q.group === CT_GROUPS[0], key = prof ? q.id : sv.v + '/' + q.id;
+      var m = Q[key];
+      if (!m) { m = Q[key] = { id: key, text: prof ? q.text : q.text + ' (' + sv.name + ')', full: q.full, sect: q.sect, group: prof ? q.group : sv.name.toUpperCase() + ' · ' + q.group, sub: q.sub, multi: q.multi, cats: [],
+        _o: prof ? order.length : (1 + svi) * 100000 + Math.max(0, CT_GROUPS.indexOf(q.group)) * 1000 + qi }; order.push(key); }
       if (q.multi) m.multi = true;
       cd.data.forEach(function (row, ri) {
         var a = row[qi]; if (!a || !a.length) return;
@@ -1557,11 +1559,11 @@ function ctDataAll_(status, rg, panelId, withWa) {
     });
   });
   var qs = order.map(function (id) { return Q[id]; });
-  qs.forEach(function (q, i) { q._o = CT_GROUPS.indexOf(q.group) * 10000 + i; }); qs.sort(function (a, b) { return a._o - b._o; });
+  qs.sort(function (a, b) { return a._o - b._o; });
   qs.forEach(function (q, i) { q.no = i + 1; delete q._o; });
   var data = pid.map(function (k) { return qs.map(function (q) { var o = P[k][q.id]; return o ? o.v.map(function (c) { return q.cats.indexOf(c); }).filter(function (x) { return x >= 0; }) : []; }); });
   return { _wa: withWa ? pid : undefined, qs: qs, data: data, banners: CT_BANNERS.filter(function (b) { return ban[b]; }),
-    meta: { panel: pnl, n: pid.length, first: f, last: l, gabungan: true, status: (status === 'all' ? 'Semua jawaban' : 'Hanya jawaban valid') + ' · gabungan semua survei (1 orang dihitung 1×, jawaban terbaru)' } };
+    meta: { panel: pnl, n: pid.length, first: f, last: l, gabungan: true, status: (status === 'all' ? 'Semua jawaban' : 'Hanya jawaban valid') + ' · gabungan semua survei (profil: 1 orang dihitung 1×, jawaban terbaru; pertanyaan lain per survei)' } };
 }
 function adminCrosstab(v, status, rg, panelId) { requireAdmin_(); var d = v === 'all' ? ctDataAll_(status, rg, panelId) : ctData_(v, status, rg, panelId), g = timeRange_(rg); d.meta.range = g ? g.label : 'Semua waktu'; return d; }
 function ctIdx_(d, id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; throw new Error('Pertanyaan tidak ditemukan: ' + id + '. Lihat daftar di ?api=questions'); }

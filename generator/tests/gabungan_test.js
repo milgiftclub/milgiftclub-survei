@@ -8,7 +8,7 @@ const cs = ctx.adminBuilderSave({ name: 'Survei X', target: 50, questions: [{ id
 ctx.adminBuilderStatus(cs.id, 'Dibuka'); sub('c1', cs.id, '@ani', '081211110001', { Q1: 'Ya' });
 const d = ctx.adminCrosstab('all', 'Valid'); const i = d.qs.findIndex(q => q.id === 'S1');
 console.log('n', d.meta.n, '|', d.meta.status, '| S1 cats', JSON.stringify(d.qs[i].cats), d.data.map(r => r[i].map(x => d.qs[i].cats[x])).join(';'));
-assert.strictEqual(d.meta.n, 2); assert(d.qs.some(q => q.id === cs.id + '/Q1' && /Survei X/.test(q.text)));
+assert.strictEqual(d.meta.n, 2); assert(d.qs.some(q => q.id === cs.id + '/Q1' && /Survei X/.test(q.text))); console.log('groups:', [...new Set(d.qs.map(q => q.group))].join(' | ')); assert(!d.qs.some(q => q.id === 'S4'));
 const r = ctx.adminReport('all', { status: 'Valid' }); const q1 = r.questions.find(q => q.id === 'S1'); console.log('report S1', JSON.stringify(q1.items), 'total', r.total, 'all', r.all);
 assert.strictEqual(r.total, 2);
 const t = ctx.CT_LIB.table(d.qs, d.data, i, d.qs.findIndex(q => q.id === 'S2'), {}); console.log('ct base', t.base);

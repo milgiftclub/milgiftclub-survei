@@ -2186,7 +2186,7 @@ function repDraw(reset) {
   $('rp-meta').textContent = (d.range || 'Semua waktu') + ' · diperbarui ' + d.generatedAt;
   if (d.gabungan) $('rp-kpi').innerHTML = '<div><span>Orang dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'dengan jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
     '<div><span>Orang yang mengisi</span><b>' + fmt(d.all) + '</b><span>semua survei, termasuk tidak valid</span></div>' +
-    '<div><span>Cara hitung</span><b style="font-size:17px">1 orang = 1</b><span>jawaban terbaru dari survei mana pun</span></div>' +
+    '<div><span>Cara hitung</span><b style="font-size:17px">Profil digabung</b><span>1 orang = 1 (profil terbaru); pertanyaan topik lain tampil per survei</span></div>' +
     '<div><span>Pertanyaan</span><b>' + d.questions.length + '</b><span>pilihan, dengan jawaban</span></div>';
   else $('rp-kpi').innerHTML = '<div><span>Responden dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
     '<div><span>Total jawaban masuk</span><b>' + fmt(d.all) + '</b><span>termasuk tidak valid & duplikat</span></div>' +
