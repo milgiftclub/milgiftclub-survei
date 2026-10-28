@@ -69,8 +69,8 @@ var CT_LIB = {
       var f = found[i];
       if (perRow[f.row] || (perCol[f.col] || 0) >= Math.ceil(max / 3)) continue;
       perRow[f.row] = 1; perCol[f.col] = (perCol[f.col] || 0) + 1;
-      f.title = f.segment + (f.diff > 0 ? ' lebih banyak' : ' lebih sedikit') + ' memilih "' + f.answer + '"';
-      f.text = f.pct + '% dari ' + f.segment + ' (n=' + f.n + ') memilih "' + f.answer + '" pada ' + f.row + ' (' + f.rowText + '), dibanding ' + f.avg + '% rata-rata semua responden — selisih ' + (f.diff > 0 ? '+' : '') + f.diff + ' poin (signifikan, 95%).';
+      f.title = f.rowText + ': ' + f.segment + (f.diff > 0 ? ' lebih banyak' : ' lebih sedikit') + ' memilih "' + f.answer + '"';
+      f.text = f.pct + '% dari ' + f.segment + ' (n=' + f.n + ') memilih "' + f.answer + '" untuk ' + f.rowText + ', dibanding ' + f.avg + '% rata-rata semua responden — selisih ' + (f.diff > 0 ? '+' : '') + f.diff + ' poin (signifikan, 95%).';
       out.push(f);
     }
     return out;

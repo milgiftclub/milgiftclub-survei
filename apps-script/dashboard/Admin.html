@@ -1659,8 +1659,8 @@ var CT_LIB = {
       var f = found[i];
       if (perRow[f.row] || (perCol[f.col] || 0) >= Math.ceil(max / 3)) continue;
       perRow[f.row] = 1; perCol[f.col] = (perCol[f.col] || 0) + 1;
-      f.title = f.segment + (f.diff > 0 ? ' lebih banyak' : ' lebih sedikit') + ' memilih "' + f.answer + '"';
-      f.text = f.pct + '% dari ' + f.segment + ' (n=' + f.n + ') memilih "' + f.answer + '" pada ' + f.row + ' (' + f.rowText + '), dibanding ' + f.avg + '% rata-rata semua responden — selisih ' + (f.diff > 0 ? '+' : '') + f.diff + ' poin (signifikan, 95%).';
+      f.title = f.rowText + ': ' + f.segment + (f.diff > 0 ? ' lebih banyak' : ' lebih sedikit') + ' memilih "' + f.answer + '"';
+      f.text = f.pct + '% dari ' + f.segment + ' (n=' + f.n + ') memilih "' + f.answer + '" untuk ' + f.rowText + ', dibanding ' + f.avg + '% rata-rata semua responden — selisih ' + (f.diff > 0 ? '+' : '') + f.diff + ' poin (signifikan, 95%).';
       out.push(f);
     }
     return out;
@@ -1708,7 +1708,7 @@ function ctRows() {
   CT.data.forEach(function (r, i) { if (fs.every(function (q) { return (r[q] || []).some(function (x) { return CTS.filters[q].indexOf(x) >= 0; }); })) out.push(i); });
   return out;
 }
-function ctQ(i) { var q = CT.qs[i]; return q.id + '. ' + q.text; }
+function ctQ(i) { var q = CT.qs[i]; return (q.no || i + 1) + '. ' + q.text; }
 function ctCombo(host, onPick, getVal, ph) {
   var h = $(host); h.innerHTML = '<input placeholder="' + (ph || 'Cari pertanyaan…') + '" autocomplete="off"><button class="arr" type="button">▼</button><div class="ct-dd" hidden></div>';
   var inp = h.querySelector('input'), dd = h.querySelector('.ct-dd'), act = -1;
@@ -1717,11 +1717,11 @@ function ctCombo(host, onPick, getVal, ph) {
     if (!CT) { dd.innerHTML = '<div class="ct-item muted">Daftar pertanyaan belum dimuat…</div>'; return; }
     t = (t || '').toLowerCase(); var out = '', grp = null, sub = null;
     CT.qs.forEach(function (q, i) {
-      if (t && (q.id + ' ' + q.text).toLowerCase().indexOf(t) < 0) return;
+      if (t && ((q.no || i + 1) + ' ' + q.text + ' ' + (q.full || '')).toLowerCase().indexOf(t) < 0) return;
       var g = q.group || q.sect;
       if (g !== grp) { grp = g; sub = null; out += '<div class="ct-grp">' + esc(g) + '</div>'; }
       if (q.sub && q.sub !== sub) { sub = q.sub; out += '<div class="ct-sect">' + esc(sub) + '</div>'; }
-      out += '<div class="ct-item" data-i="' + i + '"><b>' + esc(q.id) + '</b> ' + esc(q.text) + (q.multi ? ' <small class="muted">(pilihan ganda)</small>' : '') + '</div>';
+      out += '<div class="ct-item" data-i="' + i + '" title="' + esc(q.full || q.text) + '"><b>' + (q.no || i + 1) + '.</b> ' + esc(q.text) + (q.multi ? ' <small class="muted">(pilihan ganda)</small>' : '') + '</div>';
     });
     dd.innerHTML = out || '<div class="ct-item muted">Tidak ada pertanyaan yang cocok</div>'; act = -1;
   };
@@ -1763,7 +1763,7 @@ function ctRender() {
   var fq = CTS.fq, box = $('ct-fcats');
   if (fq == null) box.hidden = true; else {
     var sel = CTS.filters[fq] || [];
-    box.innerHTML = '<div style="flex:1 1 100%;font-size:12px" class="muted"><b style="color:var(--ink)">' + esc(CT.qs[fq].id) + '</b> ' + esc(CT.qs[fq].text) + '</div>' + CT.qs[fq].cats.map(function (cat, k) {
+    box.innerHTML = '<div style="flex:1 1 100%;font-size:12px" class="muted"><b style="color:var(--ink)">' + esc(ctQ(fq)) + '</b></div>' + CT.qs[fq].cats.map(function (cat, k) {
       var n = CT.data.filter(function (r) { return (r[fq] || []).indexOf(k) >= 0; }).length;
       return '<label class="ct-chip' + (sel.indexOf(k) >= 0 ? ' on' : '') + '"><input type="checkbox" data-k="' + k + '"' + (sel.indexOf(k) >= 0 ? ' checked' : '') + '> ' + esc(cat) + ' <small>' + n + '</small></label>';
     }).join('');
@@ -1771,12 +1771,12 @@ function ctRender() {
     [].forEach.call(box.querySelectorAll('input'), function (x) { x.onchange = function () { var a = CTS.filters[fq] = CTS.filters[fq] || [], k = +x.dataset.k; if (x.checked) { if (a.indexOf(k) < 0) a.push(k); } else a.splice(a.indexOf(k), 1); ctRender(); }; });
   }
   var ent = Object.keys(CTS.filters).filter(function (k) { return CTS.filters[k].length; });
-  $('ct-ftags').innerHTML = ent.map(function (q) { return '<span class="ct-tag"><span><b>' + esc(CT.qs[q].id) + '</b>: ' + CTS.filters[q].map(function (k) { return esc(CT.qs[q].cats[k]); }).join(' / ') + '</span><button onclick="delete CTS.filters[' + q + '];ctRender()" aria-label="Hapus filter">✕</button></span>'; }).join('');
+  $('ct-ftags').innerHTML = ent.map(function (q) { return '<span class="ct-tag"><span><b>' + esc(CT.qs[q].text) + '</b>: ' + CTS.filters[q].map(function (k) { return esc(CT.qs[q].cats[k]); }).join(' / ') + '</span><button onclick="delete CTS.filters[' + q + '];ctRender()" aria-label="Hapus filter">✕</button></span>'; }).join('');
   $('ct-fsum').innerHTML = ent.length ? 'Menampilkan <b>' + rows.length + '</b> dari ' + N + ' responden.' + (rows.length < 30 ? ' Base kecil, baca hasil sebagai indikasi.' : '') : 'Belum ada filter. Semua ' + N + ' responden ditampilkan.';
   // tabel
   var ri = CTS.row, ci = CTS.col, mode = $('ct-mode').value;
-  $('ct-rowt').textContent = (CT.qs[ri].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ri].length; }).length + ' responden menjawab';
-  $('ct-colt').textContent = (CT.qs[ci].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ci].length; }).length + ' responden menjawab';
+  $('ct-rowt').textContent = '“' + (CT.qs[ri].full || '') + '” · ' + (CT.qs[ri].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ri].length; }).length + ' responden menjawab';
+  $('ct-colt').textContent = '“' + (CT.qs[ci].full || '') + '” · ' + (CT.qs[ci].multi ? 'Pilihan ganda · ' : '') + rows.filter(function (i) { return CT.data[i][ci].length; }).length + ' responden menjawab';
   $('ct-title').textContent = ctQ(ri) + '  ×  ' + ctQ(ci);
   $('ct-note').textContent = { col: 'Persentase kolom: dari responden di tiap kelompok kolom, berapa persen yang memilih jawaban baris.', row: 'Persentase baris: dari responden yang memilih jawaban baris, bagaimana sebarannya ke kelompok kolom.', count: 'Jumlah responden.' }[mode] +
     (CT.qs[ri].multi || CT.qs[ci].multi ? ' Ada pertanyaan pilihan ganda, jadi total bisa lebih dari 100%.' : '') + (fl ? ' Filter aktif.' : '');

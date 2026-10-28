@@ -1173,6 +1173,7 @@ function adminRunTask(name) {
 
 // ====== CROSS TAB (Dashboard & API ATLAS) ======
 __CROSSTAB_LIB__
+var CT_LABELS = __LABELS__;   // label pendek per pertanyaan (questions.py)
 var CT_BANNERS = ['S1', 'S2', 'ses', 'kelas_ekonomi', 'wilayah', 'A4', 'A5', 'A18', 'A13', 'A6', 'S5', 'D0'];
 var CT_SKIP = ['O1', 'Z1', 'QC1', 'PR', 'S0B', 'PV', 'A1', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'kategori_ditugaskan', 'kategori_2', 'pengeluaran_per_kapita', 'profil_diperbarui', 'S0'];
 function wilayah_(r) {
@@ -1224,15 +1225,22 @@ function ctData_(v, status) {
     if (cats.length > 40) cats = cats.slice(0, 40);
     var multi = vals.some(function (a) { return a.length > 1; }) || m.type === 'multi' || /\(boleh pilih|maksimal \d/i.test(m.text || '');
     var g = ctGroup_(col, m.topic, !!c && !/^(S\d|A\d|ses|kelas|wilayah)/.test(base(id)));
-    qs.push({ id: col, text: (m.text || id) + (mx ? ' — ' + mx[2] : '') + (/^L\d_/.test(col) ? ' (modul kategori)' : ''), sect: m.topic || 'Lainnya', group: g[0], sub: g[1], multi: multi, cats: cats, _vals: vals });
+    var full = String(m.text || id), lab = CT_LABELS[base(id)] || (c && ctCustomLabel_(c, base(id))) || ctShort_(full);
+    qs.push({ id: col, text: lab + (mx ? ' — ' + mx[2] : ''), full: full + (mx ? ' — ' + mx[2] : ''), sect: m.topic || 'Lainnya', group: g[0], sub: g[1], multi: multi, cats: cats, _vals: vals });
   });
   // urutkan per kelompok (profil dulu), urutan kuesioner tetap di dalam kelompok
   qs.forEach(function (q, i) { q._o = CT_GROUPS.indexOf(q.group) * 1000 + i; });
   qs.sort(function (a, b) { return a._o - b._o; });
-  qs.forEach(function (q, qi) { q._vals.forEach(function (a, i) { data[i][qi] = a.map(function (x) { return q.cats.indexOf(x); }).filter(function (k) { return k >= 0; }); }); delete q._vals; delete q._o; });
+  qs.forEach(function (q, qi) { q.no = qi + 1; q._vals.forEach(function (a, i) { data[i][qi] = a.map(function (x) { return q.cats.indexOf(x); }).filter(function (k) { return k >= 0; }); }); delete q._vals; delete q._o; });
   var ts = rows.map(function (r) { return new Date(r.timestamp).getTime(); }).filter(function (x) { return !isNaN(x); }).sort();
   return { qs: qs, data: data, meta: { n: rows.length, first: ts.length ? fmt_(new Date(ts[0])) : '', last: ts.length ? fmt_(new Date(ts[ts.length - 1])) : '', status: status === 'all' ? 'Semua jawaban' : 'Hanya jawaban valid' },
     banners: CT_BANNERS.filter(function (b) { return qs.some(function (q) { return q.id === b; }); }) };
+}
+/** label pendek survei buatan Dashboard: kolom "label" bila diisi, selain itu teks pertanyaan dipendekkan */
+function ctCustomLabel_(c, id) { var q = (c.schema.questions || []).filter(function (x) { return x.id === id; })[0]; return q && q.label ? String(q.label) : ''; }
+function ctShort_(t) {
+  t = String(t || '').replace(/\s*\((boleh|pilih|maks)[^)]*\)\s*/gi, ' ').replace(/[?.]+\s*$/, '').trim();
+  return t.length > 60 ? t.slice(0, 57).replace(/\s+\S*$/, '') + '…' : t;
 }
 function adminCrosstab(v, status) { requireAdmin_(); return ctData_(v, status); }
 function ctIdx_(d, id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; throw new Error('Pertanyaan tidak ditemukan: ' + id + '. Lihat daftar di ?api=questions'); }

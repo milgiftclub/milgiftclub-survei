@@ -309,3 +309,22 @@ def variant_v2():
             continue
         out.append(q)
     return out
+
+# ================= LABEL PENDEK (Cross Tab, laporan, API ATLAS) =================
+LABELS = {
+ 'S0': 'Tahun lahir', 'S1': 'Usia', 'S2': 'Jenis kelamin', 'S3': 'Bekerja di industri terkait', 'S4': 'Platform belanja (1 bulan terakhir)', 'S5': 'Frekuensi belanja online',
+ 'SC1': 'Kategori fokus yang dibeli', 'A1': 'Kota', 'provinsi': 'Provinsi', 'wilayah': 'Wilayah', 'A18': 'Jenis tempat tinggal', 'A19': 'Status tempat tinggal',
+ 'A4M': 'Status pernikahan', 'A4N': 'Jumlah anak', 'A4K': 'Usia anak', 'A4': 'Life stage', 'A5': 'Pekerjaan', 'A6': 'Pendidikan terakhir',
+ 'A7N': 'Jumlah anggota rumah tangga', 'A7': 'Pengeluaran rumah tangga per bulan', 'A8': 'Belanja online pribadi per bulan', 'ses': 'SES', 'kelas_ekonomi': 'Kelas ekonomi',
+ 'A9': 'Pengambil keputusan belanja rumah tangga', 'A10': 'Media sosial harian', 'A11': 'Durasi media sosial per hari', 'A12': 'Metode pembayaran',
+ 'A13': 'Jenis HP', 'A14': 'Minat / hobi', 'A15': 'Mengenakan hijab', 'A16': 'Kendaraan yang dimiliki',
+ 'B2': 'Platform paling sering dipakai', 'B4': 'Platform paling sesuai', 'C1': 'Kategori belanja terakhir', 'kategori_1': 'Kategori yang dibahas',
+ 'C2': 'Frekuensi beli kategori (3 bulan)', 'PT1': 'Produk yang dibeli', 'PT2': 'Harga produk per item', 'AW1': 'Platform tempat membeli',
+ 'AW3': 'Pemicu ingin membeli', 'AW5': 'Sumber pertama tahu produk', 'AW6': 'Konten yang menarik', 'CO2': 'Cara membandingkan pilihan',
+ 'CO4': 'Faktor penentu keputusan', 'FA1': 'Hal terpenting saat memilih (fashion)', 'FA2': 'Sikap terhadap harga (fashion)', 'CO6': 'Jeda melihat hingga membeli',
+ 'CO7': 'Melihat/mencoba di toko fisik dulu', 'PU1': 'Alasan memilih platform', 'PU2': 'Momen pembelian', 'PU4': 'Total nilai belanja', 'PU5': 'Pemakaian voucher / promo',
+ 'PU6': 'Membatalkan checkout', 'PU7': 'Alasan tidak jadi membeli', 'OF1': 'Riwayat beli online vs toko fisik', 'OF2': 'Alasan dulu beli di toko fisik',
+ 'OF3': 'Alasan pindah beli online', 'OF4': 'Kondisi tetap beli di toko fisik', 'LO1': 'Yang dipertahankan saat beli ulang', 'LO2': 'Alasan kembali membeli',
+ 'LO4': 'Pemicu berhenti berlangganan', 'RE1': 'Kemungkinan merekomendasikan (NPS)', 'RE2': 'Tindakan setelah menerima produk', 'RE3': 'Pendorong memberi ulasan',
+ 'D0': 'Porsi belanja online vs toko fisik', 'D1': 'Pengalaman live shopping', 'D4': 'Momen memutuskan beli saat live', 'D5': 'Format iklan sosmed yang dilihat',
+}

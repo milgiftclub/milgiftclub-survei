@@ -1,5 +1,5 @@
 import json, re, os
-from questions import Q, HIGH, FASHION_CATS, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
+from questions import LABELS, Q, HIGH, FASHION_CATS, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
 from categories import CATS
 from products import PRODUCTS
 num={q[0]:i+1 for i,q in enumerate(Q)}
@@ -82,7 +82,7 @@ for sch in (S1, S2):
     for q in sch:
         o=[x['t'] for x in q.get('options',[]) if isinstance(x,dict) and x.get('t')] or q.get('cols') or []
         if o and q['id'] not in qopts: qopts[q['id']]=o
-gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False)).replace('__SURVEY_DEPLOY__',json.load(open('../apps-script/deployments.json'))['survei']).replace('__CROSSTAB_LIB__',open('survey_src/crosstab.js').read())
+gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False)).replace('__SURVEY_DEPLOY__',json.load(open('../apps-script/deployments.json'))['survei']).replace('__LABELS__',json.dumps(LABELS,ensure_ascii=False)).replace('__CROSSTAB_LIB__',open('survey_src/crosstab.js').read())
 open('survey_out/Code.gs','w').write(gs)
 print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 
