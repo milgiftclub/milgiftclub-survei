@@ -107,6 +107,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var BR = D.brand && D.brand.mode === 'client' ? D.brand : null, ORG = BR ? BR.name : 'MIL Gift Club';
     if (BR) applyBrand(BR);
     if (S.periodeLabel) CFG.periodeLabel = S.periodeLabel;
+    if (S.announce && !BR) CFG.announce = S.announce;
     document.title = D.name + ' — ' + ORG;
     if (!D.open) return finish('Survei telah ditutup', 'Terima kasih atas minat kamu. Pantau Instagram ' + CFG.ig + ' untuk survei dan giveaway berikutnya.', '', ctaButtons(true));
 

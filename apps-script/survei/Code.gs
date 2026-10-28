@@ -99,7 +99,7 @@ var SET_DEFAULTS = [
   ['TUTUP_V2', '2026-12-31T23:59', 'Survei Fashion Wanita, Tas & Aksesori, Hijab tutup otomatis pada tanggal & jam ini (WIB)'],
   ['PERIODE_KE', 1, 'Periode giveaway survei utama (angka)'],
   ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama'],
-  ['PERIODE_LIST', '[{"ke":1,"tahun":2026,"mulai":"2026-10-01","selesai":"2026-12-31"}]', 'Daftar periode giveaway (diatur dari menu Periode Giveaway)'],
+  ['PERIODE_LIST', '[{"ke":1,"tahun":2026,"mulai":"2026-10-01","selesai":"2026-12-31","umumkan":"2027-01-04"}]', 'Daftar periode giveaway (diatur dari menu Periode Giveaway)'],
   ['IG_POST_GIVEAWAY', '', 'Link postingan giveaway Instagram (pisahkan dengan koma bila lebih dari satu). Komentar & tag di postingan ini dicek otomatis'],
   ['IG_MIN_TAG', 3, 'Jumlah teman minimal yang harus di-tag di komentar'],
   ['SYARAT_KOMENTAR_WAJIB', false, 'TRUE = hanya yang sudah komentar + tag teman yang ikut diundi (aktifkan setelah Instagram tersambung)'],
@@ -126,16 +126,27 @@ function fmtTutup_(v) {
 }
 function tutupText_(v) { var t = fmtTutup_(v); return t ? 'Hingga ' + t : ''; }
 function periodeText_(ke, th) { ke = Number(ke) || 0; th = Number(th) || 0; return ke ? 'Periode ' + ke + (th ? ' ' + th : '') : (th ? 'Periode ' + th : ''); }
-/** label & teks periode survei utama (v1/v2), dari Pengaturan */
+function tglPanjang_(ymd) { var a = String(ymd || '').split('-'); return a.length === 3 ? Number(a[2]) + ' ' + BULAN_[Number(a[1]) - 1] + ' ' + a[0] : ''; }
+/** periode yang sedang aktif (menu Periode Giveaway) */
+function activePeriodObj_() { var lb = periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN')); return periods_().filter(function (p) { return p.label === lb; })[0] || null; }
+/** "Hingga …": tanggal selesai periode aktif, atau tanggal tutup survei bila lebih awal */
+function hinggaText_(tutupVal) {
+  var ap = activePeriodObj_(), d1 = closeAt_(tutupVal), d2 = ap && ap.selesai ? periodRange_(ap).t : null;
+  if (d1 && (!d2 || d1 < d2)) return tutupText_(tutupVal);
+  return d2 ? 'Hingga ' + tglPanjang_(ap.selesai) : '';
+}
+function announceText_() { var ap = activePeriodObj_(); return ap && ap.umumkan ? tglPanjang_(ap.umumkan) : CONFIG.ANNOUNCE_DATE; }
+/** label & teks periode survei utama (v1/v2), dari menu Periode Giveaway */
 function mainPeriode_(variant) {
-  var p = periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN')), t = tutupText_(set_(variant === 'v2' ? 'TUTUP_V2' : 'TUTUP_V1'));
-  return { label: p ? 'Survei MIL Gift Club · ' + p : CONFIG.PERIODE_LABEL, periode: t || CONFIG.PERIODE_GIVEAWAY, periodeKe: Number(set_('PERIODE_KE')) || 1, tahun: Number(set_('PERIODE_TAHUN')) || new Date().getFullYear() };
+  var p = periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN')), t = hinggaText_(set_(variant === 'v2' ? 'TUTUP_V2' : 'TUTUP_V1'));
+  return { label: p ? 'Survei MIL Gift Club · ' + p : CONFIG.PERIODE_LABEL, periode: t || CONFIG.PERIODE_GIVEAWAY, announce: announceText_(), periodeKe: Number(set_('PERIODE_KE')) || 1, tahun: Number(set_('PERIODE_TAHUN')) || new Date().getFullYear() };
 }
 /** label & teks periode survei buatan Dashboard */
 function customPeriode_(c) {
   // survei MIL Gift Club: periode sama dengan survei utama (Pengaturan); survei brand klien: tanpa periode
   var sc = c.schema || {}, client = !!(sc.brand && sc.brand.mode === 'client');
-  return { label: client ? '' : mainPeriode_('v1').label, periode: tutupText_(sc.tutup) || sc.periode || '' };
+  if (client) return { label: '', periode: tutupText_(sc.tutup) || sc.periode || '' };
+  return { label: mainPeriode_('v1').label, periode: hinggaText_(sc.tutup) || sc.periode || '', announce: announceText_() };
 }
 var SET_MEMO_ = null;
 /** nilai tanggal untuk input datetime-local di Dashboard */
@@ -170,7 +181,7 @@ function isOpen_(variant) {
 function publicConfig_(variant, src) {
   return {
     open: isOpen_(String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1'),
-    announce: CONFIG.ANNOUNCE_DATE,
+    announce: announceText_(),
     privacy: CONFIG.PRIVACY_URL,
     tnc: CONFIG.TNC_URL,
     src: src || 'langsung',
@@ -205,7 +216,7 @@ function doGet(e) {
   catch (err) { t = HtmlService.createTemplateFromFile('Index'); t.cfgJson = JSON.stringify(publicConfig_(prm.survei, prm.src || prm.utm_source)); }
   t.search = JSON.stringify(q ? '?' + q : '').replace(/</g, '\\u003c');
   var mp = cid ? null : mainPeriode_(sv === 'v2' ? 'v2' : 'v1');
-  t.ovr = JSON.stringify(mp ? { PERIODE_LABEL: mp.label, PERIODE_GIVEAWAY: mp.periode } : {}).replace(/</g, '\\u003c');
+  t.ovr = JSON.stringify(mp ? { PERIODE_LABEL: mp.label, PERIODE_GIVEAWAY: mp.periode, PENGUMUMAN_PEMENANG: mp.announce } : {}).replace(/</g, '\\u003c');
   var c = cid ? customById_(cid) : null;
   return t.evaluate()
     .setTitle(c ? c.name : 'Survei Belanja Online — MIL Gift Club')
@@ -1180,7 +1191,7 @@ function activePeriode_(cs) {
 // ---- Periode giveaway: diatur di menu Periode Giveaway (rentang tanggal). Jawaban masuk periode sesuai TANGGAL masuknya. ----
 function periods_() {
   var l = []; try { l = JSON.parse(String(set_('PERIODE_LIST') || '[]')); } catch (e) {}
-  return (l || []).filter(function (p) { return p && p.ke; }).map(function (p) { return { ke: Number(p.ke), tahun: Number(p.tahun), mulai: String(p.mulai || ''), selesai: String(p.selesai || ''), label: periodeText_(p.ke, p.tahun) }; })
+  return (l || []).filter(function (p) { return p && p.ke; }).map(function (p) { return { ke: Number(p.ke), tahun: Number(p.tahun), mulai: String(p.mulai || ''), selesai: String(p.selesai || ''), umumkan: String(p.umumkan || ''), label: periodeText_(p.ke, p.tahun) }; })
     .sort(function (a, b) { return (b.tahun - a.tahun) || (b.ke - a.ke); });
 }
 function periodRange_(p) { return { f: new Date(p.mulai + 'T00:00:00+07:00'), t: new Date(p.selesai + 'T23:59:59+07:00') }; }
@@ -1217,7 +1228,9 @@ function adminPeriodSave(list, activeLabel) {
   requireAdmin_();
   var D = /^\d{4}-\d{2}-\d{2}$/, seen = {};
   var clean = (list || []).map(function (p) {
-    var x = { ke: Number(p.ke), tahun: Number(p.tahun), mulai: String(p.mulai || ''), selesai: String(p.selesai || '') }, lb = periodeText_(x.ke, x.tahun);
+    var x = { ke: Number(p.ke), tahun: Number(p.tahun), mulai: String(p.mulai || ''), selesai: String(p.selesai || ''), umumkan: String(p.umumkan || '') }, lb = periodeText_(x.ke, x.tahun);
+    if (x.umumkan && !D.test(x.umumkan)) throw new Error(lb + ': tanggal pengumuman pemenang tidak valid.');
+    if (x.umumkan && x.umumkan < x.selesai) throw new Error(lb + ': tanggal pengumuman pemenang sebaiknya setelah periode selesai.');
     if (!(x.ke >= 1) || !(x.tahun >= 2000) || !D.test(x.mulai) || !D.test(x.selesai)) throw new Error('Lengkapi periode ke-, tahun, dan tanggal (' + lb + ').');
     if (x.selesai < x.mulai) throw new Error(lb + ': tanggal selesai sebelum tanggal mulai.');
     if (seen[lb]) throw new Error(lb + ' tercantum dua kali.'); seen[lb] = 1;
@@ -1771,9 +1784,9 @@ function getSurvey(id, preview) {
   var br = c.schema.brand && c.schema.brand.mode === 'client' ? JSON.parse(JSON.stringify(c.schema.brand)) : null;
   if (br && br.logo) br.logoData = imageData_([br.logo])[br.logo] || '';
   var sch = JSON.parse(JSON.stringify(c.schema)), cp = customPeriode_(c);
-  sch.periode = cp.periode; sch.periodeLabel = cp.label;
+  sch.periode = cp.periode; sch.periodeLabel = cp.label; if (cp.announce) sch.announce = cp.announce;
   return { id: c.id, name: c.name, status: c.status, open: preview ? true : isOpen_(c.id), preview: !!preview, schema: sch, brand: br, tutupLewat: closed_(c.schema.tutup),
-    giveaway: { periodeLabel: mainPeriode_('v1').label, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: mainPeriode_('v1').periode, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
+    giveaway: { periodeLabel: mainPeriode_('v1').label, hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH, periode: mainPeriode_('v1').periode, announce: announceText_(), ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP, pesanPenutup: CONFIG.PESAN_PENUTUP } };
 }
 
 // ---- fungsi Dashboard (Buat survei) ----
@@ -1794,7 +1807,7 @@ function adminBuilderGet(id) {
 function adminBuilderDefaults() {
   requireAdmin_();
   var mp = mainPeriode_('v1');
-  return { giveaway: { periodeLabel: mp.label, periodeKe: mp.periodeKe, tahun: mp.tahun, tutup: inputDate_(set_('TUTUP_V1')), hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH || [], periode: mp.periode, announce: CONFIG.ANNOUNCE_DATE, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP || [] }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
+  return { giveaway: { periodeLabel: mp.label, periodeKe: mp.periodeKe, tahun: mp.tahun, tutup: inputDate_(set_('TUTUP_V1')), hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH || [], periode: mp.periode, announce: mp.announce, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP || [] }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
 }
 /** Simpan rancangan. publish=true -> status Dibuka & tab jawaban dibuat. */
 function adminBuilderSave(sch, publish) {

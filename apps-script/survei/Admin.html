@@ -134,7 +134,9 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)} .btn:disabled{opacity:.5;cursor:not-allowed}
 .ppl{font-size:13px;color:var(--ink2);margin:8px 0 2px} .ppl b{color:var(--ink)}
 .per-pill{margin-left:auto;margin-right:12px;border:1px solid var(--line);background:#fff;color:var(--navy);font:inherit;font-weight:800;font-size:13px;border-radius:999px;padding:7px 14px;cursor:pointer}
-#per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t td{vertical-align:middle}
+.per-prev-w{margin:14px 0 8px} .per-prev{max-width:420px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fffaf2;font-size:13.5px}
+.per-prev .pr-l{font-weight:800;margin-bottom:6px} .per-prev .pr-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+#per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t input[type=date]{width:142px} #per-t th,#per-t td{padding-left:8px;padding-right:8px} #per-t td{vertical-align:middle}
 .rg-d{display:inline-flex;align-items:center;gap:6px} .rg-d input{width:auto;padding:6px 8px}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
@@ -433,7 +435,8 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="card"><h2>Daftar periode</h2>
     <div class="tw"><table id="per-t"></table></div>
     <div class="toolbar" style="margin-top:12px"><button class="btn sec sm" onclick="perAdd()">+ Tambah periode</button><span style="flex:1"></span><span class="muted" id="per-msg"></span><button class="btn" onclick="perSave()">Simpan</button></div>
-    <p class="muted" style="font-size:12.5px">Pilih <b>Aktif</b> untuk periode yang sedang berjalan. Label "Survei MIL Gift Club · Periode …" di halaman survei serta caption &amp; gambar IG ikut periode aktif.</p>
+    <div class="per-prev-w"><div class="muted" style="font-size:12.5px;margin-bottom:6px">Tampilan di halaman survei (periode aktif):</div><div class="per-prev" id="per-prev"></div></div>
+    <p class="muted" style="font-size:12.5px">Pilih <b>Aktif</b> untuk periode yang sedang berjalan. Label periode, tanggal "Hingga …" dan tanggal pengumuman pemenang di halaman survei, caption &amp; gambar IG ikut periode aktif. Bila sebuah survei punya tanggal tutup lebih awal, yang tampil tanggal tutup survei itu.</p>
   </div>
 </section>
 
@@ -700,18 +703,27 @@ var PER = null;
 function perPill(label) { var b = $('per-pill'); if (b) b.querySelector('span').textContent = label ? label + ' (aktif)' : 'Belum ada periode aktif'; }
 function loadPeriod() { $('per-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminPeriods').then(function (d) { PER = d; perPill(d.active); perDraw(); }); }
 function perDraw() {
-  var h = '<thead><tr><th>Aktif</th><th>Periode ke-</th><th>Tahun</th><th>Mulai</th><th>Selesai</th><th>Jawaban valid</th><th></th></tr></thead><tbody>';
+  var h = '<thead><tr><th>Aktif</th><th>Periode ke-</th><th>Tahun</th><th>Mulai</th><th>Selesai (hingga)</th><th>Pengumuman pemenang</th><th>Valid</th><th></th></tr></thead><tbody>';
   PER.list.forEach(function (p, i) {
-    h += '<tr><td><input type="radio" name="per-act" value="' + i + '"' + (p.aktif ? ' checked' : '') + '></td><td><input type="number" min="1" data-f="ke" data-i="' + i + '" value="' + p.ke + '" style="width:70px"></td>' +
-      '<td><input type="number" min="2024" data-f="tahun" data-i="' + i + '" value="' + p.tahun + '" style="width:90px"></td><td><input type="date" data-f="mulai" data-i="' + i + '" value="' + esc(p.mulai) + '"></td>' +
-      '<td><input type="date" data-f="selesai" data-i="' + i + '" value="' + esc(p.selesai) + '"></td><td>' + fmt(p.valid) + '</td><td><button class="trash" title="Hapus periode" onclick="perDel(' + i + ')">' + TRASH + '</button></td></tr>';
+    h += '<tr><td><input type="radio" name="per-act" value="' + i + '"' + (p.aktif ? ' checked' : '') + '></td><td><input type="number" min="1" data-f="ke" data-i="' + i + '" value="' + p.ke + '" style="width:58px"></td>' +
+      '<td><input type="number" min="2024" data-f="tahun" data-i="' + i + '" value="' + p.tahun + '" style="width:76px"></td><td><input type="date" data-f="mulai" data-i="' + i + '" value="' + esc(p.mulai) + '"></td>' +
+      '<td><input type="date" data-f="selesai" data-i="' + i + '" value="' + esc(p.selesai) + '"></td><td><input type="date" data-f="umumkan" data-i="' + i + '" value="' + esc(p.umumkan || '') + '"></td><td>' + fmt(p.valid) + '</td><td><button class="trash" title="Hapus periode" onclick="perDel(' + i + ')">' + TRASH + '</button></td></tr>';
   });
-  $('per-t').innerHTML = h + (PER.list.length ? '' : '<tr><td colspan="7" class="loading">Belum ada periode. Klik "+ Tambah periode".</td></tr>') + '</tbody>';
-  [].forEach.call($('per-t').querySelectorAll('input[data-f]'), function (x) { x.onchange = function () { PER.list[+x.dataset.i][x.dataset.f] = x.type === 'number' ? +x.value : x.value; }; });
+  $('per-t').innerHTML = h + (PER.list.length ? '' : '<tr><td colspan="8" class="loading">Belum ada periode. Klik "+ Tambah periode".</td></tr>') + '</tbody>';
+  [].forEach.call($('per-t').querySelectorAll('input[data-f]'), function (x) { x.onchange = function () { PER.list[+x.dataset.i][x.dataset.f] = x.type === 'number' ? +x.value : x.value; perPreview(); }; });
+  [].forEach.call($('per-t').querySelectorAll('input[name=per-act]'), function (x) { x.onchange = perPreview; });
+  perPreview();
+}
+function tglP(ymd) { var B = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'], a = String(ymd || '').split('-'); return a.length === 3 ? +a[2] + ' ' + B[+a[1] - 1] + ' ' + a[0] : ''; }
+function perPreview() {
+  var r = document.querySelector('input[name=per-act]:checked'), p = r ? PER.list[+r.value] : null;
+  $('per-prev').innerHTML = p ? '<div class="pr-l">Survei MIL Gift Club · Periode ' + esc(p.ke) + ' ' + esc(p.tahun) + '</div>' +
+    '<div class="pr-r"><span>📅 Periode Giveaway</span><b>' + (p.selesai ? 'Hingga ' + esc(tglP(p.selesai)) : '—') + '</b></div>' +
+    '<div class="pr-r"><span>🏆 Pengumuman Pemenang</span><b>' + (p.umumkan ? esc(tglP(p.umumkan)) : '<span class="muted">belum diisi</span>') + '</b></div>' : '<span class="muted">Pilih periode aktif untuk melihat tampilan di survei.</span>';
 }
 function perAdd() {
   var last = PER.list[0];
-  var n = last ? { ke: last.ke + 1, tahun: last.tahun, mulai: last.selesai ? new Date(new Date(last.selesai + 'T12:00:00Z').getTime() + 864e5).toISOString().slice(0, 10) : '', selesai: '', valid: 0 } : { ke: 1, tahun: new Date().getFullYear(), mulai: '', selesai: '', valid: 0 };
+  var n = last ? { ke: last.ke + 1, tahun: last.tahun, mulai: last.selesai ? new Date(new Date(last.selesai + 'T12:00:00Z').getTime() + 864e5).toISOString().slice(0, 10) : '', selesai: '', umumkan: '', valid: 0 } : { ke: 1, tahun: new Date().getFullYear(), mulai: '', selesai: '', umumkan: '', valid: 0 };
   PER.list.unshift(n); perDraw();
 }
 function perDel(i) { if (!confirm('Hapus periode ini? Jawaban tidak ikut terhapus.')) return; PER.list.splice(i, 1); perDraw(); }

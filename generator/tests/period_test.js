@@ -31,4 +31,12 @@ assert.strictEqual(ctx.getSurvey(cs.id).schema.periodeLabel, 'Survei MIL Gift Cl
 ctx.adminPeriodSave(ps.list.map(p => ({ ke: p.ke, tahun: p.tahun, mulai: p.mulai, selesai: p.selesai })), 'Periode 1 2026'); ctx.SET_MEMO_ = null;
 assert.strictEqual(ctx.getSurvey(cs.id).schema.periodeLabel, 'Survei MIL Gift Club · Periode 1 2026');
 assert.strictEqual(ctx.adminPeriods().active, 'Periode 1 2026');
+// tanggal hingga & pengumuman pemenang ikut periode aktif
+ctx.adminPeriodSave([{ ke: 1, tahun: 2026, mulai: add(-40), selesai: add(-11), umumkan: add(-5) }, { ke: 2, tahun: 2026, mulai: add(-10), selesai: '2026-12-31', umumkan: '2027-01-04' }], 'Periode 2 2026'); ctx.SET_MEMO_ = null;
+ctx.adminSaveSettings({ TUTUP_V1: '', TUTUP_V2: '2026-11-15T23:59' }); ctx.SET_MEMO_ = null;
+let pc = ctx.publicConfig_('v1', 'x'); console.log('v1:', pc.periodeLabel, '|', pc.periode, '|', pc.announce);
+assert.strictEqual(pc.periode, 'Hingga 31 Desember 2026'); assert.strictEqual(pc.announce, '4 Januari 2027');
+assert.strictEqual(ctx.publicConfig_('v2', 'x').periode, 'Hingga 15 November 2026', 'tutup survei lebih awal menang');
+const gs = ctx.getSurvey(cs.id).schema; assert.strictEqual(gs.periode, 'Hingga 31 Desember 2026'); assert.strictEqual(gs.announce, '4 Januari 2027');
+assert.throws(() => ctx.adminPeriodSave([{ ke: 3, tahun: 2027, mulai: '2027-01-01', selesai: '2027-03-31', umumkan: '2027-03-01' }], ''), /pengumuman/);
 console.log('OK period_test');

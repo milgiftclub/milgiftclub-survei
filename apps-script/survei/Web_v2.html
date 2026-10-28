@@ -244,8 +244,8 @@ function __gsFetch(url, o) {
         // dari server hanya diambil status buka/tutup & pengaturan kuota (tampilan tidak berubah)
         CFG.open = cfg.open; CFG.funnelAll = cfg.funnelAll; CFG.high = cfg.high || CFG.high;
         // periode & tanggal tutup selalu mengikuti Pengaturan Dashboard
-        var ch = (cfg.periodeLabel && cfg.periodeLabel !== CFG.periodeLabel) || (cfg.periode && cfg.periode !== CFG.periode);
-        if (cfg.periodeLabel) CFG.periodeLabel = cfg.periodeLabel; if (cfg.periode) CFG.periode = cfg.periode;
+        var ch = (cfg.periodeLabel && cfg.periodeLabel !== CFG.periodeLabel) || (cfg.periode && cfg.periode !== CFG.periode) || (cfg.announce && cfg.announce !== CFG.announce);
+        if (cfg.periodeLabel) CFG.periodeLabel = cfg.periodeLabel; if (cfg.periode) CFG.periode = cfg.periode; if (cfg.announce) CFG.announce = cfg.announce;
         var ctl = window.__ctl; if (!ctl || ctl.done()) return;
         if (!CFG.open) return ctl.close();
         if (ch && ctl.at() === 'O1') ctl.render();
