@@ -27,7 +27,7 @@ var CONFIG = {
     'Share postingan ini ke Instagram Story kamu dan tag @milgiftclub',
     'Nantikan pengumuman pemenangnya!'
   ],  PRIVACY_URL: '',              // tautan Kebijakan Privasi (wajib diisi sebelum survei dibuka)
-  TNC_URL: '',                  // tautan Syarat & Ketentuan giveaway
+  TNC_URL: 'https://milgiftclub.github.io/milgiftclub-survei/sk/',  // tautan Syarat & Ketentuan giveaway (halaman /sk/)
   TARGET_V1: 1200,              // target respons valid survei v1 (semua kategori)
   TARGET_V2: 600,               // target respons valid survei v2 (Fashion Wanita, Tas & Aksesori, Hijab)
   SURVEY_OPEN: true,            // ubah ke false untuk menutup survei
@@ -194,7 +194,8 @@ function publicConfig_(variant, src) {
     hadiah: CONFIG.HADIAH || [],
     ig: CONFIG.IG_HANDLE || '',
     langkah: CONFIG.LANGKAH_PENUTUP || [],
-    pesanPenutup: CONFIG.PESAN_PENUTUP || ''
+    pesanPenutup: CONFIG.PESAN_PENUTUP || '',
+    minTag: num_('IG_MIN_TAG') || 3, emailAkses: set_('EMAIL_BUKA_AKSES') || '', suspendBulan: num_('SUSPEND_BULAN') || 6
   };
 }
 

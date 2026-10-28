@@ -180,7 +180,8 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     var nv = document.getElementById('nav'); if (nv) nv.style.background = bg;
     var h = String(B.ig || '').trim().replace(/^@?/, '@'); if (h === '@') h = '';
     CFG.ig = h; CFG.linkIg = h ? 'https://www.instagram.com/' + h.slice(1) + '/' : ''; CFG.tombolIg = h ? 'Follow ' + h + ' di Instagram' : '';
-    CFG.linkLain = ''; CFG.linkCek = ''; CFG.pesanPenutup = ''; CFG.periodeLabel = 'Giveaway ' + B.name;
+    CFG.linkLain = ''; CFG.linkCek = ''; CFG.pesanPenutup = ''; CFG.tnc = '';   // S&K MIL Gift Club tidak berlaku untuk giveaway brand klien
+    CFG.periodeLabel = 'Giveaway ' + B.name;
     CFG.langkah = (CFG.langkah || []).map(function (t) { return String(t).replace(/@milgift_club|@milgiftclub/gi, h || 'kami'); }).filter(function (t) { return h || !/follow/i.test(t); });
     CFG.teksTidakEligible = 'Kamu belum termasuk kriteria survei ini. Terima kasih banyak atas waktumu!';
     CFG.teksSudahIsi = 'Akun Instagram ini sudah pernah mengisi survei ini. Satu akun hanya bisa ikut satu kali. Terima kasih!';

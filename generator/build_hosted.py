@@ -127,3 +127,8 @@ ck = open('survey_src/Cek.html.tpl').read().replace('__STYLE__', style)
 os.makedirs(os.path.join(OUT, 'cek'), exist_ok=True)
 open(os.path.join(OUT, 'cek', 'index.html'), 'w').write(ck)
 print('ok cek/')
+# ---- halaman Syarat & Ketentuan giveaway: /sk/ ----
+sk = open('survey_src/SK.html.tpl').read().replace('__STYLE__', style)
+os.makedirs(os.path.join(OUT, 'sk'), exist_ok=True)
+open(os.path.join(OUT, 'sk', 'index.html'), 'w').write(sk)
+print('ok sk/')
