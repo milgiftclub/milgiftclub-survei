@@ -138,6 +138,16 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .per-prev .pr-l{font-weight:800;margin-bottom:6px} .per-prev .pr-r{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
 #per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t input[type=date]{width:142px} #per-t th,#per-t td{padding-left:8px;padding-right:8px} #per-t td{vertical-align:middle}
 .rg-d{display:inline-flex;align-items:center;gap:6px} .rg-d input{width:auto;padding:6px 8px}
+.pn-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pn-list summary{cursor:pointer} .pi-n{font-size:14px;margin-bottom:10px}
+.pi-top{background:#FFF8E6;border:1px solid #F3DE9C;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13.5px} .pi-top ul{margin:6px 0 0;padding-left:4px;list-style:none} .pi-top li{margin:3px 0}
+.up{color:#1E7A46;font-weight:800;font-size:12.5px} .dn{color:#B4232A;font-weight:800;font-size:12.5px}
+.pi-g{border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:0 14px} .pi-g>summary{cursor:pointer;font-weight:800;padding:12px 0;letter-spacing:.03em;color:var(--navy)}
+.pi-q{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:12px;padding:10px 0;border-top:1px dashed var(--line)} .pi-l{font-weight:700;font-size:13.5px} .pi-l small{display:block;color:var(--muted);font-weight:400;font-size:11.5px}
+.pi-i{display:grid;grid-template-columns:minmax(120px,220px) minmax(80px,1fr) 52px 86px 70px;gap:8px;align-items:center;font-size:13px;margin:2px 0}
+.pi-c{overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .pi-a{font-size:11.5px}
+.pi-b{position:relative;height:8px;background:#EEF0F6;border-radius:6px} .pi-b i{position:absolute;left:0;top:0;bottom:0;background:var(--navy);border-radius:6px} .pi-b em{position:absolute;top:-3px;width:2px;height:14px;background:#E4572E}
+@media (max-width:760px){.pi-q{grid-template-columns:1fr}.pi-i{grid-template-columns:1fr 60px 50px}.pi-b,.pi-a{display:none}}
 .crit{border:1px solid var(--line);border-radius:14px;margin:8px 0;background:#fff}
 .crit.view{display:flex;align-items:center;gap:10px;padding:10px 12px}
 .crit .cn{font-weight:800;color:var(--navy);min-width:20px} .crit .ct{flex:1;line-height:1.6;font-size:14px}
@@ -457,6 +467,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div class="acts"><button class="btn sec sm" onclick="ctCopy()">Salin tabel (untuk Excel)</button></div></div>
   <div class="card rep-bar"><div class="toolbar" style="margin:0">
     <select id="ct-v" onchange="ctLoad()"></select>
+    <select id="ct-pn" onchange="ctLoad()" title="Panel"><option value="">Semua responden</option></select>
     <select id="ct-rg" onchange="rgChange('ct', ctLoad)" title="Rentang waktu"><option value="">Semua waktu</option></select><span id="ct-rgd" class="rg-d" style="display:none"><input type="date" id="ct-dari" onchange="ctLoad()"> – <input type="date" id="ct-sampai" onchange="ctLoad()"></span>
     <select id="ct-st" onchange="ctLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
     <span style="flex:1"></span><span class="muted" id="ct-meta"></span></div></div>
@@ -520,9 +531,17 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <!-- PANEL -->
 <section class="page" id="p-panel">
   <div class="top"><div><div class="eyebrow">Data survei</div><h1>Panel responden</h1><p class="desc">Cari responden yang bersedia dihubungi kembali berdasarkan profil, lalu unduh daftarnya untuk riset berikutnya.</p></div></div>
-  <div class="card"><h2>Kriteria</h2><div id="pn-crit"></div>
+  <div class="card">
+    <div class="pn-top"><h2 style="margin:0">Kriteria</h2><span style="flex:1"></span>
+      <label class="muted" style="font-size:13px">Panel tersimpan</label><select id="pn-saved" onchange="pnLoadSaved()" style="width:auto;min-width:220px"><option value="">— Panel baru —</option></select>
+      <button class="btn sm" onclick="pnSave()">💾 Simpan panel</button><button class="btn sec sm" id="pn-del" onclick="pnDelete()" style="display:none">Hapus panel</button></div>
+    <div class="muted" id="pn-name" style="margin-top:6px;font-size:13px"></div>
+    <div id="pn-crit"></div>
     <div class="toolbar" style="margin-top:10px"><button class="btn sec sm" onclick="addCrit()">+ Tambah kriteria</button><button class="btn sm" onclick="searchPanel()">Cari</button><span class="muted" id="pn-n"></span><span style="flex:1"></span><button class="btn sec sm" onclick="csvPanel()">Unduh CSV</button></div></div>
-  <div class="tw" style="margin-top:14px;max-height:60vh"><table id="pn-t"></table></div>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">💡 Insight panel</h2><span style="flex:1"></span><label class="muted" style="font-size:13px">Data dari survei</label><select id="pn-isv" onchange="pnInsight()" style="width:auto"></select></div>
+    <p class="muted" id="pn-isub" style="font-size:13px;margin:6px 0 10px">Sebaran jawaban anggota panel ini dibanding semua responden survei. ▲▼ = beda nyata (signifikan 95%, selisih ≥ 10 poin).</p>
+    <div id="pn-ins"><p class="loading">Klik Cari untuk melihat insight.</p></div></div>
+  <details class="card pn-list"><summary><b>Daftar anggota panel</b> <span class="muted" id="pn-n2"></span></summary><div class="tw" style="margin-top:12px;max-height:60vh"><table id="pn-t"></table></div></details>
 </section>
 
 <!-- UNDIAN -->
@@ -882,9 +901,56 @@ var PCOLS = [], PRES = { cols: [], rows: [] }, OPS = ['sama dengan', 'tidak sama
 var POPS = { sa: [['adalah', 'adalah'], ['bukan', 'bukan']], ma: [['memilih salah satu', 'memilih salah satu dari'], ['memilih semua', 'memilih semua'], ['tidak memilih', 'tidak memilih']],
   num: [['minimal', 'minimal'], ['maksimal', 'maksimal']], text: [['mengandung', 'mengandung'], ['sama dengan', 'sama dengan']] };
 var PEN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+var PSAVED = [], PCUR = null;
 function loadPanel() {
   $('pn-crit').innerHTML = '<p class="loading">Memuat daftar profil…</p>';
+  $('pn-isv').innerHTML = (SUM ? SUM.surveys.filter(function (x) { return x.status !== 'Draf'; }) : [{ v: 'v1', name: 'Semua Kategori' }]).map(function (x) { return '<option value="' + x.v + '">' + esc(x.name) + '</option>'; }).join('');
   run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true); searchPanel(); });
+  pnRefreshSaved();
+}
+function pnRefreshSaved(list) {
+  var draw = function (l) { PSAVED = l; $('pn-saved').innerHTML = '<option value="">— Panel baru —</option>' + l.map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + ' · ' + fmt(x.n) + ' orang</option>'; }).join(''); $('pn-saved').value = PCUR ? PCUR.id : ''; pnName(); };
+  if (list) draw(list); else run('adminPanelSaved').then(draw);
+}
+function pnName() { $('pn-del').style.display = PCUR ? '' : 'none'; $('pn-name').innerHTML = PCUR ? 'Panel: <b>' + esc(PCUR.name) + '</b> · terakhir diubah ' + esc(PCUR.diubah || '') + ' oleh ' + esc(PCUR.oleh || '') : 'Panel baru (belum disimpan).'; }
+function pnLoadSaved() {
+  var id = $('pn-saved').value; PCUR = PSAVED.filter(function (x) { return x.id === id; })[0] || null; pnName();
+  $('pn-crit').innerHTML = '';
+  if (PCUR) PCUR.crit.forEach(function (k) { addCrit(k.col, k.op, k.val, true); }); else addCrit();
+  searchPanel();
+}
+function pnSave() {
+  var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet).filter(function (k) { return k.col && [].concat(k.val).filter(String).length; });
+  if (!crit.length) return toast('Isi minimal satu kriteria dulu');
+  var nm = prompt('Nama panel (mis. "Wanita muda Jawa Barat"):', PCUR ? PCUR.name : ''); if (nm === null) return;
+  var asNew = PCUR && nm.trim() !== PCUR.name && confirm('Simpan sebagai panel BARU "' + nm.trim() + '"?\n\nOK = panel baru · Batal = ganti nama panel "' + PCUR.name + '"');
+  run('adminPanelSave', nm, crit, PCUR && !asNew ? PCUR.id : null).then(function (r) { PCUR = r.list.filter(function (x) { return x.id === r.id; })[0]; pnRefreshSaved(r.list); toast('Panel tersimpan. Bisa dipakai di Cross Tab.'); });
+}
+function pnDelete() {
+  if (!PCUR || !confirm('Hapus panel "' + PCUR.name + '"? Data responden tidak ikut terhapus.')) return;
+  run('adminPanelDelete', PCUR.id).then(function (l) { PCUR = null; pnRefreshSaved(l); toast('Panel dihapus'); });
+}
+var PIG = 0;
+function pnInsight() {
+  var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet), my = ++PIG;
+  $('pn-ins').innerHTML = '<p class="loading">Menghitung insight…</p>';
+  run('adminPanelInsight', crit, $('pn-isv').value || 'v1').then(function (d) {
+    if (my !== PIG) return;
+    if (!d.nSeg) { $('pn-ins').innerHTML = '<p class="loading">Belum ada jawaban survei ini dari anggota panel.</p>'; return; }
+    var pc = function (x) { return String(x).replace('.', ',') + '%'; };
+    var h = '<div class="pi-n"><b>' + fmt(d.nSeg) + '</b> anggota panel mengisi survei <b>' + esc(d.survei) + '</b> (dibanding ' + fmt(d.nAll) + ' responden valid)' + (d.nSeg < 30 ? ' <span class="badge b-y">Sampel kecil, baca dengan hati-hati</span>' : '') + '</div>';
+    if (d.top.length) h += '<div class="pi-top"><b>Yang paling membedakan panel ini</b><ul>' + d.top.map(function (t) {
+      return '<li><span class="' + (t.diff > 0 ? 'up' : 'dn') + '">' + (t.diff > 0 ? '▲' : '▼') + '</span> <b>' + esc(t.label) + ':</b> ' + esc(t.cat) + ' — ' + pc(t.pSeg) + ' vs ' + pc(t.pAll) + ' semua responden</li>'; }).join('') + '</ul></div>';
+    d.groups.forEach(function (g, gi) {
+      h += '<details class="pi-g"' + (gi === 0 ? ' open' : '') + '><summary>' + esc(g.name) + ' <span class="muted">(' + g.qs.length + ' pertanyaan)</span></summary>' + g.qs.map(function (q) {
+        return '<div class="pi-q"><div class="pi-l">' + esc(q.label) + (q.kriteria ? ' <span class="badge">kriteria panel</span>' : '') + '<small>n=' + fmt(q.base) + (q.multi ? ' · boleh pilih lebih dari satu' : '') + '</small></div><div class="pi-items">' + q.items.map(function (it) {
+          var mk = it.sig && Math.abs(it.diff) >= 10 && !q.kriteria ? '<span class="' + (it.diff > 0 ? 'up' : 'dn') + '">' + (it.diff > 0 ? '▲' : '▼') + ' ' + (it.diff > 0 ? '+' : '') + String(it.diff).replace('.', ',') + '</span>' : '';
+          return '<div class="pi-i"><span class="pi-c">' + esc(it.cat) + '</span><span class="pi-b"><i style="width:' + Math.min(100, it.pSeg) + '%"></i><em style="left:' + Math.min(100, it.pAll) + '%"></em></span><b>' + pc(it.pSeg) + '</b><span class="muted pi-a">semua ' + pc(it.pAll) + '</span>' + mk + '</div>';
+        }).join('') + (q.more ? '<div class="muted" style="font-size:12px">+' + q.more + ' jawaban lain</div>' : '') + '</div></div>';
+      }).join('') + '</details>';
+    });
+    $('pn-ins').innerHTML = h;
+  }, function (e) { $('pn-ins').innerHTML = '<p class="loading">' + esc(e.message || e) + '</p>'; });
 }
 function pcol(name) { return PCOLS.filter(function (c) { return c.col === name; })[0] || PCOLS[0]; }
 function addCrit(col, op, val, done) {
@@ -942,7 +1008,8 @@ function critGet(d) {
 function searchPanel() {
   var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet);
   $('pn-n').textContent = 'Mencari…';
-  run('adminPanelSearch', crit).then(function (d) { PRES = d; $('pn-n').textContent = fmt(d.rows.length) + ' responden'; table($('pn-t'), d.cols, d.rows.slice(0, 300)); });
+  pnInsight();
+  run('adminPanelSearch', crit).then(function (d) { PRES = d; $('pn-n').textContent = fmt(d.rows.length) + ' responden'; $('pn-n2').textContent = '(' + fmt(d.rows.length) + ' orang)'; table($('pn-t'), d.cols, d.rows.slice(0, 300)); });
 }
 function csvPanel() { csv('panel', PRES.cols, PRES.rows); }
 
@@ -1927,6 +1994,7 @@ function ctInit(tries) {
   e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
   rgFill('ct');
+  run('adminPanelSaved').then(function (l) { var e = $('ct-pn'), cur = e.value; e.innerHTML = '<option value="">Semua responden</option>' + l.map(function (x) { return '<option value="' + x.id + '">Panel: ' + esc(x.name) + ' (' + fmt(x.n) + ')</option>'; }).join(''); e.value = cur; if (e.value !== cur) e.value = ''; });
   if (!CT || CT.v !== e.value) ctLoad();
 }
 function ctOpen(v) { navTo('ct'); $('ct-v').value = v; ctLoad(); }
@@ -1934,7 +2002,7 @@ function ctLoad() {
   var v = $('ct-v').value; if (!v) return;
   $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '<p class="muted">Memuat…</p>';
   ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
-  run('adminCrosstab', v, $('ct-st').value, rgVal('ct')).then(function (d) {
+  run('adminCrosstab', v, $('ct-st').value, rgVal('ct'), $('ct-pn').value || null).then(function (d) {
     if (!d || !d.qs || d.qs.length < 2) { CT = null; $('ct-tbl').innerHTML = '<p class="loading">Survei ini belum punya pertanyaan pilihan yang bisa disilangkan.</p>'; $('ct-ins').innerHTML = ''; return; }
     CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
     var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
@@ -1943,7 +2011,7 @@ function ctLoad() {
     var prof = /^(Profil|Screening|Tentang)/i;
     CTS.row = null; for (var i = 0; i < d.qs.length; i++) if (ban.indexOf(i) < 0 && !prof.test(d.qs[i].sect) && i !== CTS.col) { CTS.row = i; break; }
     if (CTS.row == null) CTS.row = CTS.col === 0 ? 1 : 0;
-    $('ct-meta').textContent = d.meta.n + ' responden · ' + d.meta.status + ' · ' + (d.meta.range || 'Semua waktu') + (d.meta.first ? ' (data ' + d.meta.first + ' – ' + d.meta.last + ')' : '');
+    $('ct-meta').textContent = d.meta.n + ' responden' + (d.meta.panel ? ' di panel "' + d.meta.panel + '"' : '') + ' · ' + d.meta.status + ' · ' + (d.meta.range || 'Semua waktu') + (d.meta.first ? ' (data ' + d.meta.first + ' – ' + d.meta.last + ')' : '');
     ctCombo('ct-row', function (i) { CTS.row = i; ctRender(); }, function () { return CTS.row; });
     ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; });
     ctCombo('ct-fq', function (i) { CTS.fq = i; ctRender(); }, function () { return CTS.fq; }, 'Tambah filter: cari pertanyaan…');
