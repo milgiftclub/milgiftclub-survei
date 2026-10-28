@@ -378,6 +378,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div class="kv"><label>Perkiraan waktu isi (menit)</label><input id="b-est" type="number" min="1" placeholder="dihitung otomatis"></div>
         <div class="kv"><label>Target respons valid</label><input id="b-target" type="number" min="0" value="300"></div>
         <label class="row"><span>Tutup otomatis saat target tercapai</span><span class="switch"><input type="checkbox" id="b-auto" checked><span></span></span></label>
+        <div class="kv" id="b-per-row"><label>Periode giveaway</label><div><div class="toolbar" style="margin:0">Periode ke-<input type="number" id="b-pke" min="1" style="width:70px">tahun<input type="number" id="b-pth" min="2024" style="width:90px"></div><div class="muted" style="margin-top:4px">Jawaban yang masuk ikut undian periode ini.</div></div></div>
         <div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="b-tutup"><div class="muted">Survei tertutup sendiri di tanggal & jam ini, dan tanggalnya tampil di halaman survei & gambar IG. Kosongkan bila tanpa batas waktu.</div></div>
       </div>
       <div class="card"><h2>Fitur</h2>
@@ -970,6 +971,7 @@ function bFill() {
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
   var g = (BDEF && BDEF.giveaway) || {};
   $('b-tutup').value = B.tutup != null ? B.tutup : (B.id ? '' : g.tutup || '');
+  $('b-pke').value = B.periodeKe || g.periodeKe || 1; $('b-pth').value = B.tahun || g.tahun || new Date().getFullYear();
   perPrev(); hdRender(); brandFill();
   $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan perubahan' : 'Publish';
   bState(); bRender();
@@ -982,11 +984,12 @@ function tglID(v) {
   return +m[3] + ' ' + BULAN[+m[2] - 1] + ' ' + m[1] + t;
 }
 /** periode giveaway berlaku sama untuk semua survei MIL Gift Club (diatur di Pengaturan); survei brand klien tanpa periode */
-function perMil() { var g = (BDEF && BDEF.giveaway) || {}; return 'Periode ' + (g.periodeKe || 1) + ' ' + (g.tahun || new Date().getFullYear()); }
+function perMil() { var g = (BDEF && BDEF.giveaway) || {}; return 'Periode ' + (+$('b-pke').value || g.periodeKe || 1) + ' ' + (+$('b-pth').value || g.tahun || new Date().getFullYear()); }
 function isClient() { var m = $('b-brand-mode').querySelector('.on'); return !!m && m.dataset.m === 'client'; }
 function perPrev() {
+  if ($('b-per-row')) $('b-per-row').style.display = isClient() ? 'none' : '';
   var t = $('b-tutup').value, lewat = t && new Date(t + ':00+07:00') < new Date();
-  $('b-per-prev').innerHTML = (isClient() ? 'Survei brand klien tidak memakai periode.' : 'Tampil di survei: <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> <span>(sama untuk semua survei MIL Gift Club — ubah di Pengaturan)</span>') +
+  $('b-per-prev').innerHTML = (isClient() ? 'Survei brand klien tidak memakai periode.' : 'Tampil di survei: <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> <span>(atur di kartu Info survei)</span>') +
     (t ? '<br>Batas waktu: <b>Hingga ' + esc(tglID(t)) + '</b>' : '') +
     (lewat ? '<br><span style="color:var(--red);font-weight:700">Tanggal tutup sudah lewat — survei akan tertutup.</span>' : '');
 }
@@ -995,7 +998,8 @@ function bRead() {
   B.target = Number($('b-target').value) || 0; B.autoClose = $('b-auto').checked;
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
   B.gender = $('b-gender').value;
-  B.tutup = $('b-tutup').value || ''; delete B.periodeKe; delete B.tahun;
+  B.tutup = $('b-tutup').value || '';
+  if (isClient()) { delete B.periodeKe; delete B.tahun; } else { B.periodeKe = +$('b-pke').value || 1; B.tahun = +$('b-pth').value || new Date().getFullYear(); }
   B.periode = B.tutup ? 'Hingga ' + tglID(B.tutup) : ''; B.periodeLabel = isClient() ? '' : perMil();
   var cl = $('b-brand-mode').querySelector('.on').dataset.m === 'client';
   B.brand = cl ? { mode: 'client', name: $('b-br-name').value.trim(), logo: (B.brand && B.brand.logo) || '', primary: $('b-br-p').value, accent: $('b-br-a').value, ig: $('b-br-ig').value.trim(), ink: $('b-br-k').value, bg: shadeHex($('b-br-p').value, 0.94) } : { mode: 'mil', logo: (B.brand && B.brand.logo) || '' };
@@ -1051,7 +1055,7 @@ function imageUpload(file, maxPx, done) {
   };
   fr.readAsDataURL(file);
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-pke', 'b-pth', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
   var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); perPrev(); }); e.addEventListener('change', function () { bRead(); markDirty(); perPrev(); });
 });
 [].forEach.call($('b-src').children, function (b) {

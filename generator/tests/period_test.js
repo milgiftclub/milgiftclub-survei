@@ -18,3 +18,9 @@ assert.strictEqual(e.periode, 'Periode 2 2026'); assert(e.periods.includes('Peri
 const p1 = ctx.adminEligible('all', 'Periode 1 2026'); assert.strictEqual(p1.count, 3, 'periode 1 tetap');
 assert.strictEqual(T[T.length - 1][H.indexOf('periode_giveaway')], 'Periode 2 2026');
 console.log('OK period_test | semua periode:', ctx.adminEligible('all', '').count);
+// survei buatan Dashboard dengan periode sendiri
+const cs = ctx.adminBuilderSave({ name: 'Survei Periode 3', target: 50, periodeKe: 3, tahun: 2027, questions: [{ id: 'Q1', text: 'A?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true);
+ctx.submitResponse({ sid: 'cp1', variant: cs.id, answers: Object.assign({}, base, { Z2: '@cp', Z3: '081277770000', Q1: 'Ya' }) });
+assert.strictEqual(ctx.getSurvey(cs.id).schema.periodeLabel, 'Survei MIL Gift Club · Periode 3 2027');
+const e3 = ctx.adminEligible('all', 'Periode 3 2027'); console.log('P3', e3.count, e3.periods); assert.strictEqual(e3.count, 1);
+console.log('OK survei periode sendiri');

@@ -134,7 +134,8 @@ function mainPeriode_(variant) {
 function customPeriode_(c) {
   // survei MIL Gift Club: periode sama dengan survei utama (Pengaturan); survei brand klien: tanpa periode
   var sc = c.schema || {}, client = !!(sc.brand && sc.brand.mode === 'client');
-  return { label: client ? '' : mainPeriode_('v1').label, periode: tutupText_(sc.tutup) || sc.periode || '' };
+  var own = sc.periodeKe ? periodeText_(sc.periodeKe, sc.tahun) : '';   // periode yang dipilih saat membuat survei
+  return { label: client ? '' : own ? 'Survei MIL Gift Club · ' + own : mainPeriode_('v1').label, periode: tutupText_(sc.tutup) || sc.periode || '' };
 }
 var SET_MEMO_ = null;
 /** nilai tanggal untuk input datetime-local di Dashboard */
@@ -1174,6 +1175,7 @@ function adminBlokAdd(ig, wa, reason) { var who = requireAdmin_(); addViolation_
 /** Periode giveaway aktif saat jawaban masuk: survei MIL Gift Club = periode di Pengaturan; survei brand klien = tanpa periode. */
 function activePeriode_(cs) {
   if (cs && cs.schema && cs.schema.brand && cs.schema.brand.mode === 'client') return '';
+  if (cs && cs.schema && cs.schema.periodeKe) return periodeText_(cs.schema.periodeKe, cs.schema.tahun);   // periode khusus survei ini
   return periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN'));
 }
 function periodeOf_(r) {
