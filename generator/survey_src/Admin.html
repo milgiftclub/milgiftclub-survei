@@ -322,9 +322,8 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted"><span id="h-upd">Memuat…</span> · Periode <select id="h-per" onchange="homePer()" style="width:auto;padding:4px 8px;font-size:12.5px"></select></div></div>
     <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="snapRebuild(this)" title="Hitung ulang Ringkasan, Laporan & Cross Tab dari data terbaru">Perbarui data sekarang</button></div></div>
   <div class="grid g4" id="h-kpi"><div class="loading">Memuat data…</div></div>
-  <div class="grid g2" style="margin-top:16px">
-    <div class="card"><h2>Respons valid per hari (30 hari)</h2><canvas id="c-daily" height="150"></canvas></div>
-    <div class="card"><h2>Kuota</h2><div class="tabs" id="q-tabs"></div><div id="q-body"></div></div>
+  <div style="margin-top:16px">
+    <div class="card"><h2>Respons valid per hari (30 hari)</h2><canvas id="c-daily" height="90"></canvas></div>
   </div>
   <div class="grid g4" style="margin-top:16px">
     <div class="card"><h2>Sumber traffic</h2><ul class="list" id="h-src"></ul></div>
@@ -341,7 +340,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
-    <div class="card"><h2 id="sv-qh">Kuota</h2><p class="muted" id="sv-qd">Jumlah valid dibanding target per kelompok.</p><div id="sv-quota"></div></div>
+    <div class="card" id="sv-qcard"><h2 id="sv-qh">Kuota</h2><p class="muted" id="sv-qd">Jumlah valid dibanding target per kelompok.</p><div id="sv-quota"></div></div>
   </div>
 </section>
 
@@ -732,6 +731,7 @@ function drawSurvey() {
     '<div class="stats"><div>Masuk hari ini<b>' + fmt(s.today) + '</b></div><div>Median durasi<b>' + s.medianMin + ' mnt</b></div></div></div>' +
     '<div class="card kpi"><div class="lab">Kualitas jawaban</div><div class="val">' + fmt(s.total) + ' <small>jawaban masuk</small></div>' +
     '<div class="stats"><div>Valid<b>' + fmt(s.valid) + '</b></div><div>Tidak valid<b>' + fmt(s.invalid) + '</b></div><div>Duplikat<b>' + fmt(s.dup) + '</b></div><div>Pakai profil lama<b>' + fmt(s.prefilled) + '</b></div></div></div>';
+  $('sv-qcard').style.display = s.custom ? '' : 'none'; $('sv-qcard').parentNode.style.gridTemplateColumns = s.custom ? '' : '1fr';
   $('sv-qh').textContent = s.custom ? 'Profil & jawaban' : 'Kuota'; $('sv-qd').textContent = s.custom ? 'Sebaran jawaban valid: profil responden dan pertanyaan pilihan.' : 'Jumlah valid dibanding target per kelompok.';
   $('sv-quota').innerHTML = quotaHtml(SV);
   if (svChart) svChart.destroy();
@@ -830,12 +830,9 @@ function loadHome(per) {
     $('h-chip2').textContent = fmt(nToday) + ' jawaban baru hari ini';
     var ctx = $('c-daily'); if (chart) chart.destroy();
     if (window.Chart) chart = new Chart(ctx, { type: 'line', data: { labels: d.daily.dates.map(function (x) { return x.slice(5); }), datasets: [
-      { label: 'Semua Kategori', data: d.daily.v1, borderColor: '#25339A', backgroundColor: '#25339A', tension: .25, cubicInterpolationMode: 'monotone', pointRadius: 2 },
-      { label: 'Fashion, Tas & Hijab', data: d.daily.v2, borderColor: '#2BA7E0', backgroundColor: '#2BA7E0', tension: .25, cubicInterpolationMode: 'monotone', pointRadius: 2 }] },
+      ].concat(d.surveys.filter(function (s) { return d.daily[s.v] && s.status !== 'Draf'; }).map(function (s, i) { var c = ['#25339A', '#2BA7E0', '#E4572E', '#2E9E5B', '#9B59B6', '#F2B134', '#5D6D7E'][i % 7];
+        return { label: s.name, data: d.daily[s.v], borderColor: c, backgroundColor: c, tension: .25, cubicInterpolationMode: 'monotone', pointRadius: 2 }; })) },
       options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } } });
-    $('q-tabs').innerHTML = d.surveys.map(function (s) { return '<button data-v="' + s.v + '" class="' + (s.v === qv ? 'on' : '') + '">' + esc(s.v === 'v1' ? 'Semua Kategori' : 'Fashion, Tas & Hijab') + '</button>'; }).join('');
-    [].forEach.call($('q-tabs').children, function (b) { b.onclick = function () { qv = b.dataset.v; drawQuota(); [].forEach.call($('q-tabs').children, function (x) { x.classList.toggle('on', x === b); }); }; });
-    drawQuota();
     var li = function (o, empty) { var k = Object.keys(o).sort(function (a, b) { return o[b] - o[a]; }); return k.length ? k.map(function (x) { return '<li><span>' + esc(x) + '</span><b>' + fmt(o[x]) + '</b></li>'; }).join('') : '<li class="muted">' + empty + '</li>'; };
     $('h-src').innerHTML = li(d.sources, 'Belum ada');
     $('h-scr').innerHTML = li(d.screenout, 'Belum ada');
@@ -843,7 +840,6 @@ function loadHome(per) {
     $('h-misc').innerHTML = '<li><span>Anggota panel</span><b>' + fmt(d.panel) + '</b></li><li><span>Pemenang tercatat</span><b>' + fmt(d.winners) + '</b></li>';
   });
 }
-function drawQuota() { $('q-body').innerHTML = quotaHtml(qv); }
 function runTask(n) { toast('Menjalankan…'); run('adminRunTask', n).then(function () { toast('Selesai'); loadHome(); }); }
 
 // ---------- jawaban ----------

@@ -14,7 +14,7 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.waitForTimeout(6000);
   const shot = async (n, full) => { await p.screenshot({ path: SP + n + '.png', fullPage: !!full }); };
   const go = async (label, wait) => { await p.locator('nav.side button', { hasText: label }).click(); await p.waitForTimeout(wait || 4000); };
-  await shot('01_ringkasan');
+  await shot('01_ringkasan', true);
   await p.locator('#sv-list button[data-v="v1"]').click(); await p.waitForTimeout(2000); await shot('02_survei_v1');
   await go('Laporan', 6000); await p.selectOption('#rp-v', 'all'); await p.waitForTimeout(12000); await shot('03_laporan_gabungan');
   await go('Cross Tab', 5000); await p.selectOption('#ct-v', 'all'); await p.waitForTimeout(10000); await shot('04_crosstab_gabungan', true);
