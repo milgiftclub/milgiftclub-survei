@@ -43,17 +43,20 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await r2.locator('.c-col').selectOption('usia'); await r2.locator('.chip', { hasText: '18-24' }).click(); await r2.locator('.chip', { hasText: '25-34' }).click();
   await r2.locator('text=Selesai').click(); await p.waitForTimeout(2000);
   p.removeAllListeners('dialog'); p.on('dialog', d => d.accept(d.type() === 'prompt' ? 'Wanita muda' : undefined));
-  await p.click('text=💾 Simpan panel'); await p.waitForTimeout(1500);
+  await p.click('text=💾 Simpan sebagai panel baru'); await p.waitForTimeout(1500);
   console.log('saved:', await p.$eval('#pn-saved', e => [...e.options].map(o => o.text).join(' / ')), '|', await p.textContent('#pn-name'));
   await p.screenshot({ path: SP + 'adm_panel_ins.png', fullPage: true });
   const saved = ctx.adminPanelSaved(); const n = saved[0].n;
   // cross tab dengan panel
   await p.locator('nav.side button', { hasText: 'Cross Tab' }).click(); await p.waitForTimeout(2000);
-  console.log('ct panel opts:', await p.$eval('#ct-pn', e => [...e.options].map(o => o.text).join(' / ')));
-  await p.selectOption('#ct-pn', saved[0].id); await p.waitForTimeout(2000);
+  console.log('ct sumber:', await p.$eval('#ct-v', e => [...e.querySelectorAll('optgroup')].map(g => g.label + ': ' + [...g.children].map(o => o.text).join(' / ')).join(' || ')));
+  await p.selectOption('#ct-v', 'panel:' + saved[0].id); await p.waitForTimeout(2500);
   console.log('ct meta:', await p.textContent('#ct-meta'));
-  const cd = ctx.adminCrosstab('v1', 'Valid', null, saved[0].id); console.log('server ct n:', cd.meta.n, 'panel n:', n);
+  const cd = ctx.adminCrosstab('panel:' + saved[0].id, 'Valid', null); console.log('server ct n:', cd.meta.n, 'panel n:', n);
   await p.screenshot({ path: SP + 'adm_ct_panel.png' });
+  await p.locator('nav.side button', { hasText: 'Laporan' }).click(); await p.waitForTimeout(1500);
+  await p.selectOption('#rp-v', 'panel:' + saved[0].id); await p.waitForTimeout(2500);
+  console.log('laporan panel:', (await p.textContent('#rp-kpi')).replace(/\s+/g, ' ').slice(0, 80), '| topik:', await p.$$eval('#rp-list .rq-topic', l => l.map(x => x.textContent).slice(0, 6).join(' | ')));
   // muat panel tersimpan
   await p.locator('nav.side button', { hasText: 'Panel' }).click(); await p.waitForTimeout(800);
   await p.selectOption('#pn-saved', ''); await p.waitForTimeout(500); await p.selectOption('#pn-saved', saved[0].id); await p.waitForTimeout(1500);

@@ -142,6 +142,7 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .pn-list summary{cursor:pointer} .pi-n{font-size:14px;margin-bottom:10px}
 .pi-top{background:#FFF8E6;border:1px solid #F3DE9C;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13.5px} .pi-top ul{margin:6px 0 0;padding-left:4px;list-style:none} .pi-top li{margin:3px 0}
 .up{color:#1E7A46;font-weight:800;font-size:12.5px} .dn{color:#B4232A;font-weight:800;font-size:12.5px}
+.pi-sv{color:var(--navy)!important;font-weight:700!important}
 .pi-g{border:1px solid var(--line);border-radius:12px;margin:8px 0;padding:0 14px} .pi-g>summary{cursor:pointer;font-weight:800;padding:12px 0;letter-spacing:.03em;color:var(--navy)}
 .pi-q{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:12px;padding:10px 0;border-top:1px dashed var(--line)} .pi-l{font-weight:700;font-size:13.5px} .pi-l small{display:block;color:var(--muted);font-weight:400;font-size:11.5px}
 .pi-i{display:grid;grid-template-columns:minmax(120px,220px) minmax(80px,1fr) 52px 86px 70px;gap:8px;align-items:center;font-size:13px;margin:2px 0}
@@ -466,8 +467,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="svhead"><div><div class="eyebrow">Data survei</div><h1>Cross Tab</h1><p class="desc">Silangkan dua pertanyaan, saring responden, dan lihat temuan otomatis: kelompok yang jawabannya berbeda nyata dari rata-rata.</p></div>
     <div class="acts"><button class="btn sec sm" onclick="ctCopy()">Salin tabel (untuk Excel)</button></div></div>
   <div class="card rep-bar"><div class="toolbar" style="margin:0">
-    <select id="ct-v" onchange="ctLoad()"></select>
-    <select id="ct-pn" onchange="ctLoad()" title="Panel"><option value="">Semua responden</option></select>
+    <label class="muted" style="font-size:13px">Sumber data</label><select id="ct-v" onchange="ctLoad()" style="min-width:260px"></select>
     <select id="ct-rg" onchange="rgChange('ct', ctLoad)" title="Rentang waktu"><option value="">Semua waktu</option></select><span id="ct-rgd" class="rg-d" style="display:none"><input type="date" id="ct-dari" onchange="ctLoad()"> – <input type="date" id="ct-sampai" onchange="ctLoad()"></span>
     <select id="ct-st" onchange="ctLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
     <span style="flex:1"></span><span class="muted" id="ct-meta"></span></div></div>
@@ -497,7 +497,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div class="acts"><button class="btn sec sm" onclick="repCsv()">Unduh tabel (CSV)</button><button class="btn sm" onclick="window.print()">Cetak / simpan PDF</button></div></div>
   <div class="card rep-bar">
     <div class="toolbar" style="margin:0">
-      <select id="rp-v" onchange="repLoad(true)"></select>
+      <label class="muted" style="font-size:13px">Sumber data</label><select id="rp-v" onchange="repLoad(true)" style="min-width:260px"></select>
       <select id="rp-rg" onchange="rgChange('rp', repLoad)" title="Rentang waktu"><option value="">Semua waktu</option></select><span id="rp-rgd" class="rg-d" style="display:none"><input type="date" id="rp-dari" onchange="repLoad()"> – <input type="date" id="rp-sampai" onchange="repLoad()"></span>
       <select id="rp-st" onchange="repLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
       <span class="muted">Saring:</span>
@@ -534,12 +534,12 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="card">
     <div class="pn-top"><h2 style="margin:0">Kriteria</h2><span style="flex:1"></span>
       <label class="muted" style="font-size:13px">Panel tersimpan</label><select id="pn-saved" onchange="pnLoadSaved()" style="width:auto;min-width:220px"><option value="">— Panel baru —</option></select>
-      <button class="btn sm" onclick="pnSave()">💾 Simpan panel</button><button class="btn sec sm" id="pn-del" onclick="pnDelete()" style="display:none">Hapus panel</button></div>
+      <button class="btn sm" onclick="pnSave(true)">💾 Simpan sebagai panel baru</button><button class="btn sec sm" id="pn-upd" onclick="pnSave(false)" style="display:none">Simpan perubahan</button><button class="btn sec sm" id="pn-del" onclick="pnDelete()" style="display:none">Hapus panel</button></div>
     <div class="muted" id="pn-name" style="margin-top:6px;font-size:13px"></div>
     <div id="pn-crit"></div>
     <div class="toolbar" style="margin-top:10px"><button class="btn sec sm" onclick="addCrit()">+ Tambah kriteria</button><button class="btn sm" onclick="searchPanel()">Cari</button><span class="muted" id="pn-n"></span><span style="flex:1"></span><button class="btn sec sm" onclick="csvPanel()">Unduh CSV</button></div></div>
-  <div class="card"><div class="pn-top"><h2 style="margin:0">💡 Insight panel</h2><span style="flex:1"></span><label class="muted" style="font-size:13px">Data dari survei</label><select id="pn-isv" onchange="pnInsight()" style="width:auto"></select></div>
-    <p class="muted" id="pn-isub" style="font-size:13px;margin:6px 0 10px">Sebaran jawaban anggota panel ini dibanding semua responden survei. ▲▼ = beda nyata (signifikan 95%, selisih ≥ 10 poin).</p>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">💡 Insight panel</h2><span style="flex:1"></span></div>
+    <p class="muted" id="pn-isub" style="font-size:13px;margin:6px 0 10px">Semua jawaban anggota panel dari <b>semua survei</b> (makin banyak survei diisi, makin banyak insight), dibanding semua responden. Klik kelompok untuk membuka. Garis merah = semua responden · ▲▼ = beda nyata (signifikan 95%, selisih ≥ 10 poin).</p>
     <div id="pn-ins"><p class="loading">Klik Cari untuk melihat insight.</p></div></div>
   <details class="card pn-list"><summary><b>Daftar anggota panel</b> <span class="muted" id="pn-n2"></span></summary><div class="tw" style="margin-top:12px;max-height:60vh"><table id="pn-t"></table></div></details>
 </section>
@@ -904,7 +904,6 @@ var PEN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="c
 var PSAVED = [], PCUR = null;
 function loadPanel() {
   $('pn-crit').innerHTML = '<p class="loading">Memuat daftar profil…</p>';
-  $('pn-isv').innerHTML = '<option value="all">Semua survei (gabungan)</option>' + (SUM ? SUM.surveys.filter(function (x) { return x.status !== 'Draf'; }) : [{ v: 'v1', name: 'Semua Kategori' }]).map(function (x) { return '<option value="' + x.v + '">' + esc(x.name) + '</option>'; }).join('');
   run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true); searchPanel(); });
   pnRefreshSaved();
 }
@@ -912,19 +911,19 @@ function pnRefreshSaved(list) {
   var draw = function (l) { PSAVED = l; $('pn-saved').innerHTML = '<option value="">— Panel baru —</option>' + l.map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + ' · ' + fmt(x.n) + ' orang</option>'; }).join(''); $('pn-saved').value = PCUR ? PCUR.id : ''; pnName(); };
   if (list) draw(list); else run('adminPanelSaved').then(draw);
 }
-function pnName() { $('pn-del').style.display = PCUR ? '' : 'none'; $('pn-name').innerHTML = PCUR ? 'Panel: <b>' + esc(PCUR.name) + '</b> · terakhir diubah ' + esc(PCUR.diubah || '') + ' oleh ' + esc(PCUR.oleh || '') : 'Panel baru (belum disimpan).'; }
+function pnName() { $('pn-del').style.display = $('pn-upd').style.display = PCUR ? '' : 'none'; $('pn-name').innerHTML = PCUR ? 'Panel: <b>' + esc(PCUR.name) + '</b> · terakhir diubah ' + esc(PCUR.diubah || '') + ' oleh ' + esc(PCUR.oleh || '') : 'Panel baru (belum disimpan).'; }
 function pnLoadSaved() {
   var id = $('pn-saved').value; PCUR = PSAVED.filter(function (x) { return x.id === id; })[0] || null; pnName();
   $('pn-crit').innerHTML = '';
   if (PCUR) PCUR.crit.forEach(function (k) { addCrit(k.col, k.op, k.val, true); }); else addCrit();
   searchPanel();
 }
-function pnSave() {
+function pnSave(asNew) {
   var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet).filter(function (k) { return k.col && [].concat(k.val).filter(String).length; });
   if (!crit.length) return toast('Isi minimal satu kriteria dulu');
-  var nm = prompt('Nama panel (mis. "Wanita muda Jawa Barat"):', PCUR ? PCUR.name : ''); if (nm === null) return;
-  var asNew = PCUR && nm.trim() !== PCUR.name && confirm('Simpan sebagai panel BARU "' + nm.trim() + '"?\n\nOK = panel baru · Batal = ganti nama panel "' + PCUR.name + '"');
-  run('adminPanelSave', nm, crit, PCUR && !asNew ? PCUR.id : null).then(function (r) { PCUR = r.list.filter(function (x) { return x.id === r.id; })[0]; pnRefreshSaved(r.list); toast('Panel tersimpan. Bisa dipakai di Cross Tab.'); });
+  var nm = asNew ? prompt('Nama panel baru (mis. "Wanita muda Jawa Barat"):', '') : PCUR.name;
+  if (nm === null) return;
+  run('adminPanelSave', nm, crit, asNew ? null : PCUR.id).then(function (r) { PCUR = r.list.filter(function (x) { return x.id === r.id; })[0]; pnRefreshSaved(r.list); toast(asNew ? 'Panel baru tersimpan. Bisa dipilih di Cross Tab & Laporan.' : 'Perubahan panel tersimpan'); });
 }
 function pnDelete() {
   if (!PCUR || !confirm('Hapus panel "' + PCUR.name + '"? Data responden tidak ikut terhapus.')) return;
@@ -934,16 +933,16 @@ var PIG = 0;
 function pnInsight() {
   var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet), my = ++PIG;
   $('pn-ins').innerHTML = '<p class="loading">Menghitung insight…</p>';
-  run('adminPanelInsight', crit, $('pn-isv').value || 'v1').then(function (d) {
+  run('adminPanelInsight', crit, 'all').then(function (d) {
     if (my !== PIG) return;
     if (!d.nSeg) { $('pn-ins').innerHTML = '<p class="loading">Belum ada jawaban survei ini dari anggota panel.</p>'; return; }
     var pc = function (x) { return String(x).replace('.', ',') + '%'; };
-    var h = '<div class="pi-n"><b>' + fmt(d.nSeg) + '</b> anggota panel ' + ($('pn-isv').value === 'all' ? 'punya jawaban di <b>semua survei (gabungan)</b>, dibanding ' + fmt(d.nAll) + ' orang dengan jawaban valid' : 'mengisi survei <b>' + esc(d.survei) + '</b>, dibanding ' + fmt(d.nAll) + ' responden valid') + (d.nSeg < 30 ? ' <span class="badge b-y">Sampel kecil, baca dengan hati-hati</span>' : '') + '</div>';
+    var h = '<div class="pi-n"><b>' + fmt(d.nSeg) + '</b> anggota panel punya jawaban survei yang valid (dibanding ' + fmt(d.nAll) + ' orang di semua survei)' + (d.nSeg < 30 ? ' <span class="badge b-y">Sampel kecil, baca dengan hati-hati</span>' : '') + '</div>';
     if (d.top.length) h += '<div class="pi-top"><b>Yang paling membedakan panel ini</b><ul>' + d.top.map(function (t) {
       return '<li><span class="' + (t.diff > 0 ? 'up' : 'dn') + '">' + (t.diff > 0 ? '▲' : '▼') + '</span> <b>' + esc(t.label) + ':</b> ' + esc(t.cat) + ' — ' + pc(t.pSeg) + ' vs ' + pc(t.pAll) + ' semua responden</li>'; }).join('') + '</ul></div>';
     d.groups.forEach(function (g, gi) {
       h += '<details class="pi-g"' + (gi === 0 ? ' open' : '') + '><summary>' + esc(g.name) + ' <span class="muted">(' + g.qs.length + ' pertanyaan)</span></summary>' + g.qs.map(function (q) {
-        return '<div class="pi-q"><div class="pi-l">' + esc(q.label) + (q.kriteria ? ' <span class="badge">kriteria panel</span>' : '') + '<small>n=' + fmt(q.base) + (q.multi ? ' · boleh pilih lebih dari satu' : '') + '</small></div><div class="pi-items">' + q.items.map(function (it) {
+        return '<div class="pi-q"><div class="pi-l">' + esc(q.label) + (q.kriteria ? ' <span class="badge">kriteria panel</span>' : '') + (q.survei ? '<small class="pi-sv">Survei ' + esc(q.survei) + '</small>' : '') + '<small>n=' + fmt(q.base) + (q.multi ? ' · boleh pilih lebih dari satu' : '') + '</small></div><div class="pi-items">' + q.items.map(function (it) {
           var mk = it.sig && Math.abs(it.diff) >= 10 && !q.kriteria ? '<span class="' + (it.diff > 0 ? 'up' : 'dn') + '">' + (it.diff > 0 ? '▲' : '▼') + ' ' + (it.diff > 0 ? '+' : '') + String(it.diff).replace('.', ',') + '</span>' : '';
           return '<div class="pi-i"><span class="pi-c">' + esc(it.cat) + '</span><span class="pi-b"><i style="width:' + Math.min(100, it.pSeg) + '%"></i><em style="left:' + Math.min(100, it.pAll) + '%"></em></span><b>' + pc(it.pSeg) + '</b><span class="muted pi-a">semua ' + pc(it.pAll) + '</span>' + mk + '</div>';
         }).join('') + (q.more ? '<div class="muted" style="font-size:12px">+' + q.more + ' jawaban lain</div>' : '') + '</div></div>';
@@ -1912,11 +1911,9 @@ function ctInit(tries) {
     if ((tries || 0) < 120) setTimeout(function () { ctInit((tries || 0) + 1); }, 500);
     return;
   }
-  var e = $('ct-v'), cur = e.value || (SV || 'v1');
-  e.innerHTML = '<option value="all">Semua survei (gabungan)</option>' + SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
-  if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
-  rgFill('ct');
-  run('adminPanelSaved').then(function (l) { var e = $('ct-pn'), cur = e.value; e.innerHTML = '<option value="">Semua responden</option>' + l.map(function (x) { return '<option value="' + x.id + '">Panel: ' + esc(x.name) + ' (' + fmt(x.n) + ')</option>'; }).join(''); e.value = cur; if (e.value !== cur) e.value = ''; });
+  var e = $('ct-v');
+  srcFill('ct-v'); rgFill('ct');
+  run('adminPanelSaved').then(function (l) { srcFill('ct-v', l); });
   if (!CT || CT.v !== e.value) ctLoad();
 }
 function ctOpen(v) { navTo('ct'); $('ct-v').value = v; ctLoad(); }
@@ -1924,7 +1921,7 @@ function ctLoad() {
   var v = $('ct-v').value; if (!v) return;
   $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '<p class="muted">Memuat…</p>';
   ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
-  run('adminCrosstab', v, $('ct-st').value, rgVal('ct'), $('ct-pn').value || null).then(function (d) {
+  run('adminCrosstab', v, $('ct-st').value, rgVal('ct')).then(function (d) {
     if (!d || !d.qs || d.qs.length < 2) { CT = null; $('ct-tbl').innerHTML = '<p class="loading">Survei ini belum punya pertanyaan pilihan yang bisa disilangkan.</p>'; $('ct-ins').innerHTML = ''; return; }
     CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
     var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
@@ -2056,6 +2053,14 @@ function ctCopy() {
   try { navigator.clipboard.writeText(txt).catch(fb); } catch (e) { fb(); }
   toast('Tabel disalin — tempel di Excel / Google Sheets');
 }
+// ---------- sumber data (Laporan & Cross Tab): survei atau panel tersimpan ----------
+function srcFill(sel, panels) {
+  var e = $(sel), cur = e.value || (SV || 'all');
+  var sv = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; });
+  e.innerHTML = '<optgroup label="Survei"><option value="all">Semua survei (gabungan)</option>' + sv.map(function (s) { return '<option value="' + s.v + '">Survei ' + esc(s.name) + '</option>'; }).join('') + '</optgroup>' +
+    (panels && panels.length ? '<optgroup label="Panel tersimpan">' + panels.map(function (x) { return '<option value="panel:' + x.id + '">Panel: ' + esc(x.name) + ' (' + fmt(x.n) + ' orang)</option>'; }).join('') + '</optgroup>' : '');
+  if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+}
 // ---------- rentang waktu (Laporan & Cross Tab) ----------
 function rgFill(pf) {
   var e = $(pf + '-rg'), cur = e.value, ps = (SUM && SUM.periods) || [], act = SUM && SUM.activePeriod;
@@ -2077,9 +2082,7 @@ function rgVal(pf) {
 }
 function repInit(tries) {
   if (!SUM) { if ((tries || 0) < 120) setTimeout(function () { repInit((tries || 0) + 1); }, 500); return; }
-  var e = $('rp-v'), cur = e.value || (SV || 'v1');
-  e.innerHTML = '<option value="all">Semua survei (gabungan)</option>' + SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
-  if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+  srcFill('rp-v'); run('adminPanelSaved').then(function (l) { srcFill('rp-v', l); });
   rgFill('rp');
   repLoad(true);
 }

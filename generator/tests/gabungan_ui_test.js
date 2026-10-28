@@ -43,6 +43,6 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.selectOption('#rp-v', 'all'); await p.waitForTimeout(2500);
   console.log('rep:', (await p.textContent('#rp-kpi')).replace(/\s+/g, ' '), '| charts', await p.locator('#rp-list .rq').count());
   await p.locator('nav.side button', { hasText: 'Panel' }).click(); await p.waitForTimeout(2500);
-  console.log('insight src:', await p.$eval('#pn-isv', e => e.value + ' / ' + [...e.options].map(o => o.text).join(', ')), '|', (await p.textContent('#pn-ins')).slice(0, 120));
+  console.log('insight:', (await p.textContent('#pn-ins')).slice(0, 160), '| groups', await p.$$eval('#pn-ins details.pi-g summary', l => l.map(x => x.textContent).join(' | ')));
   console.log('JS errors:', errs); await b.close();
 })();
