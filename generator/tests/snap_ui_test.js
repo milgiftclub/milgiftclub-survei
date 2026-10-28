@@ -1,0 +1,24 @@
+const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
+const load = require('./sim/load'); const { ctx } = load(); const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/sim/';
+ctx.adminPanelSave('Wanita 18-34', [{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }, { col: 'usia', op: 'adalah', val: ['18-24 tahun', '25-34 tahun'] }]); ctx.SET_MEMO_ = null;
+console.log('build', JSON.stringify(ctx.snapBuild_()));
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept('Tidak bisa dihubungi'));
+  await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
+  await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
+  await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
+  await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(2500);
+  const t0 = Date.now(); await p.waitForFunction(() => /Data per/.test(document.getElementById('h-upd').textContent), null, { timeout: 60000 }); console.log('Ringkasan siap', Date.now() - t0, 'ms |', await p.textContent('#h-upd'));
+  const time = async (label, sel, fn) => { const t = Date.now(); await fn(); await p.waitForFunction(s => { const e = document.querySelector(s); return e && !/Memuat|Menghitung/.test(e.textContent) && e.textContent.trim().length > 20; }, sel, { timeout: 60000 }); console.log(label, Date.now() - t, 'ms'); };
+  await time('Cross Tab gabungan', '#ct-tbl', async () => { await p.locator('nav.side button', { hasText: 'Cross Tab' }).click(); await p.waitForTimeout(300); await p.selectOption('#ct-v', 'all'); });
+  console.log(' meta:', await p.textContent('#ct-meta'));
+  await time('Cross Tab panel', '#ct-tbl', async () => { await p.selectOption('#ct-v', { label: 'Panel: Wanita 18-34 (3.464 orang)' }).catch(async () => { const v = await p.$eval('#ct-v', e => [...e.options].find(o => /Panel/.test(o.text)).value); await p.selectOption('#ct-v', v); }); });
+  console.log(' meta:', await p.textContent('#ct-meta'));
+  await time('Laporan gabungan', '#rp-list', async () => { await p.locator('nav.side button', { hasText: 'Laporan' }).click(); await p.waitForTimeout(300); await p.selectOption('#rp-v', 'all'); });
+  console.log(' kpi:', (await p.textContent('#rp-kpi')).replace(/\s+/g, ' ').slice(0, 60));
+  console.log('JS errors:', errs); await b.close();
+})();

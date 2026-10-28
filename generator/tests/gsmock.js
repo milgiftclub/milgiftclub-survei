@@ -15,7 +15,7 @@ function makeEnv() {
     appendRow(r) { this.d.push(r.slice()); return this; },
     setFrozenRows() { return this; }, setColumnWidth() { return this; },
     getMaxColumns() { return Math.max(26, this.getLastColumn()); }, insertColumnsAfter() { return this; }, deleteRow(n) { this.d.splice(n - 1, 1); return this; }, deleteRows(n, k) { this.d.splice(n - 1, k); return this; }, hideSheet() { this.hidden = true; return this; },
-    clear() { this.d = []; return this; },
+    clear() { this.d = []; return this; }, clearContents() { this.d = []; return this; }, hideSheet() { return this; },
     getRange(r, c, nr = 1, nc = 1) { return new Range(this, r, c, nr, nc); },
   };
   function Range(s, r, c, nr, nc) { Object.assign(this, { s, r, c, nr, nc }); }
@@ -50,6 +50,17 @@ function makeEnv() {
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     HtmlService: { XFrameOptionsMode: { ALLOWALL: 1 }, createTemplateFromFile: (f) => { const t = { file: f, evaluate() { const o = { file: f, vars: t, title: '' }; o.setTitle = (x) => { o.title = x; return o; }; o.addMetaTag = () => o; o.setXFrameOptionsMode = () => o; o.setSandboxMode = () => o; o.setFaviconUrl = () => o; return o; } }; return t; }, createHtmlOutputFromFile: (f) => ({ file: f, setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; } }) }, Session: { getActiveUser: () => ({ getEmail: () => (global.__viewer || '') }) }, Utilities: { formatDate: (d, tz, f) => { const x = new Date(new Date(d).getTime() + 7*3600e3).toISOString(); return /HH/.test(f||'') ? x.slice(0,16).replace('T',' ') : /MMM/.test(f||'') ? x.slice(0,10) : x.slice(0,10); }, getUuid: () => 'abcd-1234-efgh-5678' }, ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/AKfycbzf.../exec' }), getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyHours: () => ({ create: () => ({}) }) }) }) }, UrlFetchApp: { fetch: (u, o) => { global.__aiReq = o; const r = global.__aiRes || { content: [{ type: 'text', text: '{}' }] }; return { getResponseCode: () => 200, getContentText: () => JSON.stringify(r) }; } }, ContentService: { MimeType: { JSON: 'json' }, createTextOutput: (t) => ({ t, setMimeType() { return this; }, getContent() { return t; } }) }, Math, JSON, Date, Number, String, Object, Array,
   };
+  // gzip/base64/blob & trigger (untuk snapshot Dashboard)
+  const zlib = require('zlib');
+  const blob = (buf) => ({ _b: Buffer.from(buf), getBytes() { return Array.from(this._b); }, getDataAsString() { return this._b.toString('utf8'); }, setContentType() { return this; } });
+  Object.assign(ctx.Utilities, {
+    newBlob: (d) => blob(typeof d === 'string' ? Buffer.from(d, 'utf8') : Buffer.from(d.map ? d.map(x => x & 255) : d)),
+    gzip: (b) => blob(zlib.gzipSync(b._b)), ungzip: (b) => blob(zlib.gunzipSync(b._b)),
+    base64Encode: (x) => Buffer.from(Array.isArray(x) ? x.map(v => v & 255) : x).toString('base64'),
+    base64Decode: (s) => Array.from(Buffer.from(s, 'base64')).map(v => v > 127 ? v - 256 : v),
+  });
+  const trig = [];
+  Object.assign(ctx.ScriptApp, { getProjectTriggers: () => trig, newTrigger: (h) => { const b = { timeBased: () => b, everyMinutes: () => b, everyHours: () => b, create: () => { trig.push({ getHandlerFunction: () => h }); } }; return b; }, deleteTrigger: () => {} });
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(__dirname + '/../survey_out/Code.gs', 'utf8'), ctx);
   return { ctx, sheets };

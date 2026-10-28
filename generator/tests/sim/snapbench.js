@@ -1,0 +1,17 @@
+const load = require('./load'); const { ctx, sheets } = load();
+const T = (n, f) => { const t = Date.now(); const r = f(); console.log(n.padEnd(40), String(Date.now() - t).padStart(6), 'ms'); return r; };
+const m = T('snapBuild_ (di belakang layar)', () => ctx.snapBuild_()); console.log(' meta', JSON.stringify(m));
+const sn = sheets['_Snapshot']; console.log(' snapshot sel:', sn.d.length, 'ukuran', (sn.d.reduce((a, r) => a + String(r[2]).length, 0) / 1e6).toFixed(2), 'MB teks');
+ctx.SNAP_MEMO_ = null;
+const s = T('adminSummary (Ringkasan, dari snapshot)', () => ctx.adminSummary()); console.log(' fromSnap', s.fromSnap);
+ctx.SNAP_MEMO_ = null;
+const c = T('adminCrosstab all (snapshot)', () => ctx.adminCrosstab('all', 'Valid')); console.log(' payload KB', (c.packed.length / 1024).toFixed(0));
+ctx.SNAP_MEMO_ = null;
+const c1 = T('adminCrosstab v1 (snapshot)', () => ctx.adminCrosstab('v1', 'Valid')); console.log(' payload KB', (c1.packed.length / 1024).toFixed(0));
+ctx.SNAP_MEMO_ = null;
+const r = T('adminReport all (snapshot)', () => ctx.adminReport('all', { status: 'Valid' })); console.log(' payload KB', (r.packed.length / 1024).toFixed(0));
+ctx.SNAP_MEMO_ = null;
+const sv = ctx.adminPanelSave('Wanita 18-34', [{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }, { col: 'usia', op: 'adalah', val: ['18-24 tahun', '25-34 tahun'] }]); ctx.SET_MEMO_ = null; ctx.SNAP_MEMO_ = null;
+const cp = T('adminCrosstab panel (snapshot)', () => ctx.adminCrosstab('panel:' + sv.id, 'Valid')); console.log(' rows', cp.rows.length);
+ctx.SNAP_MEMO_ = null;
+const pi = T('adminPanelInsight (snapshot)', () => ctx.adminPanelInsight([{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }], 'all')); console.log(' nSeg', pi.nSeg);

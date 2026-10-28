@@ -320,7 +320,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span></div>
     <div class="ppl" id="h-ppl" style="margin:12px 0 14px;font-size:14px"></div>
   <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted"><span id="h-upd">Memuat…</span> · Periode <select id="h-per" onchange="homePer()" style="width:auto;padding:4px 8px;font-size:12.5px"></select></div></div>
-    <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="loadHome()">Muat ulang</button></div></div>
+    <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="snapRebuild(this)" title="Hitung ulang Ringkasan, Laporan & Cross Tab dari data terbaru">Perbarui data sekarang</button></div></div>
   <div class="grid g4" id="h-kpi"><div class="loading">Memuat data…</div></div>
   <div class="grid g2" style="margin-top:16px">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><canvas id="c-daily" height="150"></canvas></div>
@@ -627,6 +627,21 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <div class="toast" id="toast"></div>
 
 <script>
+// data snapshot dikirim terkompres (gzip+base64) -> dibuka di browser
+function unpack(d) {
+  if (!d || !d.packed) return Promise.resolve(d);
+  var bin = atob(d.packed), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text().then(function (t) {
+    var o = JSON.parse(t); o.snapAt = d.snapAt;
+    if (d.rows && o.data) { o.data = d.rows.map(function (i) { return o.data[i]; }); o.meta.n = d.rows.length; o.meta.panel = d.panel; }
+    return o;
+  });
+}
+function snapAge(at) { if (!at) return ''; var m = Math.round((Date.now() - new Date(at).getTime()) / 60000); return m < 1 ? 'baru saja' : m < 60 ? m + ' menit lalu' : Math.round(m / 60) + ' jam lalu'; }
+function snapRebuild(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Menghitung ulang…'; }
+  return run('adminSnapshotRebuild').then(function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } toast('Data diperbarui'); loaded = {}; CT = null; loadHome(); }, function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } });
+}
 var run = function (fn) { var a = [].slice.call(arguments, 1); return new Promise(function (ok, no) { google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { toast((e && e.message) || 'Gagal'); no(e); })[fn].apply(null, a); }); };
 var $ = function (id) { return document.getElementById(id); };
 var esc = function (s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
@@ -800,7 +815,7 @@ function loadHome(per) {
     perPill(d.activePeriod);
     var hp = $('h-per'); if (hp) { hp.innerHTML = (d.periods || []).map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + (p === d.activePeriod ? ' (aktif)' : '') + '</option>'; }).join('') + '<option value="">Semua periode</option>'; hp.value = d.periode || ''; hp.dataset.set = '1'; }
     SUM = d; loaded.home = 1; drawSurveyNav(); if (SV && $('p-survey').classList.contains('on')) drawSurvey();
-    $('h-upd').textContent = 'Diperbarui ' + d.generatedAt;
+    $('h-upd').innerHTML = d.snapAt ? 'Data per ' + esc(String(d.generatedAt)) + ' (' + snapAge(d.snapAt) + ', diperbarui otomatis tiap ±15 menit bila ada data baru)' : 'Diperbarui ' + esc(d.generatedAt);
     $('h-kpi').innerHTML = d.surveys.map(function (s) {
       var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
       return '<div class="card kpi"><div class="lab">' + esc(s.name) + ' <span class="badge ' + (s.open ? 'b-open">Dibuka' : 'b-closed">Ditutup') + '</span></div>' +
@@ -1099,7 +1114,7 @@ function simGo() {
   if (!confirm('Isi ±20.000 jawaban simulasi ke Google Sheet? Prosesnya bertahap (±1.000 jawaban per langkah, beberapa menit). Jangan tutup halaman ini sampai selesai.')) return;
   $('sim-go').disabled = true;
   var step = function () {
-    run('adminSimulasiBatch').then(function (st) { simDraw(st); if (st.selesai) { $('sim-go').disabled = false; toast('Data simulasi selesai diisi'); loaded = {}; loadHome(); } else step(); },
+    run('adminSimulasiBatch').then(function (st) { simDraw(st); if (st.selesai) { $('sim-st').textContent = 'Menyiapkan tampilan cepat Dashboard…'; snapRebuild().then(function () { $('sim-go').disabled = false; simLoad(); toast('Data simulasi selesai diisi'); }); } else step(); },
       function (e) { $('sim-go').disabled = false; toast('Terhenti: ' + (e.message || e) + '. Klik "Lanjutkan pengisian" untuk meneruskan.'); simLoad(); });
   };
   run('adminSimulasiMulai').then(function (st) { simDraw(st); step(); }, function (e) { $('sim-go').disabled = false; toast(e.message || e); });
@@ -1108,7 +1123,7 @@ function simDel() {
   var k = prompt('Hapus SEMUA data simulasi (jawaban, panel, blokir, pemenang, dan survei contoh)? Data asli tidak tersentuh.\n\nKetik HAPUS untuk lanjut:');
   if (k !== 'HAPUS') return;
   $('sim-st').textContent = 'Menghapus…';
-  run('adminSimulasiHapus').then(function (r) { toast('Terhapus: ' + fmt(r.jawaban) + ' jawaban, ' + fmt(r.panel) + ' panel, ' + fmt(r.blokir) + ' blokir'); loaded = {}; loadHome(); simLoad(); });
+  run('adminSimulasiHapus').then(function (r) { toast('Terhapus: ' + fmt(r.jawaban) + ' jawaban, ' + fmt(r.panel) + ' panel, ' + fmt(r.blokir) + ' blokir'); simLoad(); return snapRebuild(); });
 }
 function loadSet() {
   simLoad();
@@ -1151,7 +1166,7 @@ function delData() {
   run('adminDeleteData', o).then(function (r) {
     var n = r.surveys.reduce(function (a, s) { return a + s.rows; }, 0);
     var t = n + ' jawaban dihapus' + (r.lain.length ? ', ' + r.lain.map(function (x) { return x.rows + ' baris ' + x.tab; }).join(', ') : '') + (r.arsip ? '. Cadangan: tab "Arsip ' + r.waktu + ' …"' : '');
-    $('del-res').textContent = t; toast('Data dihapus'); $('del-ok').value = ''; loadHome();
+    $('del-res').textContent = t; toast('Data dihapus'); $('del-ok').value = ''; snapRebuild();
   }, function (e) { $('del-res').textContent = ''; toast(e.message || 'Gagal menghapus'); });
 }
 function saveSet() {
@@ -1954,7 +1969,7 @@ function ctLoad() {
   var v = $('ct-v').value; if (!v) return;
   $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '<p class="muted">Memuat…</p>';
   ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
-  run('adminCrosstab', v, $('ct-st').value, rgVal('ct')).then(function (d) {
+  run('adminCrosstab', v, $('ct-st').value, rgVal('ct')).then(unpack).then(function (d) {
     if (!d || !d.qs || d.qs.length < 2) { CT = null; $('ct-tbl').innerHTML = '<p class="loading">Survei ini belum punya pertanyaan pilihan yang bisa disilangkan.</p>'; $('ct-ins').innerHTML = ''; return; }
     CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
     var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
@@ -2130,7 +2145,7 @@ function repLoad(reset) {
   if (reset) { $('rp-fc').value = ''; $('rp-fv').style.display = 'none'; }
   $('rp-list').innerHTML = '<p class="loading">Menghitung laporan…</p>';
   var opt = { status: $('rp-st').value, col: $('rp-fc').value, val: $('rp-fc').value ? $('rp-fv').value : '', range: rgVal('rp') };
-  run('adminReport', $('rp-v').value, opt).then(function (d) { REP = d; repDraw(reset); });
+  run('adminReport', $('rp-v').value, opt).then(unpack).then(function (d) { REP = d; repDraw(reset); });
 }
 function pct(n, d) { return d ? Math.round(n / d * 1000) / 10 : 0; }
 function repDraw(reset) {
