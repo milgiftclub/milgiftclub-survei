@@ -1,0 +1,20 @@
+const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
+const load = require('./sim/load'); const { ctx } = load(); ctx.snapBuild_(); const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/sim/';
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept('Tidak bisa dihubungi'));
+  await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });
+  await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
+  await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
+  await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(2500);
+  await p.waitForTimeout(1500);
+  await p.locator('#sv-list button[data-v="v2"]').click(); await p.waitForFunction(() => !/Menghitung/.test(document.getElementById('sv-ins').textContent), null, { timeout: 30000 });
+  console.log('insight:', (await p.textContent('#sv-ins')).slice(0, 200)); await p.screenshot({ path: SP + 'sv_ins.png', fullPage: true });
+  await p.locator('#sv-ins button').first().click(); await p.waitForTimeout(3000);
+  console.log('go:', await p.evaluate(() => JSON.stringify([CTS.row, CTS.col, CT && CT.qs[CTS.col] && CT.qs[CTS.col].id, CT_GO])));
+  console.log('cross tab:', await p.textContent('#ct-title'), '|', await p.$eval('#ct-v', e => e.value));
+  console.log('JS errors:', errs); await b.close();
+})();

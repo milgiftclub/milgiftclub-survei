@@ -339,7 +339,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn sec sm" onclick="svRefresh()" title="Buka ulang survei untuk responden yang sudah pernah mengisi">🔄 Refresh survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
-    <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
+    <div class="card"><h2>💡 Insight survei ini</h2><p class="muted">Kelompok responden (usia, gender, SES, wilayah, dll.) yang jawabannya berbeda nyata dari rata-rata (selisih ≥10 poin, signifikan 95%). Hanya jawaban valid.</p><div class="ct-findings" id="sv-ins"><p class="loading">Menghitung insight…</p></div></div>
     <div class="card" id="sv-qcard"><h2 id="sv-qh">Kuota</h2><p class="muted" id="sv-qd">Jumlah valid dibanding target per kelompok.</p><div id="sv-quota"></div></div>
   </div>
 </section>
@@ -639,7 +639,7 @@ function unpack(d) {
 function snapAge(at) { if (!at) return ''; var m = Math.round((Date.now() - new Date(at).getTime()) / 60000); return m < 1 ? 'baru saja' : m < 60 ? m + ' menit lalu' : Math.round(m / 60) + ' jam lalu'; }
 function snapRebuild(btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Menghitung ulang…'; }
-  return run('adminSnapshotRebuild').then(function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } toast('Data diperbarui'); loaded = {}; CT = null; loadHome(); }, function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } });
+  return run('adminSnapshotRebuild').then(function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } toast('Data diperbarui'); loaded = {}; CT = null; SVINS = {}; loadHome(); }, function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } });
 }
 var run = function (fn) { var a = [].slice.call(arguments, 1); return new Promise(function (ok, no) { google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { toast((e && e.message) || 'Gagal'); no(e); })[fn].apply(null, a); }); };
 var $ = function (id) { return document.getElementById(id); };
@@ -708,7 +708,23 @@ function drawSurveyNav() {
 }
 
 // ---------- halaman per survei ----------
-var svChart;
+var svChart, SVINS = {};
+function svInsight(v) {
+  var box = $('sv-ins'), draw = function (ins, n) {
+    if (SV !== v) return;
+    box.innerHTML = ins.length ? ins.map(function (f) {
+      return '<div class="ct-find' + (f.diff < 0 ? ' neg' : '') + '"><b>' + esc(f.title) + '</b><p>' + esc(f.text) + '</p><button class="btn sec sm" onclick="svInsGo(\'' + esc(f.row) + '\',\'' + esc(f.col) + '\')">Lihat tabel</button></div>';
+    }).join('') : '<p class="muted">' + (n ? 'Belum ada perbedaan yang nyata. Biasanya muncul setelah ±100 responden valid.' : 'Belum ada jawaban valid di survei ini.') + '</p>';
+  };
+  if (SVINS[v]) return draw(SVINS[v].ins, SVINS[v].n);
+  box.innerHTML = '<p class="loading">Menghitung insight…</p>';
+  run('adminCrosstab', v, 'Valid', null).then(unpack).then(function (d) {
+    var ins = d && d.qs && d.qs.length > 1 ? CT_LIB.insights(d.qs, d.data, { banners: d.banners, max: 9 }) : [];
+    SVINS[v] = { ins: ins, n: d && d.data ? d.data.length : 0 }; draw(ins, SVINS[v].n);
+  }, function (e) { box.innerHTML = '<p class="loading">Gagal memuat insight: ' + esc((e && e.message) || e) + '</p>'; });
+}
+var CT_GO = null;
+function svInsGo(r, c) { CT_GO = [r, c, SV]; ctOpen(SV); }
 function quotaHtml(v) {
   return (SUM.quota[v] || []).map(function (b) {
     return '<div style="margin-bottom:12px"><b style="font-size:13px">' + esc(b.name) + '</b>' + b.items.map(function (it) {
@@ -734,10 +750,7 @@ function drawSurvey() {
   $('sv-qcard').style.display = s.custom ? '' : 'none'; $('sv-qcard').parentNode.style.gridTemplateColumns = s.custom ? '' : '1fr';
   $('sv-qh').textContent = s.custom ? 'Profil & jawaban' : 'Kuota'; $('sv-qd').textContent = s.custom ? 'Sebaran jawaban valid: profil responden dan pertanyaan pilihan.' : 'Jumlah valid dibanding target per kelompok.';
   $('sv-quota').innerHTML = quotaHtml(SV);
-  if (svChart) svChart.destroy();
-  if (window.Chart) svChart = new Chart($('sv-daily'), { type: 'bar', data: { labels: SUM.daily.dates.map(function (x) { return x.slice(5); }),
-    datasets: [{ label: 'Valid', data: SUM.daily[SV], backgroundColor: svColor(SV), borderRadius: 6, maxBarThickness: 18 }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } } });
+  svInsight(SV);
 }
 function rondeHtml(s) {
   var r = s.rondeInfo || { ronde: 1, riwayat: [] };
@@ -1968,12 +1981,15 @@ function ctInit(tries) {
   run('adminPanelSaved').then(function (l) { srcFill('ct-v', l); });
   if (!CT || CT.v !== e.value) ctLoad();
 }
-function ctOpen(v) { navTo('ct'); $('ct-v').value = v; ctLoad(); }
+var CT_SEQ = 0, CT_LV = null;
+function ctOpen(v) { navTo('ct'); if ($('ct-v').value !== v || CT_LV !== v) { $('ct-v').value = v; ctLoad(); } }
 function ctLoad() {
   var v = $('ct-v').value; if (!v) return;
   $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '<p class="muted">Memuat…</p>';
   ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
+  var my = ++CT_SEQ; CT_LV = v;
   run('adminCrosstab', v, $('ct-st').value, rgVal('ct')).then(unpack).then(function (d) {
+    if (my !== CT_SEQ) return;   // sudah ada permintaan yang lebih baru
     if (!d || !d.qs || d.qs.length < 2) { CT = null; $('ct-tbl').innerHTML = '<p class="loading">Survei ini belum punya pertanyaan pilihan yang bisa disilangkan.</p>'; $('ct-ins').innerHTML = ''; return; }
     CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
     var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
@@ -1987,6 +2003,7 @@ function ctLoad() {
     ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; });
     ctCombo('ct-fq', function (i) { CTS.fq = i; ctRender(); }, function () { return CTS.fq; }, 'Tambah filter: cari pertanyaan…');
     ctRender();
+    if (CT_GO && CT_GO[2] === v) { var g = CT_GO; CT_GO = null; ctGoto(g[0], g[1]); }
   }, function (e) { $('ct-tbl').innerHTML = '<p class="loading">Gagal memuat data: ' + esc((e && e.message) || e) + '</p>'; $('ct-ins').innerHTML = ''; });
 }
 function ctRows() {
