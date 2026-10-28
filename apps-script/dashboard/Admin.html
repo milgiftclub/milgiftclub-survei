@@ -143,6 +143,7 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ms-l{position:absolute;z-index:30;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,.14);padding:8px;width:340px;max-height:320px;overflow:auto}
 .ms-l label{display:flex;gap:8px;align-items:center;padding:6px 6px;border-radius:8px;cursor:pointer;font-size:13.5px} .ms-l label:hover{background:var(--navy-l, #eef1fb)}
 .ms-l label span{flex:1} .ms-l label small{color:var(--muted)} .ms-l input[type=checkbox]{width:auto} .ms-q{width:100%;margin-bottom:6px}
+.ronde{margin-top:8px;font-size:13.5px;line-height:1.6} .rd{display:inline-block} .rd summary{cursor:pointer;color:var(--navy);font-weight:700} .rd ul{margin:6px 0 8px;padding-left:18px}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
@@ -319,7 +320,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <!-- SURVEI (per survei) -->
 <section class="page" id="p-survey">
   <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
-    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn sec sm" onclick="svRefresh()" title="Buka ulang survei untuk responden yang sudah pernah mengisi">🔄 Refresh survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><p class="muted">Hanya jawaban berstatus Valid.</p><canvas id="sv-daily" height="170"></canvas></div>
@@ -674,7 +675,7 @@ function drawSurvey() {
   var s = SUM.surveys.filter(function (x) { return x.v === SV; })[0]; if (!s) return;
   var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
   $('sv-title').textContent = s.name;
-  $('sv-desc').innerHTML = '<span class="badge ' + (s.open ? 'b-open">Dibuka' : s.status === 'Draf' ? 'b-y">Draf' : 'b-closed">Ditutup') + '</span> &nbsp;' + (s.tab ? 'Data tersimpan di tab <b>' + esc(s.tab) + '</b>. ' : 'Belum dipublish. ') + (s.tutupText ? (s.tutupLewat ? 'Tertutup otomatis sejak ' : 'Tutup otomatis ') + '<b>' + esc(s.tutupText) + '</b>. ' : '') + 'Diperbarui ' + esc(SUM.generatedAt) + '.';
+  $('sv-desc').innerHTML = '<span class="badge ' + (s.open ? 'b-open">Dibuka' : s.status === 'Draf' ? 'b-y">Draf' : 'b-closed">Ditutup') + '</span> &nbsp;' + (s.tab ? 'Data tersimpan di tab <b>' + esc(s.tab) + '</b>. ' : 'Belum dipublish. ') + (s.tutupText ? (s.tutupLewat ? 'Tertutup otomatis sejak ' : 'Tutup otomatis ') + '<b>' + esc(s.tutupText) + '</b>. ' : '') + 'Diperbarui ' + esc(SUM.generatedAt) + '.' + rondeHtml(s);
   $('sv-edit').style.display = s.custom ? '' : 'none';
   $('sv-link').href = s.link || '#';
   $('sv-toggle').textContent = s.open ? 'Tutup survei' : s.status === 'Draf' ? 'Publish survei' : 'Buka survei untuk responden';
@@ -690,6 +691,26 @@ function drawSurvey() {
   if (window.Chart) svChart = new Chart($('sv-daily'), { type: 'bar', data: { labels: SUM.daily.dates.map(function (x) { return x.slice(5); }),
     datasets: [{ label: 'Valid', data: SUM.daily[SV], backgroundColor: svColor(SV), borderRadius: 6, maxBarThickness: 18 }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } } } });
+}
+function rondeHtml(s) {
+  var r = s.rondeInfo || { ronde: 1, riwayat: [] };
+  var h = '<div class="ronde"><span class="badge b-y">Ronde ' + r.ronde + '</span> ' + (r.ronde > 1 ? 'Direfresh <b>' + esc(r.sejak) + '</b> oleh ' + esc(r.oleh) + (r.catatan ? ' — “' + esc(r.catatan) + '”' : '') +
+    '. Responden yang mengisi sebelum tanggal ini boleh mengisi lagi.' : 'Belum pernah direfresh: setiap orang hanya bisa mengisi satu kali.');
+  if (r.riwayat.length) h += ' <details class="rd"><summary>Riwayat refresh (' + r.riwayat.length + ')</summary><ul>' + r.riwayat.slice().reverse().map(function (x) { return '<li>Ronde ' + x.ke + ' · ' + esc(x.tgl) + ' · ' + esc(x.oleh) + (x.catatan ? ' — ' + esc(x.catatan) : '') + '</li>'; }).join('') +
+    '</ul><button class="btn sec sm" onclick="svRefreshUndo()">Batalkan refresh terakhir</button></details>';
+  return h + '</div>';
+}
+function svRefresh() {
+  var s = SUM.surveys.filter(function (x) { return x.v === SV; })[0]; if (!s) return;
+  var n = (s.ronde || 1) + 1;
+  var c = prompt('Refresh "' + s.name + '" ke Ronde ' + n + '?\n\nResponden yang sudah pernah mengisi bisa mengisi lagi (jawaban lama tetap tersimpan, ditandai ronde ' + (n - 1) + '). Kupon giveaway tetap maksimal 1 per survei per periode.\n\nCatatan alasan refresh (opsional):', '');
+  if (c === null) return;
+  run('adminSurveyRefresh', SV, c).then(function (r) { s.ronde = r.ronde; s.rondeInfo = r; drawSurvey(); toast('Survei direfresh ke Ronde ' + r.ronde); });
+}
+function svRefreshUndo() {
+  var s = SUM.surveys.filter(function (x) { return x.v === SV; })[0];
+  if (!confirm('Batalkan refresh terakhir? Survei kembali ke ronde sebelumnya; orang yang sudah mengisi di ronde ini akan dianggap duplikat bila mengisi lagi.')) return;
+  run('adminSurveyRefreshUndo', SV).then(function (r) { s.ronde = r.ronde; s.rondeInfo = r; drawSurvey(); toast('Refresh dibatalkan'); });
 }
 function svToResp() { $('r-v').value = SV; loaded.resp = 1; navTo('resp'); loadResp(); }
 function svToggle() {
@@ -959,7 +980,7 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
+var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
 function loadSet() {
   run('adminSettings').then(function (d) {
     SET = d; delFill(d);

@@ -185,7 +185,7 @@
       if (d.surveiLain && d.surveiLain.length) {
         h += '<div class="ck"><h2>Tambah kupon: isi survei lainnya</h2>' + d.surveiLain.map(function (x) {
           var u = String(x.link || ''); u += (u.indexOf('?') < 0 ? '?' : '&') + 'src=cek';
-          return '<a class="more" href="' + esc(u) + '" target="_blank" rel="noopener"><span>' + esc(x.name) + '</span><b>Isi survei · +1 kupon →</b></a>';
+          return '<a class="more" href="' + esc(u) + '" target="_blank" rel="noopener"><span>' + esc(x.name) + '</span><b>' + (x.kupon === false ? 'Isi ulang (ronde baru) →' : 'Isi survei · +1 kupon →') + '</b></a>';
         }).join('') + '</div>';
       } else if (d.surveys.length) h += '<p class="small">Kamu sudah mengisi semua survei yang sedang dibuka. Pantau Instagram ' + esc(IGH) + ' untuk survei berikutnya.</p>';
       if (d.periode) h += '<p class="small">' + esc(d.periode) + '. Status diperbarui berkala; hasil akhir ditentukan saat verifikasi pemenang.</p>';

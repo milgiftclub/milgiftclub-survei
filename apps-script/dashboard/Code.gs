@@ -101,6 +101,7 @@ var SET_DEFAULTS = [
   ['PERIODE_KE', 1, 'Periode giveaway survei utama (angka)'],
   ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama'],
   ['PERIODE_LIST', '[{"ke":1,"tahun":2026,"mulai":"2026-10-01","selesai":"2026-12-31","umumkan":"2027-01-04"}]', 'Daftar periode giveaway (diatur dari menu Periode Giveaway)'],
+  ['RONDE_SURVEI', '{}', 'Riwayat refresh survei per survei (diatur dari halaman survei di Dashboard)'],
   ['IG_POST_GIVEAWAY', '', 'Link postingan giveaway Instagram (pisahkan dengan koma bila lebih dari satu). Komentar & tag di postingan ini dicek otomatis'],
   ['IG_MIN_TAG', 3, 'Jumlah teman minimal yang harus di-tag di komentar'],
   ['SYARAT_KOMENTAR_WAJIB', false, 'TRUE = hanya yang sudah komentar + tag teman yang ikut diundi (aktifkan setelah Instagram tersambung)'],
@@ -432,8 +433,10 @@ function submitResponse(p) {
       var w = s.getRange(2, col.wa_normal + 1, last - 1, 1).getValues();
       var g = s.getRange(2, col.ig_normal + 1, last - 1, 1).getValues();
       var sv = s.getRange(2, col.survei + 1, last - 1, 1).getValues();
+      var rs = rondeStart_(cs ? cs.id : p.variant === 'v2' ? 'v2' : 'v1'), tsv = rs ? s.getRange(2, col.timestamp + 1, last - 1, 1).getValues() : null;
       for (var y = 0; y < w.length; y++) {
         if (sv[y][0] !== sname) continue;
+        if (rs && new Date(tsv[y][0]) < rs) continue;   // jawaban ronde sebelum refresh tidak dihitung duplikat
         if ((wa && String(w[y][0]) === wa) || (ig && String(g[y][0]) === ig)) { dup = true; break; }
       }
     }
@@ -470,7 +473,7 @@ function submitResponse(p) {
     if (status === 'Valid') bumpDone_(p.cats || [], 1);
     if (status === 'Tidak valid - attention check') addViolation_(ig, wa, 'Gagal pertanyaan cek (attention check)', p.sid);
     if (row.profil_diperbarui) a.profil_diperbarui = row.profil_diperbarui;
-    if (a.Z1 === 'Ya, bersedia' && status === 'Valid' && wa) upsertPanel_(a, wa, ig, status, p.src, sname);
+    if (a.Z1 === 'Ya, bersedia' && status === 'Valid' && wa) upsertPanel_(a, wa, ig, status, p.src, sname, rondeNow_(cs ? cs.id : p.variant === 'v2' ? 'v2' : 'v1'));
     if (cs && status === 'Valid') autoCloseCustom_(cs, s, col);
     return { ok: true };
   } finally {
@@ -481,14 +484,41 @@ function submitResponse(p) {
 // ====== BACA TAB JAWABAN ======
 function respTabs_() { return [[SH.RESP1, 'v1'], [SH.RESP2, 'v2']].concat(customSurveys_().filter(function (c) { return c.status !== 'Draf'; }).map(function (c) { return [c.tab, c.id]; })); }
 /** Semua baris dari kedua tab jawaban sebagai objek {kolom: nilai}, plus _tab, _row. */
+// ====== RONDE / REFRESH SURVEI ======
+// Refresh = survei dibuka ulang untuk responden yang sudah pernah mengisi (kondisi bisa berubah).
+// Ronde jawaban ditentukan dari waktu masuk dibanding tanggal refresh; data lama tetap tersimpan.
+function rondeAll_() { try { return JSON.parse(String(set_('RONDE_SURVEI') || '{}')) || {}; } catch (e) { return {}; } }
+function rondeList_(v) { return (rondeAll_()[v] || []).slice().sort(function (a, b) { return a.ke - b.ke; }); }
+function rondeOf_(list, ts) { var d = new Date(ts), n = 1; list.forEach(function (x) { if (d >= new Date(x.tgl)) n = x.ke; }); return n; }
+function rondeNow_(v) { var l = rondeList_(v); return l.length ? l[l.length - 1].ke : 1; }
+function rondeStart_(v) { var l = rondeList_(v); return l.length ? new Date(l[l.length - 1].tgl) : null; }
+function rondeInfo_(v) {
+  var l = rondeList_(v), last = l[l.length - 1];
+  return { ronde: last ? last.ke : 1, sejak: last ? fmt_(new Date(last.tgl)) : '', oleh: last ? last.oleh : '', catatan: last ? last.catatan || '' : '',
+    riwayat: l.map(function (x) { return { ke: x.ke, tgl: fmt_(new Date(x.tgl)), oleh: x.oleh, catatan: x.catatan || '' }; }) };
+}
+function adminSurveyRefresh(v, catatan) {
+  var who = requireAdmin_(), all = rondeAll_(), l = (all[v] || []).slice();
+  var ke = (l.length ? l[l.length - 1].ke : 1) + 1;
+  l.push({ ke: ke, tgl: new Date().toISOString(), oleh: who, catatan: String(catatan || '').slice(0, 200) });
+  all[v] = l; adminSaveSettings({ RONDE_SURVEI: JSON.stringify(all) }); SET_MEMO_ = null;
+  return rondeInfo_(v);
+}
+function adminSurveyRefreshUndo(v) {
+  requireAdmin_(); var all = rondeAll_(), l = (all[v] || []).slice();
+  if (!l.length) throw new Error('Survei ini belum pernah direfresh.');
+  l.pop(); all[v] = l; adminSaveSettings({ RONDE_SURVEI: JSON.stringify(all) }); SET_MEMO_ = null;
+  return rondeInfo_(v);
+}
 function readAll_() {
-  var out = [];
+  var out = [], RA = rondeAll_();
   respTabs_().forEach(function (t) {
     var s = sheet_(t[0]); if (!s || s.getLastRow() < 2) return;
-    var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
+    var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0], rl = (RA[t[1]] || []).slice().sort(function (a, b) { return a.ke - b.ke; });
     s.getRange(2, 1, s.getLastRow() - 1, h.length).getValues().forEach(function (r, i) {
       var o = { _tab: t[0], _v: t[1], _row: i + 2 };
       h.forEach(function (name, j) { o[name] = r[j]; });
+      o.ronde = rl.length ? rondeOf_(rl, o.timestamp) : 1;
       out.push(o);
     });
   });
@@ -593,7 +623,8 @@ function lookupIg(ig, variant) {
   if (acc.state !== 'ok') return { state: acc.state, until: acc.until || '', email: set_('EMAIL_BUKA_AKSES') };
   var tab = respTab_(variant || 'v1');
   var rows = readAll_();
-  if (rows.some(function (r) { return r._tab === tab && String(r.ig_normal) === n; })) return { state: 'sudah_isi' };
+  var rs = rondeStart_(variant && variant !== 'v1' && variant !== 'v2' ? variant : String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1');
+  if (rows.some(function (r) { return r._tab === tab && String(r.ig_normal) === n && (!rs || new Date(r.timestamp) >= rs); })) return { state: 'sudah_isi' };
   return { state: 'ok', known: !!profileRow_(rows, n) };
 }
 function checkIg(ig, variant) { var r = lookupIg(ig, variant); return { exists: r.state === 'sudah_isi' }; }
@@ -836,6 +867,7 @@ function recountKategori_() {
 // ====== PANEL PROFIL ======
 function upsertPanel_(a, wa, ig, status, src, sname) {
   sname = sname || CONFIG.SURVEY_NAME;
+  if (arguments.length > 6 && arguments[6] > 1) sname += ' (ronde ' + arguments[6] + ')';
   var s = sheet_(SH.PANEL);
   var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
   // tambahkan kolom panel baru (dari revisi kuesioner) bila belum ada
@@ -994,11 +1026,11 @@ function surveyList_() {
   return [['v1', 'Semua Kategori'], ['v2', 'Fashion Wanita, Tas & Aksesori, Hijab']].map(function (x) {
     var o = isOpen_(x[0]);
     var tk = x[0] === 'v2' ? 'TUTUP_V2' : 'TUTUP_V1';
-    return { v: x[0], name: x[1], open: o, status: o ? 'Dibuka' : 'Ditutup', target: num_(x[0] === 'v2' ? 'TARGET_V2' : 'TARGET_V1'), link: set_(x[0] === 'v2' ? 'LINK_V2' : 'LINK_V1'), tab: respTab_(x[0]),
+    return { v: x[0], name: x[1], ronde: rondeNow_(x[0]), rondeInfo: rondeInfo_(x[0]), open: o, status: o ? 'Dibuka' : 'Ditutup', target: num_(x[0] === 'v2' ? 'TARGET_V2' : 'TARGET_V1'), link: set_(x[0] === 'v2' ? 'LINK_V2' : 'LINK_V1'), tab: respTab_(x[0]),
       tutup: inputDate_(set_(tk)), tutupText: fmtTutup_(set_(tk)), tutupLewat: closed_(set_(tk)), switchOn: bool_(set_(x[0] === 'v2' ? 'SURVEY_OPEN_V2' : 'SURVEY_OPEN_V1')) };
   }).concat(customSurveys_().filter(function (c) { return c.status !== 'Diarsipkan'; }).map(function (c) {
     var lewat = closed_(c.schema.tutup);
-    return { v: c.id, name: c.name, open: c.status === 'Dibuka' && !lewat, status: c.status === 'Dibuka' && lewat ? 'Ditutup' : c.status, target: c.target, link: customLink_(c.id), tab: c.tab, custom: true, profile: c.schema.profile !== false,
+    return { v: c.id, name: c.name, ronde: rondeNow_(c.id), rondeInfo: rondeInfo_(c.id), open: c.status === 'Dibuka' && !lewat, status: c.status === 'Dibuka' && lewat ? 'Ditutup' : c.status, target: c.target, link: customLink_(c.id), tab: c.tab, custom: true, profile: c.schema.profile !== false,
       tutupText: fmtTutup_(c.schema.tutup), tutupLewat: lewat };
   }));
 }
@@ -1080,7 +1112,7 @@ function adminResponses(v) {
   }
   var names = {}; surveyList_().forEach(function (x) { names[x.v] = x.name; });
   return { cols: cols, labels: labels, rows: rows.map(function (r) { return cols.map(function (c) { return iso_(r[c] == null ? '' : r[c]); }); }),
-    src: rows.map(function (r) { return [r._v, names[r._v] || r.survei || r._v]; }) };
+    src: rows.map(function (r) { return [r._v, (names[r._v] || r.survei || r._v) + (r.ronde > 1 ? ' · ronde ' + r.ronde : '')]; }) };
 }
 /** Hapus jawaban. o = { v: id survei | 'all', mode: 'one'|'all'|'date'|'filter', sid, from, to (yyyy-mm-dd), col, val, cek: true = hanya hitung } */
 function adminDeleteResponses(o) {
@@ -1293,12 +1325,12 @@ function eligibleInfo_(v, per) {
     st.jawaban++; allP[String(r.wa_normal || r.ig_normal)] = 1; if (r.status === 'Valid') valP[String(r.wa_normal || r.ig_normal)] = 1;
     if (r.status !== 'Valid') return; st.valid++;
     var k = String(r.wa_normal); if (!k) return;
-    if (seen[k]) { if (seen[k] !== 'x') seen[k].kupon++; return; }   // 1 survei valid = 1 kupon
+    if (seen[k]) { if (seen[k] !== 'x' && !seen[k]._sv[r._v]) { seen[k]._sv[r._v] = 1; seen[k].kupon++; } return; }   // 1 survei valid = 1 kupon (per periode, walau survei direfresh)
     seen[k] = 'x'; st.orang++;
     if (accessStatus_(String(r.ig_normal), k).state !== 'ok') { st.diblokir++; return; }
     if (won[k + '|' + (per || periodeOf_(r))]) { st.sudahMenang++; return; }
     if (tags && (tags[String(r.ig_normal).toLowerCase()] || 0) < minTag) { st.kurangKomentar++; return; }   // wajib komentar + tag teman
-    var o = {}; for (var f in r) o[f] = r[f]; o.kupon = 1; seen[k] = o;
+    var o = {}; for (var f in r) o[f] = r[f]; o.kupon = 1; o._sv = {}; o._sv[r._v] = 1; seen[k] = o;
     st.eligible++; out.push(o);
   });
   out.forEach(function (o) { st.kupon += o.kupon; });
@@ -1623,7 +1655,7 @@ function giveawayStatus(ig) {
     if (/attention/.test(st)) return 'Jawaban tidak lolos pengecekan perhatian (salah menjawab pertanyaan "pilih Biru").';
     if (/speeder/.test(st)) return 'Survei diisi terlalu cepat sehingga dianggap tidak valid.';
     if (/manual/.test(st)) return 'Jawaban dinilai asal-asalan oleh tim.';
-    if (/Duplikat/.test(st)) return 'Kamu sudah pernah mengisi survei ini sebelumnya; hanya jawaban pertama yang dihitung.';
+    if (/Duplikat/.test(st)) return 'Kamu sudah mengisi survei ini sebelumnya (di ronde yang sama); hanya jawaban pertama yang dihitung.';
     if (/setelah survei ditutup/.test(st)) return 'Jawaban masuk setelah survei ditutup.';
     if (/Diblokir/.test(st)) return 'Akun sedang diblokir karena riwayat jawaban asal-asalan.';
     return st;
@@ -1635,13 +1667,18 @@ function giveawayStatus(ig) {
   var surveyOk = surveys.some(function (x) { return x.valid; }) && acc.state === 'ok';
   // kupon periode aktif: 1 survei valid = 1 kupon
   var per = activePeriode_(null), done = {};
-  rows.forEach(function (r, i) { surveys[i].kupon = r.status === 'Valid' && periodeOf_(r) === per; done[r._v] = 1; });
-  var kupon = acc.state === 'ok' ? surveys.filter(function (x) { return x.kupon; }).length : 0;
+  var kp = {};
+  rows.forEach(function (r, i) {
+    var k = r.status === 'Valid' && periodeOf_(r) === per && !kp[r._v]; if (k) kp[r._v] = 1;   // 1 kupon per survei per periode
+    surveys[i].kupon = k; if (r.ronde > 1) surveys[i].name += ' (ronde ' + r.ronde + ')';
+    if (r.ronde === rondeNow_(r._v)) done[r._v] = 1;
+  });
+  var kupon = acc.state === 'ok' ? Object.keys(kp).length : 0;
   var lain = surveyList_().filter(function (x) {
     if (!x.open || done[x.v]) return false;
     var c = x.custom ? customById_(x.v) : null;
     return !(c && c.schema && (c.schema.giveaway === false || (c.schema.brand && c.schema.brand.mode === 'client')));
-  }).map(function (x) { return { name: x.name, link: x.link }; });
+  }).map(function (x) { return { name: x.name + (x.ronde > 1 ? ' (ronde ' + x.ronde + ')' : ''), link: x.link, kupon: !kp[x.v] }; });
   return { ok: true, ig: '@' + n, blocked: acc.state !== 'ok' ? { state: acc.state, until: acc.until ? fmt_(acc.until) : '', email: set_('EMAIL_BUKA_AKSES') } : null,
     surveys: surveys, surveyOk: surveyOk, komentar: komentar, periode: mainPeriode_('v1').label, kupon: kupon, periodeAktif: per, surveiLain: lain, posts: String(set_('IG_POST_GIVEAWAY') || '').split(/[\s,]+/).filter(String),
     eligible: surveyOk && (komentar.state === 'ok' || komentar.state === 'manual') };
