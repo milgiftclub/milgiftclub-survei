@@ -100,7 +100,19 @@ qtypes={}
 for sch in (S1, S2):
     for q in sch:
         if q['id'] not in qtypes: qtypes[q['id']]=q.get('type','')
-gs=open('survey_src/Code.gs.tpl').read().replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False)).replace('__QTYPES__',json.dumps(qtypes,ensure_ascii=False)).replace('__SURVEY_DEPLOY__',json.load(open('../apps-script/deployments.json'))['survei']).replace('__LABELS__',json.dumps(LABELS,ensure_ascii=False)).replace('__CROSSTAB_LIB__',open('survey_src/crosstab.js').read())
+# skema ringkas + contoh kota untuk generator data simulasi (Dashboard > Data simulasi)
+def _slim(q):
+    keep=('id','type','loop','options','byCat','generic','rows','cols','pipe','pipeCols','max','colEx')
+    o={k:q[k] for k in keep if k in q and q[k] not in (None,[],{})}
+    for k in ('options','generic'):
+        if k in o: o[k]=[x['t'] for x in o[k] if isinstance(x,dict) and x.get('t')]
+    if 'byCat' in o: o['byCat']={c:[x['t'] for x in v] for c,v in o['byCat'].items()}
+    return o
+SIM_SCHEMA={'v1':[_slim(q) for q in S1],'v2':[_slim(q) for q in S2]}
+_cities=json.load(open('cities.json'))
+_big=['Kota Jakarta Selatan','Kota Jakarta Timur','Kota Jakarta Barat','Kota Bekasi','Kota Tangerang','Kota Depok','Kab. Bogor','Kota Bandung','Kota Surabaya','Kota Semarang','Kota Medan','Kota Makassar','Kota Yogyakarta','Kota Malang','Kota Palembang','Kota Denpasar','Kota Balikpapan','Kab. Sidoarjo','Kota Bogor','Kab. Bandung']
+SIM_CITIES=[c for c in _cities if c[0] in _big]+[c for i,c in enumerate(_cities) if i%9==0 and c[0] not in _big][:60]
+gs=open('survey_src/Code.gs.tpl').read().replace('__SIM_SCHEMA__',json.dumps(SIM_SCHEMA,ensure_ascii=False)).replace('__SIM_CITIES__',json.dumps(SIM_CITIES,ensure_ascii=False)).replace('__CATEGORIES__',json.dumps(cats,ensure_ascii=False)).replace('__DICTIONARY__',json.dumps(dic,ensure_ascii=False)).replace('__QOPTS__',json.dumps(qopts,ensure_ascii=False)).replace('__QTYPES__',json.dumps(qtypes,ensure_ascii=False)).replace('__SURVEY_DEPLOY__',json.load(open('../apps-script/deployments.json'))['survei']).replace('__LABELS__',json.dumps(LABELS,ensure_ascii=False)).replace('__CROSSTAB_LIB__',open('survey_src/crosstab.js').read())
 open('survey_out/Code.gs','w').write(gs)
 print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 

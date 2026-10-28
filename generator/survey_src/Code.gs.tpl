@@ -1422,6 +1422,7 @@ function adminEligibleRaw_(v, per) {
 }
 function adminDraw(v, prize, count, per) { return cached_(function () { return adminDrawRaw_(v, prize, count, per); }); }
 function adminDrawRaw_(v, prize, count, per) {
+  if (simInfo_()) throw new Error('Masih ada data simulasi. Hapus data simulasi dulu (Survei & Pengaturan → Data simulasi) sebelum mengundi pemenang sungguhan.');
   var who = requireAdmin_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     if (per == null) per = activePeriode_(null);
@@ -2247,4 +2248,199 @@ function adminPeopleExport(f) {
       .concat(cols.map(function (c) { var r = last[c[0]]; return r && r[c[1]] != null ? String(iso_(r[c[1]])) : ''; }));
   });
   return { cols: head, rows: rows };
+}
+
+// ====== DATA SIMULASI (untuk presentasi) ======
+// Mengisi ±20.000 jawaban palsu langsung ke sheet secara bertahap (per 1.000 baris), lalu bisa dihapus bersih.
+// Penanda: session_id "SIM-…", nomor WA "0800…" (bukan nomor HP), Instagram "@sim_uji_…", panel_id "SIM…".
+var SIM_SCHEMA = __SIM_SCHEMA__;
+var SIM_CITIES = __SIM_CITIES__;
+var SIM_BATCH = 1000;
+var SIM_PLAN = [{ v: 'v1', n: 12000, from: 0 }, { v: 'v2', n: 5000, from: 6000, wanita: true }, { v: 'custom', n: 3000, from: 9000 }];
+function simInfo_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('SIM_INFO') || 'null'); } catch (e) { return null; } }
+function simSave_(o) { PropertiesService.getScriptProperties().setProperty('SIM_INFO', JSON.stringify(o)); }
+function simRng_(seed) { var s = seed | 0; return function () { s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function simPerson_(i) {
+  var r = simRng_(i * 7919 + 17), w = function (a, ws) { var t = 0, k; for (k = 0; k < ws.length; k++) t += ws[k]; var x = r() * t; for (k = 0; k < a.length; k++) { x -= ws[k]; if (x <= 0) return a[k]; } return a[a.length - 1]; };
+  var yr = w([2006, 2003, 2000, 1997, 1994, 1990, 1986, 1980, 1974, 1965], [3, 10, 14, 14, 12, 10, 8, 6, 3, 2]) - Math.floor(r() * 3);
+  var c = SIM_CITIES[Math.floor(Math.pow(r(), 1.6) * SIM_CITIES.length)];
+  return { i: i, wa: '0800' + ('0000000' + i).slice(-8), ig: 'sim_uji_' + i, S2: r() < 0.62 ? 'Wanita' : 'Pria', S0: String(yr), city: c, seed: i };
+}
+function simAgeBand_(y) { var a = 2026 - Number(y); return a < 18 ? 'Di bawah 18 tahun' : a < 25 ? '18-24 tahun' : a < 35 ? '25-34 tahun' : a < 45 ? '35-44 tahun' : a < 55 ? '45-54 tahun' : '55 tahun ke atas'; }
+var SIM_W_ = {};
+function simAnswers_(v, p, r) {
+  var pick = function (a) { return a[Math.floor(r() * a.length)]; };
+  var wpick = function (a, ws) { var t = 0, k; for (k = 0; k < ws.length; k++) t += ws[k]; var x = r() * t; for (k = 0; k < a.length; k++) { x -= ws[k]; if (x <= 0) return a[k]; } return a[a.length - 1]; };
+  var wOf = function (id, n) { var k = id + ':' + n; if (!SIM_W_[k]) { var rr = simRng_(id.length * 131 + n * 7 + id.charCodeAt(0)), o = []; for (var i = 0; i < n; i++) o.push(Math.pow(rr() + 0.15, 2.2) / (1 + i * 0.25)); SIM_W_[k] = o; } return SIM_W_[k].slice(); };
+  var age = 2026 - Number(p.S0), young = age < 30;
+  var a = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', Z2: '@' + p.ig, Z3: p.wa, S0: p.S0, S0B: 'Ya, sudah 18 tahun', S1: simAgeBand_(p.S0), S2: p.S2,
+    S3: ['Tidak satu pun dari pilihan di atas'], A1: p.city[0], provinsi: p.city[1], tipe_wilayah: p.city[2], jabodetabek: p.city[3] };
+  // aturan sederhana supaya profil masuk akal
+  a.A4M = age < 23 ? (r() < 0.9 ? 'Belum menikah' : 'Menikah') : age < 30 ? wpick(['Belum menikah', 'Menikah', 'Cerai / berpisah'], [5, 5, 0.3]) : wpick(['Belum menikah', 'Menikah', 'Cerai / berpisah'], [1.5, 8, 0.6]);
+  if (a.A4M !== 'Belum menikah') {
+    a.A4N = wpick(['Belum / tidak memiliki anak', '1 anak', '2 anak', '3 anak', '4 anak atau lebih'], age < 30 ? [4, 4, 2, 0.5, 0.1] : [1, 3, 4, 2, 0.6]);
+    if (!/^Belum/.test(a.A4N)) a.A4K = [age < 30 ? pick(['Di bawah 2 tahun (bayi)', '2-5 tahun (balita)']) : age < 42 ? pick(['2-5 tahun (balita)', '6-12 tahun (usia SD)', '13-17 tahun (remaja)']) : pick(['13-17 tahun (remaja)', '18 tahun ke atas'])];
+  }
+  a.A5 = age < 23 ? (r() < 0.6 ? 'Pelajar / mahasiswa' : wpick(['Karyawan swasta', 'Pekerja lepas / freelancer', 'Wiraswasta / pemilik usaha'], [5, 3, 2]))
+    : wpick(['Karyawan swasta', 'PNS / BUMN / TNI / Polri', 'Wiraswasta / pemilik usaha', 'Pekerja lepas / freelancer', 'Ibu rumah tangga', 'Tidak bekerja / pensiun'], [10, 2, 4, 3, p.S2 === 'Wanita' ? 4 : 0, age > 55 ? 4 : 0.5]);
+  var skip = { O1: 1, Z2: 1, Z3: 1, PV: 1, PR: 1, Z5: 1, QC1: 1, Z1: 1, S0: 1, S0B: 1, S1: 1, S2: 1, S3: 1, A1: 1, A4M: 1, A4N: 1, A4K: 1, A4: 1, A5: 1 };
+  var AW5F = { 'Pencarian di Google': 'AW5K', 'Hasil pencarian di aplikasi belanja': 'AW5S', 'Konten kreator / affiliate': 'AW5C', 'Rekomendasi teman / keluarga': 'AW5R', 'Grup WhatsApp / komunitas': 'AW5G' };
+  SIM_SCHEMA[v].forEach(function (q) {
+    var id = q.id, key = q.loop ? 'L1_' + id : id;
+    if (skip[id] || a[key] != null || q.type === 'info' || q.type === 'city') return;
+    if (id === 'A15' && p.S2 !== 'Wanita') return;
+    if (/^AW5[A-Z]$/.test(id)) { var aw = a.L1_AW5; if (!aw) return; if (AW5F[aw] !== id && !(/toko fisik/.test(aw) && id === 'AW5T') && !(/^Iklan/.test(aw) && id === 'AW5M')) return; }
+    if ((id === 'AW6' || id === 'AW7') && !/(Video|Live|kreator|Iklan di media)/.test(a.L1_AW5 || '')) return;
+    var o = (q.options || []).slice();
+    if (q.pipe === 'S4' || q.pipeCols === 'MKT') o = [].concat(a.S4 || []);
+    if (q.pipe === 'PROD') o = (q.byCat || {})[a.C1] || [];
+    if (q.pipe === 'GRP') o = q.generic || [];
+    if (q.type === 'oa') { if (id === 'PTB') a[key] = pick(['Erigo', 'Wardah', 'Uniqlo', 'Zoya', 'Skintific', 'Xiaomi', 'Samsung', 'MS Glow', 'Rabbani', 'Hijup']); else if (/^AW5[KC]$/.test(id)) a[key] = pick(['rekomendasi', 'murah', 'review', 'tutorial', 'promo']); return; }
+    if (q.type === 'nps') { a[key] = String(Math.min(10, Math.floor(r() * 6) + 5 + (r() < 0.3 ? 1 : 0))); return; }
+    if (q.type === 'matrix_sa') { var cols = o.length ? o : (q.cols || ['Tidak ada']), m = {}; (q.rows || []).forEach(function (rw) { m[rw] = pick(cols); }); a[key] = m; return; }
+    if (!o.length) return;
+    var ws = wOf(id, o.length);
+    if (id === 'S4' || q.pipe === 'S4') o.forEach(function (x, i) { if (/TikTok/.test(x)) ws[i] *= young ? 3 : 0.7; if (/Shopee/.test(x)) ws[i] *= 2; });
+    if (id === 'C1') o.forEach(function (x, i) { if (/wanita|muslim|Kecantikan|Skincare|Makeup|Perawatan/i.test(x)) ws[i] *= p.S2 === 'Wanita' ? 3 : 0.2; if (/pria/i.test(x)) ws[i] *= p.S2 === 'Pria' ? 4 : 0.1; });
+    if (id === 'A13') o.forEach(function (x, i) { if (x === 'iPhone') ws[i] *= young ? 1.6 : 0.8; });
+    if (id === 'SC1') { o = o.filter(function (x) { return !/^Tidak/.test(x); }); ws = ws.slice(0, o.length); }
+    if (/^(S4|B2|AW1)$/.test(id)) { var keepI = []; o.forEach(function (x, i) { if (!/^Saya tidak berbelanja/.test(x)) keepI.push(i); }); ws = keepI.map(function (i) { return ws[i]; }); o = keepI.map(function (i) { return o[i]; }); }
+    if (q.type === 'ma') {
+      var k = Math.min(o.length, q.max || 3, 1 + Math.floor(r() * 3)), set = {}, out = [], guard = 0;
+      while (out.length < k && guard++ < 50) { var x = wpick(o, ws); if (/^(Tidak (ada|satu)|Saya tidak)/.test(x) && out.length) continue; if (!set[x]) { set[x] = 1; out.push(x); if (/^(Tidak (ada|satu)|Saya tidak)/.test(x)) break; } }
+      a[key] = out;
+    } else a[key] = wpick(o, ws);
+  });
+  if (v === 'v2' && !a.SC1) a.SC1 = ['Fashion wanita'];
+  a.QC1 = r() < 0.96 ? 'Biru' : pick(['Merah', 'Hijau', 'Kuning']);
+  a.Z1 = r() < 0.55 ? 'Ya, bersedia' : 'Tidak';
+  return a;
+}
+function simTarget_(v, info) { return v === 'custom' ? info.customId : v; }
+/** Mulai simulasi: buat survei contoh (buatan Dashboard) & simpan rencana. */
+function adminSimulasiMulai() {
+  requireAdmin_();
+  var info = simInfo_(); if (info && !info.selesai) return adminSimulasiStatus();
+  if (info && info.selesai) throw new Error('Data simulasi sudah ada. Hapus dulu sebelum mengisi ulang.');
+  var cs = adminBuilderSave({ name: 'Survei Skincare (Simulasi)', target: 3000, intro: 'Survei contoh untuk simulasi.', questions: [
+    { id: 'Q1', text: 'Merek skincare apa yang paling sering Anda pakai?', type: 'single', options: ['Wardah', 'Skintific', 'Somethinc', 'Emina', 'Azarine', 'Scarlett', 'The Originote', 'Lainnya'].map(function (t) { return { t: t }; }) },
+    { id: 'Q2', text: 'Di mana Anda biasanya membeli skincare?', type: 'multi', options: ['Shopee', 'TikTok Shop', 'Tokopedia', 'Watsons / Guardian', 'Minimarket', 'Official store brand'].map(function (t) { return { t: t }; }) },
+    { id: 'Q3', text: 'Berapa pengeluaran skincare Anda per bulan?', type: 'single', options: ['< Rp100rb', 'Rp100–250rb', 'Rp250–500rb', '> Rp500rb'].map(function (t) { return { t: t }; }) }] }, true);
+  setCustomStatus_(cs.id, 'Dibuka'); CUSTOM_MEMO_ = null;
+  simSave_({ customId: cs.id, step: 0, pos: {}, done: 0, selesai: false, mulai: new Date().toISOString(), oleh: viewer_() });
+  return adminSimulasiStatus();
+}
+function adminSimulasiStatus() {
+  requireAdmin_(); var info = simInfo_(), total = SIM_PLAN.reduce(function (a, p) { return a + p.n; }, 0);
+  return { ada: !!info, selesai: !!(info && info.selesai), done: info ? info.done : 0, total: total, panel: !!(info && info.panel), mulai: info ? info.mulai : '' };
+}
+/** Satu tahap: menulis SIM_BATCH jawaban sekaligus. Dipanggil berulang dari Dashboard sampai selesai. */
+function adminSimulasiBatch() {
+  requireAdmin_(); var info = simInfo_(); if (!info) throw new Error('Simulasi belum dimulai.');
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var plan = null, k; for (k = 0; k < SIM_PLAN.length; k++) { if ((info.pos[SIM_PLAN[k].v] || 0) < SIM_PLAN[k].n) { plan = SIM_PLAN[k]; break; } }
+    if (!plan) { if (!info.panel) simFinish_(info); info.selesai = true; simSave_(info); return adminSimulasiStatus(); }
+    var v = simTarget_(plan.v, info), cs = plan.v === 'custom' ? customById_(info.customId) : null;
+    if (cs) ensureCustomTab_(cs);
+    var s = sheet_(respTab_(v)), header = s.getRange(1, 1, 1, Math.max(1, s.getLastColumn())).getValues()[0].filter(String);
+    var sname = cs ? cs.name : CONFIG.SURVEY_NAME, start = new Date('2026-10-01T08:00:00+07:00').getTime(), span = Math.max(3600e3, Date.now() - start);
+    var objs = [], idx = info.cur && info.cur[plan.v] != null ? info.cur[plan.v] : plan.from, made = info.pos[plan.v] || 0;
+    while (objs.length < SIM_BATCH && made < plan.n) {
+      var p = simPerson_(idx++); if (plan.wanita && p.S2 !== 'Wanita') continue;
+      var r = simRng_(p.i * 31 + plan.v.length * 1009 + 5);
+      var a = plan.v === 'custom' ? simAnswers_('v1', p, r) : simAnswers_(plan.v, p, r);
+      if (plan.v === 'custom') {   // survei buatan Dashboard: profil + 3 pertanyaan sendiri
+        var keepP = {}; Object.keys(a).forEach(function (x) { if (/^(O1|Z1|Z2|Z3|QC1|S\d|A\d|provinsi|tipe_wilayah|jabodetabek)/.test(x)) keepP[x] = a[x]; }); a = keepP;
+        a.Q1 = ['Wardah', 'Skintific', 'Somethinc', 'Emina', 'Azarine', 'Scarlett', 'The Originote', 'Lainnya'][Math.floor(Math.pow(r(), 1.5) * 8)];
+        a.Q2 = [['Shopee', 'TikTok Shop', 'Tokopedia'][Math.floor(r() * 3)], ['Watsons / Guardian', 'Minimarket', 'Official store brand'][Math.floor(r() * 3)]];
+        a.Q3 = ['< Rp100rb', 'Rp100–250rb', 'Rp250–500rb', '> Rp500rb'][Math.floor(Math.pow(r(), 1.3) * 4)];
+      }
+      var speed = r() < 0.03, att = a.QC1 === 'Biru';
+      var status = !att ? 'Tidak valid - attention check' : speed ? 'Tidak valid - speeder' : 'Valid';
+      if (a.A4M) a.A4 = deriveA4_(a);
+      if (a.A18 === 'Kos / kamar sewa' && !a.A19) a.A19 = 'Sewa / kontrak (bulanan atau tahunan)';
+      var ses = deriveSes_(a); if (ses) { a.pengeluaran_per_kapita = ses.perKapita; a.kelas_ekonomi = ses.kelas; a.ses = ses.ses; }
+      var hp = segmenHp_(a); if (hp) a.segmen_hp = hp;
+      var gen = generasi_(a.S0); if (gen) a.generasi = gen;
+      var ts = new Date(start + Math.pow(r(), 0.8) * span), flat = flatten_(a);
+      var row = { timestamp: ts, survei: sname, varian: varianLabel_(v), versi_kuesioner: 'simulasi', session_id: 'SIM-' + plan.v + '-' + p.i, status: status,
+        durasi_detik: speed ? 60 + Math.floor(r() * 60) : Math.round(240 + Math.pow(r(), 0.7) * 600), kategori_1: a.C1 || '', kategori_2: '',
+        attention_check: att ? 'Lulus' : 'Gagal', wa_normal: p.wa, ig_normal: p.ig, profil_dari_survei_sebelumnya: '', periode_giveaway: activePeriode_(cs), profil_diperbarui: ts,
+        sumber: ['ig_story', 'linktree', 'ig_bio', 'langsung', 'wa'][Math.floor(Math.pow(r(), 1.4) * 5)], device_fp: '', user_agent: 'simulasi' };
+      Object.keys(flat).forEach(function (x) { row[x] = flat[x]; });
+      objs.push(row); made++;
+    }
+    var add = {}; objs.forEach(function (o) { Object.keys(o).forEach(function (x) { if (header.indexOf(x) < 0) add[x] = 1; }); });
+    var addL = Object.keys(add);
+    if (addL.length) { s.getRange(1, header.length + 1, 1, addL.length).setValues([addL]).setFontWeight('bold'); header = header.concat(addL); }
+    var vals = objs.map(function (o) { return header.map(function (h) { return h in o ? o[h] : ''; }); });
+    if (vals.length) s.getRange(s.getLastRow() + 1, 1, vals.length, header.length).setValues(vals);
+    info.pos[plan.v] = made; info.cur = info.cur || {}; info.cur[plan.v] = idx; info.done = SIM_PLAN.reduce(function (t, x) { return t + (info.pos[x.v] || 0); }, 0);
+    simSave_(info);
+    return adminSimulasiStatus();
+  } finally { lock.releaseLock(); }
+}
+/** Tahap akhir: Panel (yang bersedia dihubungi) & Daftar Blokir dari jawaban simulasi. */
+function simFinish_(info) {
+  MEMO_ = null; var rows = readAllRaw_().filter(function (r) { return String(r.session_id).indexOf('SIM-') === 0; });
+  var byP = {}, blok = {};
+  rows.forEach(function (r) {
+    var k = String(r.wa_normal);
+    if (/^Tidak valid/.test(r.status)) { if (!blok[k]) blok[k] = r; return; }
+    if (r.status !== 'Valid' || r.Z1 !== 'Ya, bersedia') return;
+    var o = byP[k] || (byP[k] = { rows: [] }); o.rows.push(r);
+  });
+  var p = sheet_(SH.PANEL), ph = p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0];
+  var missing = PANEL_COLS.map(function (c) { return c[0]; }).filter(function (n) { return ph.indexOf(n) < 0; });
+  if (missing.length) { p.getRange(1, ph.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold'); ph = ph.concat(missing); }
+  var n = 0, out = Object.keys(byP).map(function (k) {
+    var rs = byP[k].rows.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); }), last = rs[rs.length - 1], merged = {};
+    rs.forEach(function (r) { Object.keys(r).forEach(function (x) { if (r[x] !== '' && r[x] != null) merged[x] = r[x]; }); });
+    n++;
+    return ph.map(function (name) {
+      var def = PANEL_COLS.filter(function (c) { return c[0] === name; })[0], src = def ? def[1] : null;
+      if (name === 'panel_id') return 'SIM' + ('00000' + n).slice(-5);
+      if (name === 'nomor_hp') return k;
+      if (name === 'instagram') return '@' + last.ig_normal;
+      if (name === 'tgl_bergabung') return rs[0].timestamp;
+      if (name === 'update_terakhir') return last.timestamp;
+      if (name === 'jumlah_survei') return rs.length;
+      if (name === 'riwayat_survei') return rs.map(function (r) { return r.survei; }).join(' | ');
+      if (name === 'sumber_pertama') return 'simulasi';
+      if (name === 'status_kualitas_terakhir') return 'Valid';
+      return src && merged[src] != null ? merged[src] : '';
+    });
+  });
+  if (out.length) p.getRange(p.getLastRow() + 1, 1, out.length, ph.length).setValues(out);
+  var b = blokDataRaw_(), bh = b.h, bl = Object.keys(blok).map(function (k) {
+    var r = blok[k]; return bh.map(function (h) {
+      return h === 'instagram' ? '@' + r.ig_normal : h === 'nomor_wa' ? "'" + k : h === 'jumlah_pelanggaran' ? 1 : h === 'pelanggaran_terakhir' ? r.timestamp : h === 'alasan_terakhir' ? (/speeder/.test(r.status) ? 'Mengisi terlalu cepat (speeder)' : 'Gagal pertanyaan cek (attention check)')
+        : h === 'status' ? 'Diblokir' : h === 'jumlah_dibuka' ? 0 : h === 'keterangan' ? keterangan_('Diblokir') : h === 'buka_akses (centang)' ? false : h === 'sesi_tercatat' ? r.session_id : '';
+    });
+  });
+  if (bl.length) b.s.getRange(b.s.getLastRow() + 1, 1, bl.length, bh.length).setValues(bl);
+  info.panel = true; info.nPanel = out.length; info.nBlok = bl.length; simSave_(info);
+}
+/** Hapus SEMUA data simulasi (jawaban, panel, blokir, pemenang, survei contoh). Data asli tidak tersentuh. */
+function adminSimulasiHapus() {
+  requireAdmin_(); var info = simInfo_(), lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var res = { jawaban: 0, panel: 0, blokir: 0, pemenang: 0 };
+    var strip = function (s, test) {
+      if (!s || s.getLastRow() < 2) return 0;
+      var lc = s.getLastColumn(), h = s.getRange(1, 1, 1, lc).getValues()[0], all = s.getRange(2, 1, s.getLastRow() - 1, lc).getValues();
+      var keep = all.filter(function (r) { return !test(r, h); }); if (keep.length === all.length) return 0;
+      s.getRange(2, 1, all.length, lc).clearContent();
+      if (keep.length) s.getRange(2, 1, keep.length, lc).setValues(keep);
+      return all.length - keep.length;
+    };
+    respTabs_().forEach(function (t) { res.jawaban += strip(sheet_(t[0]), function (r, h) { return String(r[h.indexOf('session_id')]).indexOf('SIM-') === 0; }); });
+    res.panel = strip(sheet_(SH.PANEL), function (r, h) { return String(r[h.indexOf('panel_id')]).indexOf('SIM') === 0 || String(r[h.indexOf('nomor_hp')]).indexOf('0800') === 0 && String(r[h.indexOf('sumber_pertama')]) === 'simulasi'; });
+    res.blokir = strip(sheet_(SH.BLOK), function (r, h) { return String(r[h.indexOf('sesi_tercatat')]).indexOf('SIM-') === 0 || String(r[h.indexOf('instagram')]).indexOf('@sim_uji_') === 0; });
+    res.pemenang = strip(sheet_(SH.WIN), function (r, h) { return String(r[h.indexOf('session_id')]).indexOf('SIM-') === 0; });
+    if (info && info.customId && customById_(info.customId)) { try { adminBuilderDelete(info.customId); } catch (e) {} }
+    PropertiesService.getScriptProperties().deleteProperty('SIM_INFO'); CUSTOM_MEMO_ = null;
+    return res;
+  } finally { lock.releaseLock(); }
 }

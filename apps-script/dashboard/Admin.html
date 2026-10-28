@@ -601,6 +601,13 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div class="kv"><label>Konfirmasi</label><input id="del-ok" placeholder="ketik HAPUS" autocomplete="off" style="max-width:200px"></div>
     <button class="btn red" onclick="delData()">Hapus data terpilih</button> <span class="muted" id="del-res"></span>
   </div>
+  <div class="card" id="sim-card" style="margin-top:16px"><h2>🧪 Data simulasi (untuk presentasi)</h2>
+    <p class="muted">Isi ±20.000 jawaban palsu (3 survei: Semua Kategori, Fashion Wanita, dan "Survei Skincare (Simulasi)") supaya Ringkasan, Laporan, Cross Tab, Panel & Undian terlihat seperti saat data sudah banyak. Data simulasi diberi penanda (nomor WA 0800…, Instagram @sim_uji_…) dan bisa dihapus bersih tanpa menyentuh data asli. Selama data simulasi ada, undian pemenang dikunci.</p>
+    <div id="sim-st" class="muted" style="margin:8px 0">Memuat status…</div>
+    <div class="bar" id="sim-bar" style="display:none;margin:8px 0"><i style="width:0%"></i></div>
+    <button class="btn sm" id="sim-go" onclick="simGo()">Isi 20.000 data simulasi</button>
+    <button class="btn red sm" id="sim-del" onclick="simDel()" style="display:none">Hapus data simulasi</button>
+  </div>
   <div class="card" id="s-new" style="margin-top:16px"><h2>Membuat survei baru</h2><p class="muted">Susun survei baru dengan bantuan AI atau tempel daftar pertanyaan, lalu publish langsung dari Dashboard.</p><button class="btn sm" onclick="newSurvey()">+ Buat survei baru</button></div>
 </section>
 
@@ -1079,7 +1086,32 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 // ---------- pengaturan ----------
 var SET;
 var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
+// ---------- data simulasi ----------
+function simDraw(st) {
+  $('sim-go').style.display = st.ada && st.selesai ? 'none' : ''; $('sim-del').style.display = st.ada ? '' : 'none';
+  $('sim-go').textContent = st.ada && !st.selesai ? 'Lanjutkan pengisian' : 'Isi 20.000 data simulasi';
+  $('sim-st').innerHTML = !st.ada ? 'Belum ada data simulasi.' : st.selesai ? '✅ Data simulasi aktif: <b>' + fmt(st.done) + '</b> jawaban (dimulai ' + esc(String(st.mulai).slice(0, 10)) + '). Undian dikunci sampai data simulasi dihapus.'
+    : 'Terisi <b>' + fmt(st.done) + '</b> dari ' + fmt(st.total) + ' jawaban.';
+  $('sim-bar').style.display = st.ada && !st.selesai ? '' : 'none'; $('sim-bar').querySelector('i').style.width = Math.round(st.done / st.total * 100) + '%';
+}
+function simLoad() { run('adminSimulasiStatus').then(simDraw); }
+function simGo() {
+  if (!confirm('Isi ±20.000 jawaban simulasi ke Google Sheet? Prosesnya bertahap (±1.000 jawaban per langkah, beberapa menit). Jangan tutup halaman ini sampai selesai.')) return;
+  $('sim-go').disabled = true;
+  var step = function () {
+    run('adminSimulasiBatch').then(function (st) { simDraw(st); if (st.selesai) { $('sim-go').disabled = false; toast('Data simulasi selesai diisi'); loaded = {}; loadHome(); } else step(); },
+      function (e) { $('sim-go').disabled = false; toast('Terhenti: ' + (e.message || e) + '. Klik "Lanjutkan pengisian" untuk meneruskan.'); simLoad(); });
+  };
+  run('adminSimulasiMulai').then(function (st) { simDraw(st); step(); }, function (e) { $('sim-go').disabled = false; toast(e.message || e); });
+}
+function simDel() {
+  var k = prompt('Hapus SEMUA data simulasi (jawaban, panel, blokir, pemenang, dan survei contoh)? Data asli tidak tersentuh.\n\nKetik HAPUS untuk lanjut:');
+  if (k !== 'HAPUS') return;
+  $('sim-st').textContent = 'Menghapus…';
+  run('adminSimulasiHapus').then(function (r) { toast('Terhapus: ' + fmt(r.jawaban) + ' jawaban, ' + fmt(r.panel) + ' panel, ' + fmt(r.blokir) + ' blokir'); loaded = {}; loadHome(); simLoad(); });
+}
 function loadSet() {
+  simLoad();
   run('adminSettings').then(function (d) {
     SET = d; delFill(d);
     $('s-surveys').innerHTML = d.surveys.filter(function (s) { return !s.custom; }).map(function (s) {
