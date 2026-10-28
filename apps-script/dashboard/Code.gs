@@ -1171,6 +1171,67 @@ function adminRunTask(name) {
   return { ok: true };
 }
 
+// ====== HAPUS DATA (mis. data uji coba) ======
+// Baris dihapus dari tab; salinannya disimpan dulu di tab tersembunyi "Arsip ..." (bisa dikembalikan manual).
+// Definisi survei (pertanyaan, link) TIDAK ikut terhapus.
+function arsip_(s, stamp) {
+  var last = s.getLastRow(), lc = s.getLastColumn();
+  if (last < 2 || !lc) return 0;
+  var ss = ss_(), nm = ('Arsip ' + stamp + ' ' + s.getName()).slice(0, 95), n = nm, k = 2;
+  while (ss.getSheetByName(n)) n = nm + ' (' + (k++) + ')';
+  var a = ss.insertSheet(n);
+  a.getRange(1, 1, last, lc).setValues(s.getRange(1, 1, last, lc).getValues());
+  try { a.hideSheet(); } catch (e) {}
+  return last - 1;
+}
+/** hapus semua baris data (header tetap); rows = daftar nomor baris tertentu (opsional) */
+function hapusBaris_(s, rows) {
+  var last = s.getLastRow(); if (last < 2) return 0;
+  if (rows) { rows.sort(function (a, b) { return b - a; }).forEach(function (r) { if (s.getLastRow() > 2) s.deleteRow(r); else s.getRange(r, 1, 1, s.getLastColumn()).clearContent(); }); return rows.length; }
+  if (last > 2) s.deleteRows(3, last - 2);   // sisakan 1 baris agar tidak menghapus semua baris (dilarang Sheets)
+  s.getRange(2, 1, 1, Math.max(1, s.getLastColumn())).clearContent();
+  return last - 1;
+}
+/** Hapus data. opt = { surveys: ['v1','v2',id...] | 'all', screenout, panel, blok, undian, arsip (default true), konfirmasi: 'HAPUS' } */
+function adminDeleteData(opt) {
+  var who = requireAdmin_(); opt = opt || {};
+  if (String(opt.konfirmasi || '').trim().toUpperCase() !== 'HAPUS') throw new Error('Ketik HAPUS untuk konfirmasi.');
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var stamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd-HHmm'), keep = opt.arsip !== false, out = { surveys: [], lain: [], arsip: keep };
+    var all = surveyList_().map(function (s) { return s.v; });
+    var pick = opt.surveys === 'all' ? all : (opt.surveys || []).filter(function (v) { return all.indexOf(v) >= 0; });
+    var labels = [];
+    pick.forEach(function (v) {
+      var tab = respTab_(v), s = sheet_(tab), n = 0;
+      if (s) { if (keep) arsip_(s, stamp); n = hapusBaris_(s); }
+      labels.push(varianLabel_(v));
+      out.surveys.push({ v: v, tab: tab, rows: n });
+    });
+    // kuota kategori (survei utama) direset bila survei utama dihapus
+    if (pick.indexOf('v1') >= 0 || pick.indexOf('v2') >= 0) {
+      var k = sheet_(SH.KAT); if (k && k.getLastRow() > 1) { var z = []; for (var i = 2; i <= k.getLastRow(); i++) z.push([0, 0]); k.getRange(2, 4, z.length, 2).setValues(z); }
+    }
+    var scr = sheet_(SH.SCR);
+    if (opt.screenout && scr && scr.getLastRow() > 1) {
+      if (keep) arsip_(scr, stamp);
+      var n2;
+      if (opt.surveys === 'all') n2 = hapusBaris_(scr);
+      else { var v9 = scr.getRange(2, 9, scr.getLastRow() - 1, 1).getValues(), rr = []; v9.forEach(function (r, i) { if (labels.indexOf(String(r[0])) >= 0) rr.push(i + 2); }); n2 = hapusBaris_(scr, rr); }
+      out.lain.push({ tab: SH.SCR, rows: n2 });
+    }
+    [[opt.panel, SH.PANEL], [opt.blok, SH.BLOK], [opt.undian, SH.WIN], [opt.undian, SH.UNDIAN]].forEach(function (x) {
+      var s = x[0] && sheet_(x[1]); if (!s || s.getLastRow() < 2) return;
+      if (keep) arsip_(s, stamp);
+      out.lain.push({ tab: x[1], rows: hapusBaris_(s) });
+    });
+    CUSTOM_MEMO_ = null; SET_MEMO_ = null;
+    try { if (pick.length) updateRekap(); } catch (e) {}
+    out.oleh = who; out.waktu = stamp;
+    return out;
+  } finally { lock.releaseLock(); }
+}
+
 // =====================================================================
 // ====== API UNTUK DASHBOARD LAIN (ATLAS) ======
 // GET <link web app>?api=summary&key=KUNCI   (juga: daily, quota, responses)

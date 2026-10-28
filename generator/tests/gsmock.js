@@ -14,7 +14,7 @@ function makeEnv() {
     getLastColumn() { return this.d.reduce((m, r) => Math.max(m, r.length), 0); },
     appendRow(r) { this.d.push(r.slice()); return this; },
     setFrozenRows() { return this; }, setColumnWidth() { return this; },
-    getMaxColumns() { return Math.max(26, this.getLastColumn()); }, insertColumnsAfter() { return this; }, deleteRow(n) { this.d.splice(n - 1, 1); return this; },
+    getMaxColumns() { return Math.max(26, this.getLastColumn()); }, insertColumnsAfter() { return this; }, deleteRow(n) { this.d.splice(n - 1, 1); return this; }, deleteRows(n, k) { this.d.splice(n - 1, k); return this; }, hideSheet() { this.hidden = true; return this; },
     clear() { this.d = []; return this; },
     getRange(r, c, nr = 1, nc = 1) { return new Range(this, r, c, nr, nc); },
   };
@@ -32,7 +32,7 @@ function makeEnv() {
       return this;
     },
     setValue(v) { return this.setValues([[v]]); },
-    setFontWeight() { return this; }, setNote(n) { (this.s.notes = this.s.notes || {})[this.r + ":" + this.c] = n; return this; }, getNote() { return (this.s.notes || {})[this.r + ":" + this.c] || ""; }, setBackground() { return this; }, setDataValidation() { return this; }, insertCheckboxes() { return this.setValue(false); }, setNumberFormat() { return this; }, getSheet() { return this.s; }, getRow() { return this.r; }, getColumn() { return this.c; },
+    clearContent() { for (let i = 0; i < this.nr; i++) { const R = this.s.d[this.r - 1 + i]; if (R) for (let j = 0; j < this.nc; j++) R[this.c - 1 + j] = ''; } while (this.s.d.length && this.s.d[this.s.d.length - 1].every(x => x === '' || x == null)) this.s.d.pop(); return this; }, setFontWeight() { return this; }, setNote(n) { (this.s.notes = this.s.notes || {})[this.r + ":" + this.c] = n; return this; }, getNote() { return (this.s.notes || {})[this.r + ":" + this.c] || ""; }, setBackground() { return this; }, setDataValidation() { return this; }, insertCheckboxes() { return this.setValue(false); }, setNumberFormat() { return this; }, getSheet() { return this.s; }, getRow() { return this.r; }, getColumn() { return this.c; },
   };
   const ss = {
     getId: () => 'SHEET123',

@@ -100,6 +100,8 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .loading{color:var(--ink2);padding:30px;text-align:center}
 .kv{display:grid;grid-template-columns:minmax(140px,200px) 1fr;gap:12px;align-items:center;margin:12px 0}
 .kv input,.kv select{width:100%}
+.card.danger{border:1.5px solid #f3c1bd} .card.danger h2{color:var(--red)} .card.danger .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)}
+.chk{display:flex;justify-content:flex-start;gap:10px;align-items:center;font-weight:600;margin:6px 0;cursor:pointer;text-align:left} .kv .chk input{width:18px;height:18px;flex:0 0 auto;margin:0}
 code.k{background:var(--navy-l);color:var(--navy);padding:4px 8px;border-radius:8px;font-size:12px;word-break:break-all}
 .switch{position:relative;display:inline-block;width:48px;height:28px}
 .switch input{display:none}
@@ -449,6 +451,19 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="top"><div><div class="eyebrow">Pengaturan</div><h1>Survei & pengaturan</h1><p class="desc">Buka atau tutup survei, ubah target, dan atur aturan blokir. Perubahan berlaku langsung untuk responden.</p></div></div>
   <div class="grid g2" id="s-surveys"></div>
   <div class="card" style="margin-top:16px"><h2>Pengaturan lain</h2><div id="s-form"></div><button class="btn" onclick="saveSet()">Simpan pengaturan</button></div>
+  <div class="card danger" style="margin-top:16px"><h2>🗑 Hapus data</h2>
+    <p class="muted">Untuk membersihkan data uji coba. Pertanyaan, link, dan pengaturan survei <b>tidak</b> ikut terhapus — hanya jawaban yang sudah masuk.</p>
+    <div class="kv"><label>Jawaban dari survei</label><div id="del-sv"></div></div>
+    <div class="kv"><label>Data terkait</label><div>
+      <label class="chk"><input type="checkbox" id="del-scr" checked> Daftar tidak lolos (Screenout)</label>
+      <label class="chk"><input type="checkbox" id="del-panel"> Panel responden</label>
+      <label class="chk"><input type="checkbox" id="del-blok"> Daftar blokir</label>
+      <label class="chk"><input type="checkbox" id="del-win"> Pemenang & daftar undian</label>
+    </div></div>
+    <div class="kv"><label>Cadangan</label><label class="chk"><input type="checkbox" id="del-arsip" checked> Simpan salinan ke tab tersembunyi "Arsip …" di Google Sheet sebelum dihapus</label></div>
+    <div class="kv"><label>Konfirmasi</label><input id="del-ok" placeholder="ketik HAPUS" autocomplete="off" style="max-width:200px"></div>
+    <button class="btn red" onclick="delData()">Hapus data terpilih</button> <span class="muted" id="del-res"></span>
+  </div>
   <div class="card" id="s-new" style="margin-top:16px"><h2>Membuat survei baru</h2><p class="muted">Susun survei baru dengan bantuan AI atau tempel daftar pertanyaan, lalu publish langsung dari Dashboard.</p><button class="btn sm" onclick="newSurvey()">+ Buat survei baru</button></div>
 </section>
 
@@ -686,7 +701,7 @@ var SET;
 var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN'];
 function loadSet() {
   run('adminSettings').then(function (d) {
-    SET = d;
+    SET = d; delFill(d);
     $('s-surveys').innerHTML = d.surveys.filter(function (s) { return !s.custom; }).map(function (s) {
       var k = s.v.toUpperCase();
       return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
@@ -714,6 +729,27 @@ function saveSurvey(k) {
 }
 function savePeriode() {
   run('adminSaveSettings', { PERIODE_KE: +$('per-ke').value || 1, PERIODE_TAHUN: +$('per-th').value || new Date().getFullYear() }).then(function () { toast('Periode tersimpan. Berlaku langsung di survei.'); loadSet(); });
+}
+function delFill(d) {
+  $('del-sv').innerHTML = '<label class="chk"><input type="checkbox" id="del-all"> <b>Semua survei</b></label>' + d.surveys.map(function (s) {
+    return '<label class="chk"><input type="checkbox" class="del-one" value="' + esc(s.v) + '"> ' + esc(s.name) + (s.status === 'Draf' ? ' <span class="muted">(draf)</span>' : '') + '</label>';
+  }).join('');
+  $('del-all').onchange = function () { [].forEach.call(document.querySelectorAll('.del-one'), function (x) { x.checked = $('del-all').checked; }); };
+  $('del-ok').value = ''; $('del-res').textContent = '';
+}
+function delData() {
+  var all = $('del-all').checked, sv = [].filter.call(document.querySelectorAll('.del-one'), function (x) { return x.checked; }).map(function (x) { return x.value; });
+  var o = { surveys: all ? 'all' : sv, screenout: $('del-scr').checked, panel: $('del-panel').checked, blok: $('del-blok').checked, undian: $('del-win').checked, arsip: $('del-arsip').checked, konfirmasi: $('del-ok').value };
+  if (!all && !sv.length && !o.panel && !o.blok && !o.undian) return toast('Pilih dulu data yang mau dihapus');
+  if (String(o.konfirmasi).trim().toUpperCase() !== 'HAPUS') return toast('Ketik HAPUS di kolom konfirmasi');
+  var nm = all ? 'SEMUA survei' : sv.length + ' survei';
+  if (!confirm('Hapus jawaban dari ' + nm + (o.panel ? ' + panel' : '') + (o.blok ? ' + daftar blokir' : '') + (o.undian ? ' + pemenang' : '') + '?' + (o.arsip ? '\n\nSalinan disimpan di tab "Arsip" (tersembunyi) di Google Sheet.' : '\n\nTANPA cadangan — tidak bisa dikembalikan.'))) return;
+  $('del-res').textContent = 'Menghapus…';
+  run('adminDeleteData', o).then(function (r) {
+    var n = r.surveys.reduce(function (a, s) { return a + s.rows; }, 0);
+    var t = n + ' jawaban dihapus' + (r.lain.length ? ', ' + r.lain.map(function (x) { return x.rows + ' baris ' + x.tab; }).join(', ') : '') + (r.arsip ? '. Cadangan: tab "Arsip ' + r.waktu + ' …"' : '');
+    $('del-res').textContent = t; toast('Data dihapus'); $('del-ok').value = ''; loadHome();
+  }, function (e) { $('del-res').textContent = ''; toast(e.message || 'Gagal menghapus'); });
 }
 function saveSet() {
   var o = {}; [].forEach.call(document.querySelectorAll('#s-form input'), function (i) { o[i.dataset.k] = i.value; });

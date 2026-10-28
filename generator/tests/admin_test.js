@@ -69,5 +69,14 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   const r1 = api({ api: 'responses', survei: 'v2' }); console.log('API responses', r1.ok, r1.data.length, 'has WA?', Object.keys(r1.data[0]).some(k => /Z3|wa_normal|Z2|ig_normal/.test(k)));
   console.log('API bad key', JSON.parse(ctx.doGet({ parameter: { api: 'summary', key: 'x' } }).getContent()).error);
   global.__viewer = 'tamu@gmail.com'; try { ctx.adminSummary(); console.log('LEAK!'); } catch (e) { console.log('outsider blocked:', e.message); }
+  // hapus data uji coba
+  global.__viewer = 'robert@mildigital.id';
+  await p.locator('nav.side button', { hasText: 'Survei &' }).click(); await p.waitForTimeout(1200);
+  const before = ctx.readAll_().length;
+  await p.check('#del-all'); await p.check('#del-panel'); await p.fill('#del-ok', 'HAPUS');
+  await p.click('#p-set button:has-text("Hapus data terpilih")'); await p.waitForTimeout(1500);
+  await p.locator('.card.danger').screenshot({ path: SP + 'adm_hapus.png' });
+  console.log('hapus data:', before, '->', ctx.readAll_().length, '|', await p.$eval('#del-res', e => e.textContent));
+  console.log('JS errors after delete:', errs);
   await b.close();
 })();
