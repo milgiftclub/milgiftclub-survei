@@ -171,10 +171,10 @@ Q = [
  ('AW6', T_AW, 'Konten seperti apa yang paling menarik perhatian Anda sampai ingin membeli produk tersebut? (pilih maksimal 3)', 'MA (maks. 3)',
   ['Cara pakai / demo produk', 'Try-on / OOTD / mix & match', 'Review jujur / perbandingan produk', 'Hasil sebelum-sesudah (before-after)', 'Unboxing / detail produk dari dekat', 'Tutorial / tips & inspirasi', 'Testimoni pembeli biasa', 'Live shopping dengan promo khusus', 'Rekomendasi kreator yang saya ikuti', 'Konten lucu / menghibur / storytelling', 'Tampilan visual yang estetik', 'Lainnya, sebutkan: ___'],
   LOOP + "Tampilkan jika {AW3} = 'Melihat konten / tren / influencer di media sosial' ATAU {AW5} = video pendek / live / kreator / iklan media sosial",
-  'INSIGHT KONTEN (prioritas MIL): format konten yang memicu minat beli'),
+  'INSIGHT KONTEN (prioritas MIL): format konten yang memicu minat beli. Pilihan disesuaikan per kelompok kategori {C1} (lihat AW6_BY_GROUP); daftar ini = pilihan umum'),
  ('AW7', T_AW, 'Dari konten tersebut, apa yang ingin Anda pastikan tentang produknya? (pilih maksimal 3)', 'MA (maks. 3)',
   ['Ukuran / size & fit di badan', 'Bahan / tekstur / kualitas', 'Nyaman dipakai (gerah / panas, berat, gatal)', 'Warna & tampilan asli (bukan editan)', 'Hasil / efektivitas nyata', 'Cara pakai, fitur & fungsinya', 'Cocok untuk kondisi saya (kulit, bentuk tubuh, kebutuhan)', 'Keaslian produk & kepercayaan pada penjual', 'Perbandingan dengan produk lain', 'Harga & promo yang didapat', 'Inspirasi gaya / cara memadukan', 'Lainnya, sebutkan: ___', 'Tidak ada, saya hanya terhibur (eksklusif)'],
-  LOOP + 'Tampilkan jika {AW6} dijawab', 'INSIGHT KONTEN: alasan di balik format konten (mis. cara pakai -> ingin lihat size / bahan / gerah atau tidak) untuk brief kreatif'),
+  LOOP + 'Tampilkan jika {AW6} dijawab', 'INSIGHT KONTEN: alasan di balik format konten (mis. cara pakai -> ingin lihat size / bahan / gerah atau tidak) untuk brief kreatif. Pilihan disesuaikan per kelompok kategori {C1} (lihat AW7_BY_GROUP); daftar ini = pilihan umum'),
  ('CO2', T_CO, 'Sebelum membeli produk tersebut, bagaimana cara Anda membandingkan pilihan yang ada?', 'SA',
   ['Antar toko dalam aplikasi yang sama', 'Antar aplikasi belanja yang berbeda', 'Antar toko dan antar aplikasi', 'Tidak sama sekali, langsung membeli'],
   LOOP, 'Pola perbandingan: dalam satu aplikasi vs lintas aplikasi. Menguji H2 (loyalitas platform menipis)'),
@@ -334,3 +334,34 @@ LABELS = {
  'LO4': 'Pemicu berhenti berlangganan', 'RE1': 'Kemungkinan merekomendasikan (NPS)', 'RE2': 'Tindakan setelah menerima produk', 'RE3': 'Pendorong memberi ulasan',
  'D0': 'Porsi belanja online vs toko fisik', 'D1': 'Pengalaman live shopping', 'D4': 'Momen memutuskan beli saat live', 'D5': 'Format iklan sosmed yang dilihat',
 }
+
+# ================= PILIHAN KONTEN (AW6) & YANG INGIN DIPASTIKAN (AW7) PER KELOMPOK KATEGORI =================
+# Pilihan disesuaikan dengan kelompok kategori produk yang dibahas ({C1}); kelompok lain memakai pilihan umum di Q.
+_AW6_TAIL = ['Review jujur / perbandingan produk', 'Testimoni pembeli biasa', 'Live shopping dengan promo khusus', 'Rekomendasi kreator yang saya ikuti', 'Konten lucu / menghibur / storytelling', 'Lainnya, sebutkan: ___']
+_AW7_TAIL = ['Keaslian produk & kepercayaan pada penjual', 'Perbandingan dengan produk lain', 'Harga & promo yang didapat', 'Lainnya, sebutkan: ___', 'Tidak ada, saya hanya terhibur (eksklusif)']
+AW6_BY_GROUP = {
+ 'Fashion & Aksesori': ['Try-on / OOTD di badan kreator', 'Mix & match / inspirasi gaya', 'Detail bahan & jahitan dari dekat', 'Perbandingan ukuran di beberapa bentuk badan', 'Tampilan visual yang estetik'],
+ 'Kecantikan & Perawatan': ['Cara pakai / tutorial', 'Swatch / tes warna di kulit', 'Hasil sebelum-sesudah (before-after)', 'Pemakaian beberapa hari / minggu (progress)', 'Penjelasan kandungan / ingredients'],
+ 'Kesehatan': ['Penjelasan manfaat & kandungan', 'Penjelasan dari ahli / tenaga kesehatan', 'Pengalaman pemakaian (sebelum-sesudah)', 'Cara pakai / dosis'],
+ 'Makanan & Minuman': ['Mukbang / taste test', 'Proses masak / penyajian', 'Resep / ide olahan', 'Unboxing / kemasan & porsi'],
+ 'Kebutuhan Rumah Tangga': ['Demo cara pakai & hasilnya', 'Before-after membersihkan', 'Tips & trik rumah tangga'],
+ 'Ibu & Anak': ['Demo cara pakai', 'Pengalaman orang tua lain', 'Penjelasan keamanan bahan', 'Anak sedang memakai / bermain'],
+ 'Rumah & Dekorasi': ['Room tour / inspirasi penataan', 'Demo pemakaian / perakitan', 'Detail bahan & ukuran dari dekat', 'Before-after makeover ruangan'],
+ 'Elektronik & Gadget': ['Unboxing & first impression', 'Review spesifikasi / uji performa', 'Tips & trik pemakaian'],
+ 'Leisure & Hobi': ['Demo pemakaian / gameplay', 'Unboxing / koleksi', 'Tips & tutorial', 'Dipakai langsung di lapangan / perjalanan'],
+ 'Gifting & Momen': ['Unboxing / reaksi penerima', 'Ide hadiah untuk momen tertentu', 'Detail isi & kemasan', 'Tampilan visual yang estetik'],
+}
+AW7_BY_GROUP = {
+ 'Fashion & Aksesori': ['Ukuran / size & fit di badan', 'Bahan / tekstur / ketebalan (menerawang atau tidak)', 'Nyaman dipakai (gerah / panas, gatal, berat)', 'Warna & tampilan asli (bukan editan)', 'Cocok dengan bentuk tubuh saya', 'Cara memadukan / inspirasi gaya', 'Kualitas jahitan & keawetan'],
+ 'Kecantikan & Perawatan': ['Cocok untuk jenis kulit / rambut saya', 'Hasil / efektivitas nyata', 'Warna / shade yang pas', 'Tekstur & rasa di kulit (lengket, berat, aroma)', 'Kandungan aman (BPOM, halal, bebas bahan tertentu)', 'Cara pakai & urutan pemakaian', 'Ketahanan (tahan lama, tidak transfer)'],
+ 'Kesehatan': ['Manfaat & efektivitas nyata', 'Kandungan & keamanan (BPOM, halal, efek samping)', 'Cocok untuk kondisi saya', 'Cara pakai / dosis', 'Kredibilitas yang merekomendasikan'],
+ 'Makanan & Minuman': ['Rasa (enak / sesuai selera)', 'Porsi & isi sebenarnya', 'Tekstur & kesegaran', 'Halal & keamanan pangan (BPOM / PIRT)', 'Kemasan aman saat dikirim', 'Cara penyajian / olahan'],
+ 'Kebutuhan Rumah Tangga': ['Hasil / efektivitas membersihkan', 'Aman untuk keluarga & permukaan', 'Aroma', 'Cara pakai & takaran', 'Isi / volume sebanding harga'],
+ 'Ibu & Anak': ['Keamanan bahan untuk anak', 'Ukuran / kesesuaian usia anak', 'Nyaman dipakai anak', 'Kemudahan dipakai orang tua', 'Daya tahan / keawetan'],
+ 'Rumah & Dekorasi': ['Ukuran & dimensi sesuai ruangan', 'Bahan, kualitas & kekuatan', 'Warna & tampilan asli di ruangan', 'Kemudahan pemasangan / perakitan', 'Fungsi & kepraktisan'],
+ 'Elektronik & Gadget': ['Spesifikasi & performa nyata', 'Daya tahan baterai / keawetan', 'Fitur & cara pakai', 'Garansi & layanan purna jual', 'Kompatibilitas dengan perangkat saya'],
+ 'Leisure & Hobi': ['Kualitas & daya tahan', 'Ukuran & kenyamanan dipakai', 'Fungsi saat dipakai sebenarnya', 'Keaslian / edisi koleksi', 'Mudah dipakai pemula'],
+ 'Gifting & Momen': ['Isi & tampilan asli (sesuai foto)', 'Kemasan aman & rapi saat sampai', 'Kesegaran / kondisi saat diterima', 'Cocok untuk penerima & momennya', 'Bisa dipersonalisasi / tambah kartu ucapan'],
+}
+AW6_BY_GROUP = {g: v + [x for x in _AW6_TAIL if x not in v] for g, v in AW6_BY_GROUP.items()}
+AW7_BY_GROUP = {g: v + _AW7_TAIL for g, v in AW7_BY_GROUP.items()}

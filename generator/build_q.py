@@ -3,7 +3,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 import os
-from questions import Q, HIGH, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
+from questions import AW6_BY_GROUP, AW7_BY_GROUP, Q, HIGH, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
 VAR=os.environ.get('V','v1')
 if VAR=='v2': Q=variant_v2()
 from categories import CATS
@@ -127,5 +127,14 @@ w3['G11']=f'=ROUND(SUMIF(D{h0+1}:D{last},"Ya",G{h0+1}:G{last})/60,1)'; w3['G11']
 w3['D12']='Jumlah pertanyaan tampil (tanpa hidden & info)'; w3['D12'].font=Font(name=A,size=9)
 w3['G12']=f'=COUNTA(C{h0+1}:C{last})-COUNTIF(C{h0+1}:C{last},"Hidden")-COUNTIF(C{h0+1}:C{last},"Info")'; w3['G12'].font=Font(name=A,size=9)
 for k,v in {'A':14,'B':26,'C':14,'D':10,'E':11,'F':11,'G':12,'H':40}.items(): w3.column_dimensions[k].width=v
-wb.save('Kuesioner_v1_SemuaKategori_v30.xlsx' if VAR=='v1' else 'Kuesioner_v2_FashionTasHijab_v30.xlsx')
+wc=wb.create_sheet('Pilihan Konten per Kategori')
+wc.append(['Kelompok kategori', 'Q%d. Konten yang menarik perhatian (AW6)' % num['AW6'], 'Q%d. Yang ingin dipastikan dari konten (AW7)' % num['AW7']])
+for c in wc[1]: c.font=Font(name=A,bold=True); c.fill=PatternFill('solid',fgColor=YEL); c.border=B
+for g in AW6_BY_GROUP:
+    wc.append([g, '\n'.join(AW6_BY_GROUP[g]), '\n'.join(AW7_BY_GROUP[g])])
+wc.append(['Lainnya (Hewan peliharaan, Otomotif, kategori lain)', 'Pilihan umum (lihat sheet Questionnaire)', 'Pilihan umum (lihat sheet Questionnaire)'])
+for r in wc.iter_rows(min_row=2):
+    for c in r: c.font=Font(name=A); c.alignment=Alignment(wrap_text=True,vertical='top'); c.border=B
+wc.column_dimensions['A'].width=26; wc.column_dimensions['B'].width=55; wc.column_dimensions['C'].width=60
+wb.save('Kuesioner_v1_SemuaKategori_v31.xlsx' if VAR=='v1' else 'Kuesioner_v2_FashionTasHijab_v31.xlsx')
 print(len(Q))

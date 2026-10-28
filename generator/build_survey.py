@@ -1,5 +1,5 @@
 import json, re, os
-from questions import LABELS, Q, HIGH, FASHION_CATS, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
+from questions import AW6_BY_GROUP, AW7_BY_GROUP, LABELS, Q, HIGH, FASHION_CATS, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
 from categories import CATS
 from products import PRODUCTS
 num={q[0]:i+1 for i,q in enumerate(Q)}
@@ -64,6 +64,17 @@ def build_schema(QL, variant):
                   if a.strip()=='Lainnya': o['other']=True   # setiap 'Lainnya' wajib disebutkan
                   ops.append(o)
               it['options']=ops
+      if qid in ('AW6','AW7'):
+          # pilihan per kelompok kategori; 'options' = gabungan semua (untuk laporan & kategori lain)
+          mk=lambda a: ({'t':a.replace(' (eksklusif)','').strip(),'ex':True} if '(eksklusif)' in a else {'t':a.split(', sebutkan')[0].strip(),'other':True} if 'sebutkan: ___' in a else {'t':a})
+          src=AW6_BY_GROUP if qid=='AW6' else AW7_BY_GROUP
+          it['generic']=[dict(o) for o in it['options']]
+          it['byGroup']={g:[mk(a) for a in lst] for g,lst in src.items()}
+          seen=[o['t'] for o in it['options']]
+          for lst in it['byGroup'].values():
+              for o in lst:
+                  if o['t'] not in seen: it['options'].insert(len([x for x in it['options'] if not (x.get('ex') or x.get('other'))]), o); seen.append(o['t'])
+          it['pipe']='GRP'
       if qid in RANDOMIZE: it['rnd']=True
       if qid in RANDOMIZE_ROWS: it['rndRows']=True
       if qid=='C1' and variant=='v1': it['hint']='Gulir ke bawah untuk melihat kategori lainnya ↓'

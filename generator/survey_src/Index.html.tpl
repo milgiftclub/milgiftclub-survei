@@ -167,6 +167,10 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       list = base.map(function (t) { return { t: t }; });
     }
     if (q.pipe === 'SC1') list = sc1Cats().map(function (t) { return { t: t }; });
+    if (q.pipe === 'GRP') {   // pilihan disesuaikan dengan kelompok kategori produk yang dibahas
+      var cg = ST.cats && k != null ? GROUPS[ST.cats[k]] : null;
+      list = (q.byGroup || {})[cg] || q.generic || q.options;
+    }
     if (q.pipe === 'PROD') list = (q.byCat || {})[ST.cats && k != null ? ST.cats[k] : ''] || [{ t: 'Lainnya', other: true }];
     return q.rnd ? randomized(list, 'o_' + key(q.id, k)) : list;
   }
