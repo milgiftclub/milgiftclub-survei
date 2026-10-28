@@ -1045,14 +1045,48 @@ var LIST_COLS = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1', 'kategori_
 /** Daftar jawaban satu survei (kolom ringkas). */
 function adminResponses(v) {
   requireAdmin_();
-  var rows = readAll_().filter(function (r) { return r._v === v; }).reverse(), cols = LIST_COLS, labels = {};
+  var all = v === 'all';
+  var rows = readAll_().filter(function (r) { return all || r._v === v; }), cols = LIST_COLS, labels = {};
+  if (all) rows.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+  rows.reverse();
   var c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
   if (c) {
     var qs = (c.schema.questions || []).slice(0, 4);
     cols = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1'].concat(qs.map(function (x) { return x.id; })).concat(['durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'session_id']);
     qs.forEach(function (x) { labels[x.id] = x.id + ' ' + String(x.text).slice(0, 28); });
   }
-  return { cols: cols, labels: labels, rows: rows.map(function (r) { return cols.map(function (c) { return iso_(r[c] == null ? '' : r[c]); }); }) };
+  var names = {}; surveyList_().forEach(function (x) { names[x.v] = x.name; });
+  return { cols: cols, labels: labels, rows: rows.map(function (r) { return cols.map(function (c) { return iso_(r[c] == null ? '' : r[c]); }); }),
+    src: rows.map(function (r) { return [r._v, names[r._v] || r.survei || r._v]; }) };
+}
+/** Hapus jawaban. o = { v: id survei | 'all', mode: 'one'|'all'|'date'|'filter', sid, from, to (yyyy-mm-dd), col, val, cek: true = hanya hitung } */
+function adminDeleteResponses(o) {
+  var who = requireAdmin_(); o = o || {};
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var rows = readAll_().filter(function (r) { return o.v === 'all' || r._v === o.v; });
+    var f = new Date(String(o.from || '') + 'T00:00:00+07:00'), t = new Date(String(o.to || '') + 'T23:59:59+07:00');
+    if (o.mode === 'one') rows = rows.filter(function (r) { return r.session_id === o.sid && (!o.sv || r._v === o.sv); });
+    else if (o.mode === 'date') rows = rows.filter(function (r) { var d = new Date(r.timestamp); return (isNaN(f) || d >= f) && (isNaN(t) || d <= t); });
+    else if (o.mode === 'filter') rows = rows.filter(function (r) { return String(iso_(r[o.col] == null ? '' : r[o.col])) === String(o.val); });
+    else if (o.mode !== 'all') throw new Error('Pilih cara menghapus');
+    if (o.cek) return { n: rows.length };
+    var byTab = {}; rows.forEach(function (r) { (byTab[r._tab] = byTab[r._tab] || []).push(r._row); });
+    var stamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd-HHmm'), n = 0;
+    Object.keys(byTab).forEach(function (tab) {
+      var s = sheet_(tab); if (!s) return;
+      var lc = s.getLastColumn(), nums = byTab[tab].sort(function (a, b) { return b - a; });
+      // cadangan: baris yang dihapus disalin ke tab tersembunyi "Arsip hapus - <tab>"
+      var an = ('Arsip hapus - ' + tab).slice(0, 95), a = ss_().getSheetByName(an);
+      if (!a) { a = ss_().insertSheet(an); a.getRange(1, 1, 1, lc + 2).setValues([['dihapus_pada', 'dihapus_oleh'].concat(s.getRange(1, 1, 1, lc).getValues()[0])]); try { a.hideSheet(); } catch (e) {} }
+      var keep = nums.map(function (r) { return [stamp, who].concat(s.getRange(r, 1, 1, lc).getValues()[0]); });
+      a.getRange(a.getLastRow() + 1, 1, keep.length, lc + 2).setValues(keep);
+      nums.forEach(function (r) { if (s.getLastRow() > 2) s.deleteRow(r); else s.getRange(r, 1, 1, lc).clearContent(); n++; });
+    });
+    CUSTOM_MEMO_ = null;
+    try { updateRekap(); } catch (e) {}
+    return { n: n };
+  } finally { lock.releaseLock(); }
 }
 function dictMap_() { var m = {}; DICTIONARY.forEach(function (d) { m[d[0]] = d; }); return m; }
 /** Semua jawaban satu responden, lengkap dengan teks pertanyaan. */
@@ -1435,6 +1469,11 @@ function apiGet_(p) {
 /** Semua kolom satu survei untuk diunduh (CSV) dari Dashboard. */
 function adminExport(v) {
   requireAdmin_();
+  if (v === 'all') {   // semua survei: gabungan kolom, ditambah kolom survei asal
+    var rs = readAll_(), cols = ['survei'];
+    rs.forEach(function (r) { Object.keys(r).forEach(function (k) { if (k.charAt(0) !== '_' && cols.indexOf(k) < 0) cols.push(k); }); });
+    return { cols: cols, rows: rs.map(function (r) { return cols.map(function (k) { return iso_(r[k] == null ? '' : r[k]); }); }) };
+  }
   var s = sheet_(respTab_(v)); if (!s || s.getLastRow() < 1) return { cols: [], rows: [] };
   var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0];
   var rows = s.getLastRow() > 1 ? s.getRange(2, 1, s.getLastRow() - 1, h.length).getValues().map(function (r) { return r.map(iso_); }) : [];

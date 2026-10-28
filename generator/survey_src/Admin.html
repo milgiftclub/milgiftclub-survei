@@ -131,6 +131,11 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ct-scroll .baser th{color:var(--muted);font-weight:700;font-size:11.5px} .ct-scroll .tot{border-right:2px solid var(--line)} .ct-scroll .bcol{border-left:2px solid var(--line);color:var(--muted);font-weight:700}
 .ct-scroll .small{opacity:.55} .ct-scroll .stag{display:block;font-size:10px;color:var(--red);font-weight:700} .ct-scroll .mk{font-size:10px;margin-left:3px;font-weight:800}
 @media (max-width:760px){.ct-controls{grid-template-columns:1fr}.ct-swap{justify-self:start;margin-top:0}}
+.btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)} .btn:disabled{opacity:.5;cursor:not-allowed}
+.svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
+td.act,th.act{position:sticky;right:0;background:#fff;width:44px;padding:4px 8px!important;text-align:center;box-shadow:-6px 0 8px -6px rgba(20,26,46,.15)} th.act{background:inherit}
+.trash{border:0;background:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;line-height:0} .trash:hover{color:var(--red);background:var(--rl)}
+.cl-sub{gap:8px;align-items:center;margin:4px 0 8px 28px;flex-wrap:wrap} .cl-sub input,.cl-sub select{width:auto;max-width:260px}
 .card.danger{border:1.5px solid #f3c1bd} .card.danger h2{color:var(--red)} .card.danger .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)}
 .chk{display:flex;justify-content:flex-start;gap:10px;align-items:center;font-weight:600;margin:6px 0;cursor:pointer;text-align:left} .kv .chk input{width:18px;height:18px;flex:0 0 auto;margin:0}
 code.k{background:var(--navy-l);color:var(--navy);padding:4px 8px;border-radius:8px;font-size:12px;word-break:break-all}
@@ -468,6 +473,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <input id="r-q" placeholder="Cari IG / WA / kota / kategori" oninput="drawResp()" style="min-width:240px">
     <span class="muted" id="r-n"></span>
     <span style="flex:1"></span>
+    <button class="btn sec sm" onclick="cleanOpen()">🧹 Bersihkan</button>
     <button class="btn sec sm" onclick="csvResp()">Unduh CSV (tabel ini)</button>
     <button class="btn sm" onclick="csvFull()">Unduh semua kolom</button>
   </div>
@@ -558,9 +564,9 @@ function badge(st) {
 }
 function table(el, cols, rows, opt) {
   opt = opt || {};
-  var h = '<thead><tr>' + cols.map(function (c) { return '<th>' + esc(opt.label ? opt.label(c) : c) + '</th>'; }).join('') + (opt.action ? '<th></th>' : '') + '</tr></thead><tbody>';
+  var h = '<thead><tr>' + cols.map(function (c) { return '<th>' + esc(opt.label ? opt.label(c) : c) + '</th>'; }).join('') + (opt.action ? '<th class="act"></th>' : '') + '</tr></thead><tbody>';
   rows.forEach(function (r, i) {
-    h += '<tr class="' + (opt.click ? 'click' : '') + '" data-i="' + i + '">' + r.map(function (v, j) { return '<td>' + (opt.cell ? opt.cell(cols[j], v, r) : esc(String(v == null ? '' : v).replace(/^'/, ''))) + '</td>'; }).join('') + (opt.action ? '<td>' + opt.action(r, i) + '</td>' : '') + '</tr>';
+    h += '<tr class="' + (opt.click ? 'click' : '') + '" data-i="' + i + '">' + r.map(function (v, j) { return '<td>' + (opt.cell ? opt.cell(cols[j], v, r) : esc(String(v == null ? '' : v).replace(/^'/, ''))) + '</td>'; }).join('') + (opt.action ? '<td class="act">' + opt.action(r, i) + '</td>' : '') + '</tr>';
   });
   el.innerHTML = h + (rows.length ? '' : '<tr><td colspan="' + (cols.length + 1) + '" class="loading">Belum ada data</td></tr>') + '</tbody>';
   if (opt.click) [].forEach.call(el.querySelectorAll('tr.click'), function (tr) { tr.onclick = function () { opt.click(rows[+tr.dataset.i]); }; });
@@ -605,8 +611,8 @@ function drawSurveyNav() {
       '</span></button>';
   }).join('');
   [].forEach.call($('sv-list').children, bindNav);
-  var opt = function (sel, all) { var e = $(sel), cur = e.value; e.innerHTML = (all ? '<option value="all">Gabungan semua survei</option>' : '') + SUM.surveys.map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + (s.status === 'Draf' ? ' (draf)' : '') + '</option>'; }).join(''); if (cur && [].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur; };
-  opt('r-v'); opt('d-v', true);
+  var opt = function (sel, all, allLab) { var e = $(sel), cur = e.value; e.innerHTML = (all ? '<option value="all">' + (allLab || 'Gabungan semua survei') + '</option>' : '') + SUM.surveys.map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + (s.status === 'Draf' ? ' (draf)' : '') + '</option>'; }).join(''); if (cur && [].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur; };
+  opt('r-v', true, 'Semua survei'); opt('d-v', true);
 }
 
 // ---------- halaman per survei ----------
@@ -686,20 +692,61 @@ function runTask(n) { toast('Menjalankan…'); run('adminRunTask', n).then(funct
 
 // ---------- jawaban ----------
 var RESP = { cols: [], rows: [] }, page = 0, FILT = [];
-function loadResp() { $('r-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminResponses', $('r-v').value).then(function (d) { RESP = d; page = 0; drawResp(); }); }
+function loadResp() { $('r-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminResponses', $('r-v').value).then(function (d) { RESP = d; (d.src || []).forEach(function (x, i) { d.rows[i]._src = x; }); page = 0; drawResp(); }); }
+var TRASH = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>';
+function delResp(i) {
+  var r = FILT[page * 50 + i], sid = r[RESP.cols.indexOf('session_id')], v = r._src ? r._src[0] : $('r-v').value, ig = r[RESP.cols.indexOf('Z2')] || sid;
+  if (!confirm('Hapus jawaban ' + ig + '?\nSalinannya disimpan di tab tersembunyi "Arsip hapus" di Google Sheet.')) return;
+  run('adminDeleteResponses', { v: v, sv: v, mode: 'one', sid: sid }).then(function (x) { toast(x.n ? 'Jawaban dihapus' : 'Jawaban tidak ditemukan'); loadResp(); loaded.home = 0; });
+}
+// ---- bersihkan: semua / per tanggal / per jawaban ----
+function cleanOpen() {
+  if (!RESP) return;
+  var sv = $('r-v'), nm = sv.options[sv.selectedIndex].text, skip = ['timestamp', 'session_id', 'Z2', 'Z3', 'durasi_detik'];
+  var cols = RESP.cols.filter(function (c) { return skip.indexOf(c) < 0; });
+  $('m-body').innerHTML = '<div class="top"><h2 style="margin:0">🧹 Bersihkan jawaban</h2><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
+    '<p class="muted" style="margin:4px 0 12px">Dari: <b>' + esc(nm) + '</b></p>' +
+    '<label class="chk"><input type="radio" name="cl-m" value="all" checked> Semua jawaban</label>' +
+    '<label class="chk"><input type="radio" name="cl-m" value="date"> Per tanggal</label>' +
+    '<div class="cl-sub" data-for="date" style="display:none"><input type="date" id="cl-from"> s.d. <input type="date" id="cl-to"></div>' +
+    '<label class="chk"><input type="radio" name="cl-m" value="filter"> Berdasarkan jawaban</label>' +
+    '<div class="cl-sub" data-for="filter" style="display:none"><select id="cl-col">' + cols.map(function (c) { return '<option value="' + esc(c) + '">' + esc((RESP.labels || {})[c] || LABEL[c] || c) + '</option>'; }).join('') + '</select> = <select id="cl-val"></select></div>' +
+    '<div style="margin-top:16px;display:flex;gap:10px;align-items:center"><button class="btn red" id="cl-go" disabled>Hapus</button><span class="muted" id="cl-n"></span></div>' +
+    '<p class="muted" style="font-size:12px;margin-top:10px">Salinan jawaban yang dihapus disimpan di tab tersembunyi "Arsip hapus" di Google Sheet.</p>';
+  $('m').classList.add('on');
+  var vals = function () { var ci = RESP.cols.indexOf($('cl-col').value), o = {}; RESP.rows.forEach(function (r) { if (r[ci] !== '') o[r[ci]] = (o[r[ci]] || 0) + 1; });
+    $('cl-val').innerHTML = Object.keys(o).sort().map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + ' (' + o[k] + ')</option>'; }).join(''); };
+  var spec = function () { var m = document.querySelector('input[name=cl-m]:checked').value; return { v: $('r-v').value, mode: m, from: $('cl-from').value, to: $('cl-to').value, col: $('cl-col').value, val: $('cl-val').value }; };
+  var count = function () {
+    var o = spec(); [].forEach.call(document.querySelectorAll('.cl-sub'), function (d) { d.style.display = d.dataset.for === o.mode ? 'flex' : 'none'; });
+    if (o.mode === 'date' && !o.from && !o.to) { $('cl-n').textContent = 'Pilih tanggal dulu'; $('cl-go').disabled = true; return; }
+    $('cl-n').textContent = 'Menghitung…'; o.cek = true;
+    run('adminDeleteResponses', o).then(function (x) { $('cl-n').textContent = x.n + ' jawaban akan dihapus'; $('cl-go').disabled = !x.n; $('cl-go').textContent = 'Hapus ' + x.n + ' jawaban'; });
+  };
+  [].forEach.call(document.querySelectorAll('input[name=cl-m]'), function (x) { x.onchange = count; });
+  $('cl-from').onchange = count; $('cl-to').onchange = count; $('cl-col').onchange = function () { vals(); count(); }; $('cl-val').onchange = count;
+  $('cl-go').onclick = function () {
+    if (!confirm($('cl-go').textContent + '? Tindakan ini tidak bisa dibatalkan dari Dashboard.')) return;
+    $('cl-go').disabled = true; $('cl-n').textContent = 'Menghapus…';
+    run('adminDeleteResponses', spec()).then(function (x) { toast(x.n + ' jawaban dihapus'); closeM(); loadResp(); loaded.home = 0; });
+  };
+  vals(); count();
+}
 function drawResp() {
   var st = $('r-st').value, q = $('r-q').value.toLowerCase().trim(), ci = RESP.cols.indexOf('status');
   FILT = RESP.rows.filter(function (r) { return (!st || r[ci] === st) && (!q || r.join(' ').toLowerCase().indexOf(q) >= 0); });
   var per = 50, max = Math.max(0, Math.ceil(FILT.length / per) - 1); page = Math.min(page, max);
   $('r-n').textContent = fmt(FILT.length) + ' jawaban';
   $('r-pg').textContent = 'Halaman ' + (page + 1) + ' dari ' + (max + 1);
-  table($('r-t'), RESP.cols, FILT.slice(page * per, page * per + per), { label: function (c) { return (RESP.labels || {})[c] || LABEL[c] || c; }, cell: function (c, v) { return c === 'status' ? badge(v) : esc(v); }, click: function (r) { detail(r[RESP.cols.indexOf('session_id')]); } });
+  var allSv = $('r-v').value === 'all';
+  table($('r-t'), RESP.cols, FILT.slice(page * per, page * per + per), { label: function (c) { return (RESP.labels || {})[c] || LABEL[c] || c; }, cell: function (c, v, r) { return c === 'status' ? badge(v) : c === 'timestamp' && allSv && r._src ? esc(v) + '<div class="svsub">' + esc(r._src[1]) + '</div>' : esc(v); },
+    action: function (r, i) { return '<button class="trash" title="Hapus jawaban ini" onclick="event.stopPropagation();delResp(' + i + ')">' + TRASH + '</button>'; }, click: function (r) { detail(r[RESP.cols.indexOf('session_id')], r._src && r._src[0]); } });
 }
 function pg(d) { page = Math.max(0, page + d); drawResp(); }
 function csvResp() { csv('jawaban_' + $('r-v').value, RESP.cols.map(function (c) { return LABEL[c] || c; }), FILT); }
 function csvFull() { toast('Menyiapkan file…'); run('adminExport', $('r-v').value).then(function (d) { csv('jawaban_lengkap_' + $('r-v').value, d.cols, d.rows); }); }
-function detail(sid) {
-  var v = $('r-v').value;
+function detail(sid, sv) {
+  var v = sv || $('r-v').value;
   $('m-body').innerHTML = '<p class="loading">Memuat…</p>'; $('m').classList.add('on');
   run('adminResponseDetail', v, sid).then(function (d) {
     if (!d) { $('m-body').innerHTML = 'Tidak ditemukan'; return; }
