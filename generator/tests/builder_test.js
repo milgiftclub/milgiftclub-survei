@@ -111,7 +111,7 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
         await r.click('#body .opt:has-text("' + (at === 'QC1' ? 'Biru' : pickT) + '") >> nth=0');
       } else if (await r.$('#body input[type=checkbox]')) {
         const labels = await r.$$eval('#body .opt span', e => e.map(x => x.textContent));
-        const pickT = ans || (at === 'S3' ? labels[labels.length - 1] : labels[1] || labels[0]);
+        const pickT = ans || (at === 'S3' ? labels.find(t => /^Tidak satu/.test(t)) : labels.find(t => !/^(Tidak|Lainnya)/.test(t)) || labels[0]);
         for (const t of [].concat(pickT)) await r.click('#body .opt:has-text("' + t + '") >> nth=0');
       } else if (await r.$('#body textarea')) await r.fill('#body textarea', 'Karena cocok di kulit');
       else if (await r.$('#body input[type=text]')) await r.fill('#body input', at === 'Q4' ? '3' : 'jawaban');

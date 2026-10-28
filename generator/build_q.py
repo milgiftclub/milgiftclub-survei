@@ -136,5 +136,5 @@ wc.append(['Lainnya (Hewan peliharaan, Otomotif, kategori lain)', 'Pilihan umum 
 for r in wc.iter_rows(min_row=2):
     for c in r: c.font=Font(name=A); c.alignment=Alignment(wrap_text=True,vertical='top'); c.border=B
 wc.column_dimensions['A'].width=26; wc.column_dimensions['B'].width=55; wc.column_dimensions['C'].width=60
-wb.save('Kuesioner_v1_SemuaKategori_v31.xlsx' if VAR=='v1' else 'Kuesioner_v2_FashionTasHijab_v31.xlsx')
+wb.save('Kuesioner_v1_SemuaKategori_v32.xlsx' if VAR=='v1' else 'Kuesioner_v2_FashionTasHijab_v32.xlsx')
 print(len(Q))

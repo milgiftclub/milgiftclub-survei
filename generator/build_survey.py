@@ -45,6 +45,8 @@ def build_schema(QL, variant):
           if qid=='Z2': it['placeholder']='@namaanda'
           elif qid=='Z3': it['placeholder']='08xxxxxxxxxx'
           elif qid=='PV': it['placeholder']='Contoh: 7890'; it['hint']='Kosongkan lalu klik Lanjut jika ingin mengisi data diri dari awal'
+          elif qid in ('PTB','AW5K','AW5C'): it['placeholder']=ph
+          elif False: pass
           else: it['long']=True; it['placeholder']='Tulis jawaban Anda di sini'
           if 'opsional' in ph.lower(): it['optional']=True
       elif it['type']=='nps':

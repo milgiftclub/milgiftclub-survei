@@ -1655,7 +1655,8 @@ function adminReportCore_(v, opt) {
   var natural = function (a, b) { var na = parseFloat(String(a).replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')), nb = parseFloat(String(b).replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.')); return (isNaN(na) || isNaN(nb)) ? 0 : na - nb; };
   var res = out.map(function (q) {
     var m = meta[base(q.id)] || {}, loop = /^L\d_/.test(q.id) ? ' (modul kategori)' : '';
-    var item = { id: q.id, text: (m.text || q.id) + loop, topic: m.topic || '', total: rows.length };
+    var gp = ctGroup_(q.id, m.topic, v !== 'v1' && v !== 'v2' && !/^(S\d|A\d|ses|kelas|wilayah|segmen_hp|generasi)/.test(base(q.id)));   // tahap: profil / kebiasaan / funnel (awareness, dll.)
+    var item = { id: q.id, text: (m.text || q.id) + loop, topic: gp[0] + (gp[1] ? ' · ' + gp[1] : ''), total: rows.length };
     if (q.kind === 'matrix') {
       var colsSet = {};
       item.kind = 'matrix';

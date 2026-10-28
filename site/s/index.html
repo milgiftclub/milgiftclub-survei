@@ -255,11 +255,12 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     var ANCHOR = /^(Tidak|Lainnya|Belum pernah|Saya tidak)/;
     function optionsOf(q) {
       var list = q.options || [];
-      if (!q.rnd) return list;
-      var normal = list.filter(function (o) { return !(o.ex || o.other || ANCHOR.test(o.t)); }), tail = list.filter(function (o) { return o.ex || o.other || ANCHOR.test(o.t); });
+      if (!q.rnd) { var ex = list.filter(function (o) { return o.ex; }); return ex.length ? ex.concat(list.filter(function (o) { return !o.ex; })) : list; }
+      var anc = function (o) { return o.ex || o.other || ANCHOR.test(o.t); }, last = function (o) { return o.other || /^Lainnya/i.test(o.t); };
+      var normal = list.filter(function (o) { return !anc(o); }), tail = list.filter(function (o) { return anc(o) && last(o); }), head = list.filter(function (o) { return anc(o) && !last(o); });
       var sig = normal.map(function (o) { return o.t; }).join('|'), sv = ST.order[q.id];
       if (!sv || sv.sig !== sig) { sv = ST.order[q.id] = { sig: sig, idx: shuffle(normal.map(function (o, i) { return i; })) }; save(); }
-      return sv.idx.map(function (i) { return normal[i]; }).concat(tail);
+      return head.concat(sv.idx.map(function (i) { return normal[i]; })).concat(tail);
     }
     function ansText(id) { var v = ST.a[id]; if (Array.isArray(v)) v = v.join(', '); return v == null ? '' : String(v); }
     function fill(t) { return String(t).replace(/\{(Q[0-9A-Za-z_]+)\}/g, function (m, id) { return ansText(id) || 'jawaban Anda sebelumnya'; }).replace(/@milgift_club/g, CFG.ig); }
@@ -348,7 +349,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
         if (o.ex || o.other) e.l.className += ' wide';
         w.appendChild(e.l); if (o.other) w.appendChild(otherBox(K, v === o.t));
       });
-      if (w.querySelectorAll('.opt').length > 6) w.className += ' two';
+      if ((q.rnd || q.type === 'ma') && w.querySelectorAll('.opt').length > 6) w.className += ' two';
       body.appendChild(w);
     }
     function rMA(body, q, K, v) {
@@ -367,7 +368,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
         if (o.ex || o.other) e.l.className += ' wide';
         w.appendChild(e.l); if (o.other) w.appendChild(otherBox(K, on));
       });
-      if (w.querySelectorAll('.opt').length > 6) w.className += ' two';
+      if ((q.rnd || q.type === 'ma') && w.querySelectorAll('.opt').length > 6) w.className += ' two';
       body.appendChild(w);
     }
     function rDrop(body, q, K, v) {
@@ -521,9 +522,9 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
     }
     function submit() {
       if (PREVIEW) { clearSave(); return finish('Pratinjau selesai', 'Ini tampilan akhir survei. Di mode pratinjau, jawaban tidak disimpan.', '', stepsBox()); }
-      busy(true, 'Mengirim...');
-      api('submitResponse', [payload({})]).then(function () { clearSave(); done(); }, function (e) {
-        busy(false); btnN.textContent = 'Coba kirim lagi';
+      busy(true, 'Mengirim...'); waitMsg('Mohon tunggu, kami sedang mengirimkan data Anda…');
+      api('submitResponse', [payload({})]).then(function () { waitMsg(''); clearSave(); done(); }, function (e) {
+        waitMsg(''); busy(false); btnN.textContent = 'Coba kirim lagi';
         document.getElementById('err').innerHTML = 'Jawaban belum terkirim karena gangguan koneksi. Mohon tekan tombol kirim sekali lagi.' + (e && e.message ? '<br><small style="color:#9a8a7a;font-weight:400">Detail: ' + esc(String(e.message).slice(0, 160)) + '</small>' : '');
       });
     }

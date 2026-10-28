@@ -86,6 +86,7 @@ async function respondent(browser, i, scenario) {
     }
     else if (await page.locator('.nps button').count()) await page.locator('.nps button').nth(rnd(11)).click();
     else if (await page.locator('textarea').count()) { if (true) await page.fill('textarea', 'Semoga makin banyak promo.'); }
+    else if (['PTB', 'AW5K', 'AW5C'].includes(id)) await page.fill('#body input[type=text]', id === 'PTB' ? 'Uniqlo' : 'kaos oversize');
     else if (id === 'Z2') await page.fill('input[type=text]', who ? '@' + who : scenario === 'dup' ? '@dupuser' : '@user' + i);
     else if (id === 'PV') await page.fill('input[type=tel]', /pvwrong/.test(scenario) ? '0000' : /pvskip/.test(scenario) ? '' : PH[who].slice(-4));
     else if (id === 'Z3') await page.fill('input[type=tel]', who ? PH[who] : scenario === 'dup' ? '081200000000' : '0812' + String(10000000 + i));

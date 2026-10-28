@@ -152,13 +152,16 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
   var ANCHOR = /^(Tidak|Lainnya|Belum pernah|Saya tidak|Kategori lain)/;
   function isAnchor(o) { return !!(o.ex || o.other || ANCHOR.test(o.t)); }
   function randomized(list, key) {
-    // acak urutan opsi biasa; opsi "Lainnya / Tidak ... / eksklusif" tetap di akhir; urutan disimpan per responden
-    var normal = list.filter(function (o) { return !isAnchor(o); }), tail = list.filter(isAnchor);
+    // acak urutan opsi biasa; "Tidak ada / Belum pernah / eksklusif" tetap di ATAS, "Lainnya" di akhir; urutan disimpan per responden
+    var normal = list.filter(function (o) { return !isAnchor(o); }), tail = list.filter(function (o) { return isAnchor(o) && isLast(o); }), head = list.filter(function (o) { return isAnchor(o) && !isLast(o); });
     var sig = normal.map(function (o) { return o.t; }).join('|');
     var saved = ST.order[key];
     if (!saved || saved.sig !== sig) { saved = ST.order[key] = { sig: sig, idx: shuffle(normal.map(function (o, i) { return i; })) }; save(); }
-    return saved.idx.map(function (i) { return normal[i]; }).concat(tail);
+    return head.concat(saved.idx.map(function (i) { return normal[i]; })).concat(tail);
   }
+  function isLast(o) { return !!o.other || /^(Lainnya|Kategori lain)/.test(o.t); }
+  // daftar tanpa acak: opsi eksklusif (mis. "Tidak ada") dipindah ke atas
+  function exFirst(list) { var ex = list.filter(function (o) { return o.ex; }); return ex.length ? ex.concat(list.filter(function (o) { return !o.ex; })) : list; }
   function pipedOptions(q, k) {
     var list = q.options;
     if (q.pipe === 'S4' || q.pipe === 'S4-AW1') {
@@ -172,7 +175,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       list = (q.byGroup || {})[cg] || q.generic || q.options;
     }
     if (q.pipe === 'PROD') list = (q.byCat || {})[ST.cats && k != null ? ST.cats[k] : ''] || [{ t: 'Lainnya', other: true }];
-    return q.rnd ? randomized(list, 'o_' + key(q.id, k)) : list;
+    return q.rnd ? randomized(list, 'o_' + key(q.id, k)) : (q.id === 'C1' ? list : exFirst(list));
   }
   function sc1Cats() { return BY.SC1 ? arr(get('SC1')).filter(function (x) { return excl('SC1').indexOf(x) < 0; }) : []; }
   function plats() { return arr(get('S4')).filter(function (x) { return excl('S4').indexOf(x) < 0; }); }
@@ -203,11 +206,18 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       case 'C2': return !!get('C1') && !isOtherCat(get('C1'));
       case 'AW6': return /^(Video pendek|Live shopping|Konten kreator|Iklan di media sosial)/.test(get('AW5', k) || '') || /^Melihat konten/.test(get('AW3', k) || '');
       case 'AW7': return visible('AW6', k) && arr(get('AW6', k)).length > 0;
+      case 'AW5K': return /^(Pencarian di Google|Hasil pencarian)/.test(get('AW5', k) || '');
+      case 'AW5S': return /^(Video pendek|Live shopping|Konten kreator|Iklan di media sosial)/.test(get('AW5', k) || '');
+      case 'AW5C': return /^(Video pendek|Live shopping|Konten kreator)/.test(get('AW5', k) || '');
+      case 'AW5R': return /^Rekomendasi teman/.test(get('AW5', k) || '');
+      case 'AW5G': return /^Grup WhatsApp/.test(get('AW5', k) || '');
+      case 'AW5T': return /^Melihat langsung/.test(get('AW5', k) || '');
+      case 'AW5M': return /^Iklan TV/.test(get('AW5', k) || '');
       case 'A13H': return !!get('A13') && get('A13') !== 'iPhone';
       case 'PU7': return [o('PU6')[0], o('PU6')[1]].indexOf(get('PU6', k)) >= 0;
       case 'LO2': var i = o('LO1').indexOf(get('LO1', k)); return i >= 0 && i < 4;
       case 'RE3': var r = arr(get('RE2', k)), rv = opts('RE2').slice(0, 6); return r.some(function (x) { return rv.indexOf(x) >= 0; });
-      case 'FA1': case 'FA2': return !!(ST.cats && FASHION.indexOf(ST.cats[k]) >= 0);
+      case 'FA2': return !!(ST.cats && FASHION.indexOf(ST.cats[k]) >= 0);
       case 'G1': case 'G2': case 'G3': return ST.cats && ST.cats[k] === 'Bunga & tanaman';
       case 'OF2': case 'OF3': var of1 = o('OF1').indexOf(get('OF1', k)); return of1 === 0 || of1 === 1;
       case 'OF4': var of1b = o('OF1').indexOf(get('OF1', k)); return of1b === 1 || of1b === 2;
@@ -342,7 +352,8 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     body.appendChild(w);
   }
   // pilihan lebih dari 6 -> dua kolom supaya mudah dibaca (kecuali daftar kategori yang dikelompokkan)
-  function twoCol(w, q) { if (q.id !== 'C1' && w.querySelectorAll('.opt').length > 6) w.className += ' two'; }
+  // hanya untuk daftar pilihan bebas urutan (diacak / pilihan ganda); skala & rentang tetap satu kolom dari atas ke bawah
+  function twoCol(w, q) { if (q.id !== 'C1' && (q.rnd || q.type === 'ma') && w.querySelectorAll('.opt').length > 6) w.className += ' two'; }
   function rDrop(body, q, k, K, v) {
     var s = document.createElement('select');
     s.innerHTML = '<option value="">— Pilih —</option>' + q.options.map(function (o) { return '<option' + (v === o.t ? ' selected' : '') + '>' + esc(o.t) + '</option>'; }).join('');
@@ -575,9 +586,9 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     return o;
   }
   function submit() {
-    busy(true);
-    callP('submitResponse', payload({}), function () { clearSave(); done(); }, function (e) {
-      busy(false); btnN.textContent = 'Coba kirim lagi';
+    busy(true); btnN.textContent = 'Mengirim...'; waitMsg('Mohon tunggu, kami sedang mengirimkan data Anda…');
+    callP('submitResponse', payload({}), function () { waitMsg(''); clearSave(); done(); }, function (e) {
+      waitMsg(''); busy(false); btnN.textContent = 'Coba kirim lagi';
       document.getElementById('err').innerHTML = 'Jawaban belum terkirim karena gangguan koneksi. Mohon tekan tombol kirim sekali lagi.' +
         (e && e.message ? '<br><small style="color:#9a8a7a;font-weight:400">Detail: ' + esc(String(e.message).slice(0, 160)) + '</small>' : '');
     });
