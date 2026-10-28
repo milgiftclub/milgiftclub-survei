@@ -14,7 +14,7 @@ ctx.adminBuilderStatus(cs.id, 'Dibuka');
     await p.goto('file://' + path.resolve(url)); await p.waitForTimeout(1500); if (f) await f(p);
     await p.screenshot({ path: '/tmp/' + shot + '.png', fullPage: true }); return p;
   };
-  let p = await page('../../site/index.html', 'front_v1', async p => console.log('v1 sk box:', await p.locator('.skbox').count(), '| has MIL Digital:', (await p.content()).includes('MIL Digital'), '| tnc link:', await p.locator('text=Syarat & Ketentuan Giveaway').count()));
+  let p = await page('../../site/semua/index.html', 'front_v1', async p => console.log('v1 sk box:', await p.locator('.skbox').count(), '| has MIL Digital:', (await p.content()).includes('MIL Digital'), '| tnc link:', await p.locator('text=Syarat & Ketentuan Giveaway').count()));
   p = await page('../../site/cek/index.html', 'cek', async p => { await p.fill('#ig', '@robertignatius'); await p.click('#go'); await p.waitForTimeout(1200); console.log('cek:', (await p.textContent('#out')).replace(/\s+/g, ' ').slice(0, 700)); });
   const sp = await b.newPage({ viewport: { width: 390, height: 844 } });
   await sp.route('**/config.js', r => r.fulfill({ contentType: 'application/javascript', body: "window.SURVEI_CONFIG={API_V1:'https://api.test/x',TAMPILAN:{IG_HANDLE:'@milgiftclub'}};" }));

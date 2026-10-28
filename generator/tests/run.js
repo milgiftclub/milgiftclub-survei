@@ -45,7 +45,7 @@ async function respondent(browser, i, scenario) {
     const root = path.join(__dirname, '../../site');
     await page.route('https://survei.test/**', r => { let u = new URL(r.request().url()).pathname; if (u.endsWith('/')) u += 'index.html'; const f = path.join(root, u); let body = fs.readFileSync(f, 'utf8'); if (u.endsWith('config.js')) body = body.replace(/https:\/\/script[^']*/g, 'https://api.test/exec'); r.fulfill({ body, contentType: u.endsWith('.js') ? 'application/javascript' : 'text/html' }); });
     await page.route('https://api.test/**', async r => { if (process.env.SLOW && /lookupIg|verifyProfile/.test(r.request().postData())) { await new Promise(z => setTimeout(z, 1500)); const m = /lookupIg|verifyProfile/.exec(r.request().postData())[0]; await page.screenshot({ path: (process.env.SHOTS || require('os').tmpdir() + '/') + 'wait_' + m + '.png' }); } if (process.env.FAILSUBMIT && /submitResponse/.test(r.request().postData())) return r.fulfill({ body: '<html>Script function not found: doPost</html>', contentType: 'text/html', headers: { 'access-control-allow-origin': '*' } }); const out = ctx.doPost({ postData: { contents: r.request().postData() } }); r.fulfill({ body: out.getContent(), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } }); });
-    await page.goto('https://survei.test/' + (V2 ? 'fokus/' : ''));
+    await page.goto('https://survei.test/' + (V2 ? 'fokus/' : 'semua/'));
     await page.waitForFunction(() => window.__ST, null, { timeout: 10000 });
   } else {
   await page.exposeFunction('gsCall', (fn, args) => JSON.stringify(ctx[fn](...JSON.parse(args))));

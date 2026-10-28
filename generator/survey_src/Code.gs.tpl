@@ -90,7 +90,7 @@ var SET_DEFAULTS = [
   ['EMAIL_BUKA_AKSES', 'milgiftclub@gmail.com', 'Email permohonan buka akses (ditampilkan ke peserta yang diblokir)'],
   ['ADMIN_DOMAIN', 'mildigital.id', 'Domain email yang boleh membuka Dashboard'],
   ['ADMIN_EMAIL_TAMBAHAN', '', 'Email lain yang boleh membuka Dashboard (pisahkan dengan koma)'],
-  ['LINK_V1', WEB_URL, 'Link survei Semua Kategori'],
+  ['LINK_V1', WEB_URL + 'semua/', 'Link survei Semua Kategori (halaman depan / daftar semua survei: ' + WEB_URL + ')'],
   ['LINK_V2', WEB_URL + 'fokus/', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
   ['API_KEY', '', 'Kunci API untuk ATLAS (buat dari Dashboard > API)'],
   ['LINK_SURVEI_BARU', WEB_URL + 's/?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
@@ -167,6 +167,7 @@ function set_(k) {
   var v = settings_()[k];
   // link lama (Netlify / Apps Script) -> otomatis diarahkan ke website GitHub Pages
   if (/^LINK_(V1|V2|SURVEI_BARU)$/.test(k) && /netlify\.app|script\.google\.com\/macros/.test(String(v || ''))) v = SET_DEFAULTS.filter(function (d) { return d[0] === k; })[0][1];
+  if (k === 'LINK_V1' && String(v || '').replace(/\/?$/, '/') === WEB_URL) v = WEB_URL + 'semua/';   // link lama (akar website) sekarang halaman depan
   return v;
 }
 function num_(k) { return Number(set_(k)) || 0; }
@@ -247,6 +248,7 @@ function doPost(e) {
     else if (req.fn === 'verifyProfile') data = verifyProfile(a[0], a[1]);
     else if (req.fn === 'getSurvey') data = getSurvey(a[0], a[1]);
     else if (req.fn === 'giveawayStatus') data = giveawayStatus(a[0]);
+    else if (req.fn === 'hubList') data = hubList(a[0]);
     else throw new Error('Fungsi tidak dikenal: ' + req.fn);
     out = { ok: true, data: data };
   } catch (err) {
@@ -517,6 +519,23 @@ var MEMO_ = null, MEMO_DEPTH_ = 0;
 function cached_(f) { MEMO_DEPTH_++; if (MEMO_DEPTH_ === 1) MEMO_ = {}; try { return f(); } finally { if (--MEMO_DEPTH_ === 0) MEMO_ = null; } }
 function memo_(k, f) { if (!MEMO_) return f(); if (!(k in MEMO_)) MEMO_[k] = f(); return MEMO_[k]; }
 function readAll_() { return memo_('readAll', readAllRaw_); }
+/** Baris jawaban milik satu akun IG saja (cepat: hanya kolom ig_normal yang dibaca untuk mencari). Dipakai di halaman responden. */
+function igRows_(n) {
+  if (MEMO_ && MEMO_.readAll) return MEMO_.readAll.filter(function (r) { return String(r.ig_normal) === n; });
+  var out = [], RA = rondeAll_();
+  respTabs_().forEach(function (t) {
+    var s = sheet_(t[0]); if (!s || s.getLastRow() < 2) return;
+    var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0], ci = h.indexOf('ig_normal'); if (ci < 0) return;
+    var col = s.getRange(2, ci + 1, s.getLastRow() - 1, 1).getValues(), rl = (RA[t[1]] || []).slice().sort(function (a, b) { return a.ke - b.ke; });
+    col.forEach(function (c, i) {
+      if (String(c[0]) !== n) return;
+      var r = s.getRange(i + 2, 1, 1, h.length).getValues()[0], o = { _tab: t[0], _v: t[1], _row: i + 2 };
+      h.forEach(function (name, j) { o[name] = r[j]; });
+      o.ronde = rl.length ? rondeOf_(rl, o.timestamp) : 1; out.push(o);
+    });
+  });
+  return out;
+}
 function readAllRaw_() {
   var out = [], RA = rondeAll_();
   respTabs_().forEach(function (t) {
@@ -629,7 +648,7 @@ function lookupIg(ig, variant) {
   var acc = accessStatus_(n, '');
   if (acc.state !== 'ok') return { state: acc.state, until: acc.until || '', email: set_('EMAIL_BUKA_AKSES') };
   var tab = respTab_(variant || 'v1');
-  var rows = readAll_();
+  var rows = igRows_(n);
   var rs = rondeStart_(variant && variant !== 'v1' && variant !== 'v2' ? variant : String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1');
   if (rows.some(function (r) { return r._tab === tab && String(r.ig_normal) === n && (!rs || new Date(r.timestamp) >= rs); })) return { state: 'sudah_isi' };
   return { state: 'ok', known: !!profileRow_(rows, n) };
@@ -696,7 +715,7 @@ function profileRow_(rows, ig) {
 function verifyProfile(ig, last4) {
   var n = normIg_(ig), d = String(last4 || '').replace(/\D/g, '');
   if (!n || d.length !== 4) return { ok: false };
-  var list = profileRows_(readAll_(), n), r = list[list.length - 1];
+  var list = profileRows_(igRows_(n), n), r = list[list.length - 1];
   if (!r || String(r.wa_normal).slice(-4) !== d) return { ok: false };
   // gabungkan: tiap kolom profil diambil dari jawaban terbaru yang terisi
   var prof = {}, upd = 0;
@@ -1692,7 +1711,7 @@ function giveawayStatusRaw_(ig) {
   ensureSetup_();
   var n = normIg_(ig); if (!n) return { ok: false, msg: 'Tulis username Instagram kamu.' };
   var acc = accessStatus_(n, '');
-  var rows = readAll_().filter(function (r) { return String(r.ig_normal) === n; });
+  var rows = igRows_(n);
   var why = function (st) {
     st = String(st || '');
     if (st === 'Valid') return '';
@@ -2525,3 +2544,24 @@ function ensureSnapTrigger_() {
 /** Tombol "Perbarui data sekarang" di Dashboard. */
 function adminSnapshotRebuild() { requireAdmin_(); var m = snapBuild_(); ensureSnapTrigger_(); return m; }
 function snapInfo_() { var o = snapRead_(); return o ? { at: o.meta.at, ms: o.meta.ms } : null; }
+
+// ====== HALAMAN DEPAN (satu link untuk semua survei) ======
+/** Daftar survei MIL Gift Club yang dibuka + status sudah/belum diisi oleh akun IG ini (ronde berjalan). */
+function hubList(ig) {
+  return cached_(function () {
+    ensureSetup_();
+    var n = normIg_(ig), acc = n ? accessStatus_(n, '') : { state: 'ok' }, rows = n ? igRows_(n) : [], per = activePeriode_(null), done = {}, kp = {};
+    rows.forEach(function (r) { if (r.ronde === rondeNow_(r._v)) done[r._v] = r.status || 'Masuk'; if (r.status === 'Valid' && periodeOf_(r) === per) kp[r._v] = 1; });
+    var list = surveyList_().filter(function (x) {
+      if (!x.open || x.status === 'Draf') return false;
+      var c = x.custom ? customById_(x.v) : null;
+      return !(c && c.schema && (c.schema.giveaway === false || (c.schema.brand && c.schema.brand.mode === 'client')));
+    }).map(function (x) {
+      var c = x.custom ? customById_(x.v) : null, est = c ? Number(c.schema.estimasi) || Math.max(3, Math.round((c.schema.questions || []).length * 0.4) + (c.schema.profile === false ? 1 : 3)) : x.v === 'v2' ? 6 : 7;
+      return { v: x.v, name: x.name, est: est, link: x.link, done: !!done[x.v], valid: done[x.v] === 'Valid', kupon: !!kp[x.v], ronde: x.ronde || 1,
+        desc: c ? (String(c.schema.intro || '').slice(0, 140) || 'Survei singkat dari MIL Gift Club.') : x.v === 'v2' ? 'Khusus wanita: belanja fashion, tas & aksesori, dan hijab.' : 'Kebiasaan belanja online kamu di berbagai kategori.' };
+    });
+    return { ok: true, ig: n ? '@' + n : '', blocked: acc.state !== 'ok' ? { state: acc.state, until: acc.until ? fmt_(acc.until) : '', email: set_('EMAIL_BUKA_AKSES') } : null,
+      list: list, kupon: acc.state === 'ok' ? Object.keys(kp).length : 0, periode: per };
+  });
+}

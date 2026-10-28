@@ -60,7 +60,8 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
   };
   function ctaButtons(igFirst) {
     var ig = CFG.linkIg ? '<a class="cta ' + (igFirst ? '' : 'cta2') + '" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || ('Follow ' + CFG.ig)) + '</a>' : '';
-    var sv = CFG.linkLain ? '<a class="cta ' + (igFirst ? 'cta2' : '') + '" href="' + esc(CFG.linkLain) + '">' + esc(CFG.tombolLain || 'Isi survei lainnya') + ' →</a>' : '';
+    var li = window.__ST && window.__ST.a && window.__ST.a.Z2, lk = CFG.linkLain && li && /milgiftclub\.github\.io\/milgiftclub-survei\/?$/.test(CFG.linkLain) ? CFG.linkLain + '?ig=' + encodeURIComponent(String(li).replace(/^@/, '')) + '&ok=1' : CFG.linkLain;
+    var sv = lk ? '<a class="cta ' + (igFirst ? 'cta2' : '') + '" href="' + esc(lk) + '">' + esc(CFG.tombolLain || 'Isi survei lainnya') + ' →</a>' : '';
     return '<div class="ctas">' + (igFirst ? ig + sv : sv + ig) + '</div>';
   }
   function finish(t, m, note, extra, after) {
@@ -160,6 +161,8 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
     var ST = load() || { a: {}, cur: null, sid: uid(), start: null, order: {} };
     if (ST.prSum && BY.PR) BY.PR.hint = ST.prSum;
+    if (!ST.cur && !BR && qs('ok') === '1' && qs('ig') && BY.O1 && BY.Z2) { ST.a.O1 = BY.O1.options[0].t; ST.a.Z2 = '@' + qs('ig').replace(/^@/, ''); ST.cur = 'Z2'; ST.start = Date.now(); }
+    window.__ST = ST;
     var lastKey = null;
     function uid() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
     function save() { try { sessionStorage.setItem(KEY, JSON.stringify(ST)); } catch (e) {} }

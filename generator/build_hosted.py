@@ -61,7 +61,7 @@ BOOT = r'''<script src="%(cfgpath)s"></script>
     var MAP = { PERIODE_LABEL: 'periodeLabel', HADIAH_UTAMA: 'hadiahUtama', HADIAH: 'hadiah', PERIODE_GIVEAWAY: 'periode',
       PENGUMUMAN_PEMENANG: 'announce', LINK_CEK_STATUS: 'linkCek', IG_HANDLE: 'ig', LANGKAH_PENUTUP: 'langkah', PESAN_PENUTUP: 'pesanPenutup', PRIVACY_URL: 'privacy', TNC_URL: 'tnc', TEKS_PEMBUKA: 'intro', PERTANYAAN_PEMBUKA: 'o1q', TEKS_TIDAK_ELIGIBLE: 'teksTidakEligible', TEKS_MENOLAK: 'teksMenolak', TEKS_SUDAH_ISI: 'teksSudahIsi', LINK_SURVEI_LAIN: 'linkLain', TOMBOL_SURVEI_LAIN: 'tombolLain', LINK_INSTAGRAM: 'linkIg', TOMBOL_INSTAGRAM: 'tombolIg' };
     for (var t in MAP) if (T[t] !== undefined) CFG[MAP[t]] = T[t];
-    CFG.src = src; CFG.variant = FIXED_VARIANT;
+    CFG.src = src; CFG.variant = FIXED_VARIANT; CFG.preIg = qs('ig'); CFG.hubOk = qs('ok') === '1';
     document.getElementById('nav').style.display = '';
     app.innerHTML = '';
     window.__startSurvey(CFG);
@@ -102,7 +102,7 @@ def build(variant, path, cfgpath):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, 'w').write(html)
 
-build('v1', os.path.join(OUT, 'index.html'), 'config.js')
+build('v1', os.path.join(OUT, 'semua', 'index.html'), '../config.js')
 build('v2', os.path.join(OUT, 'fokus', 'index.html'), '../config.js')
 CONFIG_JS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hosted_config.js')).read()
 open(os.path.join(OUT, 'config.js'), 'w').write(CONFIG_JS)
@@ -132,3 +132,7 @@ sk = open('survey_src/SK.html.tpl').read().replace('__STYLE__', style).replace('
 os.makedirs(os.path.join(OUT, 'sk'), exist_ok=True)
 open(os.path.join(OUT, 'sk', 'index.html'), 'w').write(sk)
 print('ok sk/')
+# ---- halaman depan: satu link untuk semua survei (persetujuan -> username IG -> daftar survei) ----
+hub = open('survey_src/Hub.html.tpl').read().replace('__STYLE__', style).replace('__SK_JSON__', json.dumps(open('survey_src/sk_body.html').read(), ensure_ascii=False))
+open(os.path.join(OUT, 'index.html'), 'w').write(hub)
+print('ok index (halaman depan)')
