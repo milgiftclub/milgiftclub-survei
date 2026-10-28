@@ -85,7 +85,7 @@ def build_schema(QL, variant):
 groups={c[1]:c[0] for c in CATS}
 os.makedirs('survey_out',exist_ok=True)
 S1=build_schema(Q,'v1'); S2=build_schema(variant_v2(),'v2'); schema=S1
-html=open('survey_src/Index.html.tpl').read().replace('__SCHEMA__',json.dumps({'v1':S1,'v2':S2},ensure_ascii=False)).replace('__GROUPS__',json.dumps(groups,ensure_ascii=False)).replace('__FASHION__',json.dumps(FASHION_CATS,ensure_ascii=False)).replace('__CITIES__',open('cities.json').read())
+html=open('survey_src/Index.html.tpl').read().replace('__SCHEMA__',json.dumps({'v1':S1,'v2':S2},ensure_ascii=False)).replace('__GROUPS__',json.dumps(groups,ensure_ascii=False)).replace('__SK_JSON__',json.dumps(open('survey_src/sk_body.html').read(),ensure_ascii=False)).replace('__FASHION__',json.dumps(FASHION_CATS,ensure_ascii=False)).replace('__CITIES__',open('cities.json').read())
 open('survey_out/Index.html','w').write(html)
 cats=[[c[0],c[1],'High' if c[1] in HIGH else 'Low'] for c in CATS]
 dic=[[q[0],num[q[0]],q[1].split('\n')[0],re.sub(r'\{(\w+)\}',lambda m:'Q%d'%num[m.group(1)],q[2])] for q in Q if q[0] not in ('X1','Z5')]

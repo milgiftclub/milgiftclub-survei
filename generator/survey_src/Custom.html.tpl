@@ -30,6 +30,14 @@ __STYLE__
 <script>
 var VERSION = '__VERSION__';
 var STD = __STD__;          // pertanyaan standar (pembuka, IG, profil, attention check, penutup)
+// ---- Syarat & Ketentuan giveaway (tampil langsung di halaman depan survei) ----
+var SK_HTML = __SK_JSON__;
+function skBox(C) {
+  var e = function (x) { var d = document.createElement('div'); d.textContent = x == null ? '' : String(x); return d.innerHTML; };
+  var body = SK_HTML.replace(/\{IG\}/g, e(C.ig || '@milgiftclub')).replace(/\{MINTAG\}/g, e(C.minTag || 3)).replace(/\{SUSP\}/g, e(C.suspendBulan || 6))
+    .replace(/\{EMAIL\}/g, e(C.emailAkses || 'milgiftclub@gmail.com')).replace(/\{CEK\}/g, e(C.linkCek || 'https://milgiftclub.github.io/milgiftclub-survei/cek/'));
+  return '<div class="skbox"><div class="skh">📜 Syarat &amp; Ketentuan Giveaway</div><div class="skc">' + body + '</div><div class="skf">Dengan memilih bersedia mengikuti survei, kamu dianggap telah membaca dan menyetujui Syarat &amp; Ketentuan di atas.</div></div>';
+}
 var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
 
 (function () {
@@ -109,6 +117,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
     if (BR) applyBrand(BR);
     if (S.periodeLabel) CFG.periodeLabel = S.periodeLabel;
     if (S.announce && !BR) CFG.announce = S.announce;
+    if (S.skInfo) { CFG.minTag = S.skInfo.minTag; CFG.emailAkses = S.skInfo.emailAkses; CFG.suspendBulan = S.skInfo.suspendBulan; }
     document.title = D.name + ' — ' + ORG;
     if (!D.open) return finish('Survei telah ditutup', 'Terima kasih atas minat kamu. Pantau Instagram ' + CFG.ig + ' untuk survei dan giveaway berikutnya.', '', ctaButtons(true));
 
@@ -145,8 +154,7 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       (G ? ' Data kontak hanya digunakan untuk keperluan undian dan verifikasi pemenang.' : '');
     BY.O1.intro = intro;
     if (BY.Z2) BY.Z2.text = BR ? 'Tuliskan username Instagram Anda (untuk verifikasi keikutsertaan giveaway' + (CFG.ig ? ' ' + CFG.ig : '') + ').' : BY.Z2.text.replace(/@milgift_club|@milgiftclub/g, CFG.ig);
-    if (BR && BY.Z1) BY.Z1.text = BY.Z1.text.replace(/MIL Gift Club/g, BR.name + ' dan MIL Digital');
-    if (BR) BY.O1.intro += ' Survei ini diselenggarakan oleh MIL Digital untuk ' + BR.name + '.';
+    if (BR && BY.Z1) BY.Z1.text = BY.Z1.text.replace(/MIL Gift Club/g, BR.name);
 
     var KEY = 'milc_' + ID + (PREVIEW ? '_p' : '');
     var CITY = {}; CITIES.forEach(function (c) { CITY[c[0]] = c; });
@@ -231,7 +239,8 @@ var CITIES = __CITIES__;    // [nama, provinsi, tipe, jabodetabek]
       h += '<h1>' + esc(fill(id === 'O1' ? (T.PERTANYAAN_PEMBUKA || q.text) : q.text)) + '</h1>';
       var hint = q.hint || (q.type === 'ma' ? (q.max ? 'Pilih maksimal ' + q.max + ' jawaban' : 'Boleh pilih lebih dari satu') : '');
       if (hint) h += '<p class="hint">' + esc(hint) + '</p>';
-      if (id === 'O1' && (CFG.privacy || CFG.tnc)) h += '<p class="links">' + (CFG.privacy ? '<a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a>' : '') + (CFG.privacy && CFG.tnc ? ' · ' : '') + (CFG.tnc ? '<a href="' + esc(CFG.tnc) + '" target="_blank" rel="noopener">Syarat & Ketentuan Giveaway</a>' : '') + '</p>';
+      if (id === 'O1' && G && !BR) h += skBox(CFG);
+      if (id === 'O1' && CFG.privacy) h += '<p class="links"><a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a></p>';
       h += '<div id="body"></div><div class="err" id="err"></div><div class="wait" id="wait"></div>';
       if (id === 'O1') h += '<p class="ver">Versi ' + VERSION + ' · ' + esc(ID) + '</p>';
       app.innerHTML = h;

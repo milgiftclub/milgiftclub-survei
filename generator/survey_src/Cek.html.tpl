@@ -17,6 +17,11 @@ __STYLE__
   .verdict{border-radius:18px;padding:16px;margin-top:14px;font-weight:800;line-height:1.45}
   .verdict.ok{background:#E7F5EC;color:#22663F;border:2px solid #9fd6b3} .verdict.no{background:var(--yellow-l);color:var(--brown);border:2px solid var(--yellow)}
   .row2{display:flex;gap:8px;margin-top:10px} .row2 input{flex:1} .row2 button{flex:none;font:inherit;font-weight:800;border:0;border-radius:16px;padding:0 20px;background:var(--coral);color:#fff;cursor:pointer}
+  .kp{display:inline-block;background:#E7F5EC;color:#22663F;border-radius:999px;padding:0 8px;font-size:12px;font-weight:800}
+  .kupon{display:flex;gap:14px;align-items:center;background:var(--yellow-l);border:2px solid var(--yellow);border-radius:18px;padding:14px 16px;margin-top:14px;color:var(--brown)}
+  .kupon .kn{font-family:var(--display);font-size:30px;font-weight:700;flex:none} .kupon p{margin:2px 0 0;font-size:14px;color:var(--brown2);line-height:1.45}
+  .more{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;margin-top:8px;border-radius:14px;background:var(--cream);border:2px solid var(--line);text-decoration:none;color:var(--brown);font-weight:700}
+  .more b{color:var(--coral-d);flex:none;font-size:13.5px}
   .small{font-size:12.5px;color:var(--brown2);margin-top:14px;line-height:1.5}
 </style>
 </head>
@@ -59,7 +64,7 @@ __STYLE__
       if (d.blocked) { h += item('⛔', 'Akun sedang ' + (d.blocked.state === 'suspend' ? 'disuspend' : 'diblokir'), 'Karena riwayat jawaban asal-asalan' + (d.blocked.until ? ', sampai ' + esc(d.blocked.until) : '') + '. Hubungi ' + esc(d.blocked.email) + ' untuk membuka akses.'); kurang.push('akses akun'); }
       if (!d.surveys.length) { h += item('❌', 'Isi survei', 'Belum ada survei yang terisi dengan username ini. Pastikan username sama persis dengan yang kamu tulis di survei.'); kurang.push('isi survei'); }
       else {
-        var sv = d.surveys.map(function (x) { return (x.valid ? '✅ ' : '❌ ') + esc(x.name) + (x.reason ? ' — ' + esc(x.reason) : ''); }).join('<br>');
+        var sv = d.surveys.map(function (x) { return (x.valid ? '✅ ' : '❌ ') + esc(x.name) + (x.kupon ? ' <span class="kp">+1 kupon</span>' : '') + (x.reason ? ' — ' + esc(x.reason) : ''); }).join('<br>');
         h += item(d.surveyOk ? '✅' : '❌', 'Isi survei', sv); if (!d.surveyOk && !d.blocked) kurang.push('survei yang valid');
       }
       // 2. komentar + tag
@@ -67,12 +72,21 @@ __STYLE__
       if (k.state === 'ok') h += item('✅', 'Komentar & tag ' + k.min + ' teman', 'Ditemukan komentar kamu dengan ' + k.n + ' teman berbeda di-tag.');
       else if (k.state === 'kurang') { h += item('❌', 'Komentar & tag ' + k.min + ' teman', 'Komentar kamu baru men-tag ' + k.n + ' teman. Tambahkan komentar dan tag ' + (k.min - k.n) + ' teman lagi' + post + '.'); kurang.push('tag teman'); }
       else if (k.state === 'belum') { h += item('❌', 'Komentar & tag ' + k.min + ' teman', 'Belum ada komentar dari akun ini' + post + '. Komentar dicek berkala, jadi kalau baru saja berkomentar, cek lagi sekitar 1 jam lagi.'); kurang.push('komentar & tag teman'); }
-      else h += item('⏳', 'Komentar & tag teman', 'Dicek saat undian.');
+      else h += item('⏳', 'Komentar & tag ' + (k.min || 3) + ' teman', 'Tulis komentar dan tag ' + (k.min || 3) + ' teman berbeda' + post + '. Dicek saat undian.');
       // 3. syarat yang dicek manual
       h += item('⏳', 'Follow Instagram ' + esc(IGH) + ', like & share ke Story', 'Instagram tidak mengizinkan kami membaca ini secara otomatis, jadi dicek manual saat pemenang diundi. Pastikan akun kamu tidak private supaya bisa kami cek.');
       h += '</div>';
       h += d.eligible ? '<div class="verdict ok">🎉 Semua syarat yang bisa kami cek sudah terpenuhi. Pastikan juga sudah follow, like & share ke Story ya!</div>'
         : '<div class="verdict no">Masih ada yang kurang: ' + esc(kurang.join(', ') || 'syarat di atas') + '. Lengkapi dulu supaya bisa ikut diundi.</div>';
+      // kupon & survei lain
+      var per = esc(d.periodeAktif || 'periode ini');
+      h += '<div class="kupon"><div class="kn">🎟️ ' + (d.kupon || 0) + '</div><div><b>Kupon undian kamu di ' + per + '</b><p>Setiap survei yang terisi valid = 1 kupon. Makin banyak kupon, makin besar peluang menang.</p></div></div>';
+      if (d.surveiLain && d.surveiLain.length) {
+        h += '<div class="ck"><h2>Tambah kupon: isi survei lainnya</h2>' + d.surveiLain.map(function (x) {
+          var u = String(x.link || ''); u += (u.indexOf('?') < 0 ? '?' : '&') + 'src=cek';
+          return '<a class="more" href="' + esc(u) + '" target="_blank" rel="noopener"><span>' + esc(x.name) + '</span><b>Isi survei · +1 kupon →</b></a>';
+        }).join('') + '</div>';
+      } else if (d.surveys.length) h += '<p class="small">Kamu sudah mengisi semua survei yang sedang dibuka. Pantau Instagram ' + esc(IGH) + ' untuk survei berikutnya.</p>';
       if (d.periode) h += '<p class="small">' + esc(d.periode) + '. Status diperbarui berkala; hasil akhir ditentukan saat verifikasi pemenang.</p>';
       $('out').innerHTML = h;
     }, function () { $('go').disabled = false; $('go').textContent = 'Cek'; $('out').innerHTML = ''; $('err').textContent = 'Koneksi bermasalah. Coba lagi.'; });

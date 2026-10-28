@@ -888,10 +888,11 @@ function loadElig() {
       sel.value = d.periode; sel.dataset.n = String(d.periods.length);
     }
     var s = d.stats;
-    $('d-elig').innerHTML = '<span class="d-big">' + fmt(d.count) + '</span> orang eligible' + (d.periode ? ' untuk <b>' + esc(d.periode) + '</b>' : ' (semua periode)');
+    $('d-elig').innerHTML = '<span class="d-big">' + fmt(d.count) + '</span> orang eligible · <b>' + fmt(s.kupon || d.count) + ' kupon</b>' + (d.periode ? ' untuk <b>' + esc(d.periode) + '</b>' : ' (semua periode)');
+    $('d-elig').innerHTML += '<div class="muted" style="margin-top:2px">🎟️ 1 survei valid = 1 kupon. Peluang menang sebanding jumlah kupon; 1 orang maksimal menang 1 kali per periode.</div>';
     $('d-elig').innerHTML += '<div class="muted" style="margin-top:2px">👥 ' + fmt(s.orangValid) + ' orang valid dari ' + fmt(s.orangTotal) + ' orang yang mengisi</div>';
     var step = function (n, t, minus) { return '<div class="' + (minus ? 'out' : '') + '"><b>' + (minus ? '− ' : '') + fmt(n) + '</b> ' + t + '</div>'; };
-    $('d-funnel').innerHTML = step(s.jawaban, 'jawaban masuk') + step(s.jawaban - s.valid, 'tidak valid', true) + step(s.valid - s.orang, 'jawaban ganda (WA sama)', true) +
+    $('d-funnel').innerHTML = step(s.jawaban, 'jawaban masuk') + step(s.jawaban - s.valid, 'tidak valid', true) + step(s.valid - s.orang, 'survei lain dari orang yang sama (jadi kupon tambahan)', true) +
       (s.diblokir ? step(s.diblokir, 'diblokir / suspend', true) : '') + (s.sudahMenang ? step(s.sudahMenang, 'sudah menang di periode ini', true) : '') +
       (d.wajibKomentar ? step(s.kurangKomentar, 'belum komentar & tag teman', true) : '') + '<div class="ok"><b>= ' + fmt(d.count) + '</b> eligible</div>';
   });
@@ -903,7 +904,7 @@ function draw() {
   var per = $('d-per').value;
   if (!confirm('Undi ' + n + ' pemenang untuk "' + prize + '"' + (per ? ' — ' + per : ' — semua periode') + '? Hasil langsung tersimpan.')) return;
   run('adminDraw', $('d-v').value, prize, n, $('d-per').value).then(function (w) {
-    $('d-res').innerHTML = '<div class="winbox"><b>Pemenang ' + esc(prize) + '</b><ul class="list">' + w.map(function (x) { return '<li><span>' + esc(x.ig) + ' · ' + esc(x.wa) + '</span><span class="muted">' + esc(x.survei) + '</span></li>'; }).join('') + '</ul></div>';
+    $('d-res').innerHTML = '<div class="winbox"><b>Pemenang ' + esc(prize) + '</b><ul class="list">' + w.map(function (x) { return '<li><span>' + esc(x.ig) + ' · ' + esc(x.wa) + '</span><span class="muted">' + esc(x.kupon || 1) + ' kupon</span></li>'; }).join('') + '</ul></div>';
     loadElig(); loadWin();
   });
 }

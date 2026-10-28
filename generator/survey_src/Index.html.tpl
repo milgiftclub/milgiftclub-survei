@@ -82,6 +82,14 @@
   .end .cta2{background:var(--white)!important;color:var(--coral-d)!important;border:2px solid var(--coral);box-shadow:none!important}
   .end .cta{display:block;margin:12px 0 0;background:var(--coral);color:#fff;text-decoration:none;font-weight:800;font-size:16px;border-radius:16px;padding:14px 18px;box-shadow:0 4px 0 var(--coral-d)}
   .ver{font-size:11px;color:var(--brown2);opacity:.6;text-align:center;margin-top:18px}
+  .skbox{margin:14px 0 4px;border:2px solid var(--line);border-radius:18px;background:var(--white);overflow:hidden}
+  .skh{font-family:var(--display);font-weight:700;font-size:16px;color:var(--brown);padding:12px 16px;border-bottom:2px dashed var(--line);background:var(--cream)}
+  .skc{max-height:260px;overflow-y:auto;padding:0 16px 8px;-webkit-overflow-scrolling:touch}
+  .skf{font-size:12.5px;color:var(--brown2);padding:10px 16px;border-top:2px dashed var(--line);background:var(--cream);line-height:1.45}
+  .sk{color:var(--brown);font-size:14.5px;line-height:1.6} .skbox .sk{border:0;padding:0;margin:0;background:none}
+  .sk h2{font-family:var(--display);font-size:16.5px;margin:14px 0 6px;color:var(--brown)}
+  .sk ol,.sk ul{margin:4px 0 8px;padding-left:22px} .sk li{margin:4px 0} .sk p{margin:6px 0} .sk a{color:var(--coral-d);font-weight:800}
+  .warn{background:#FDECEC;border:2px solid #F3B9B9;border-radius:16px;padding:12px 14px;margin:12px 0;color:#7A2323;font-size:14px;line-height:1.55}
   .links{font-size:14px;margin:10px 0 0;font-weight:700}
   .promo{background:var(--white);border:2px solid var(--line);border-radius:18px;padding:14px 16px;margin:0 0 16px;font-size:14.5px;color:var(--brown2)}
   .promo .pr-l{display:inline-block;background:var(--yellow-l);color:var(--brown);font-weight:800;font-size:12.5px;border-radius:20px;padding:4px 10px;margin-bottom:8px}
@@ -120,6 +128,15 @@ var SCHEMAS = __SCHEMA__;
 var VARIANT = CFG.variant === 'v2' ? 'v2' : 'v1';
 var SCHEMA = SCHEMAS[VARIANT];
 var GROUPS = __GROUPS__;
+
+// ---- Syarat & Ketentuan giveaway (tampil langsung di halaman depan survei) ----
+var SK_HTML = __SK_JSON__;
+function skBox(C) {
+  var e = function (x) { var d = document.createElement('div'); d.textContent = x == null ? '' : String(x); return d.innerHTML; };
+  var body = SK_HTML.replace(/\{IG\}/g, e(C.ig || '@milgiftclub')).replace(/\{MINTAG\}/g, e(C.minTag || 3)).replace(/\{SUSP\}/g, e(C.suspendBulan || 6))
+    .replace(/\{EMAIL\}/g, e(C.emailAkses || 'milgiftclub@gmail.com')).replace(/\{CEK\}/g, e(C.linkCek || 'https://milgiftclub.github.io/milgiftclub-survei/cek/'));
+  return '<div class="skbox"><div class="skh">📜 Syarat &amp; Ketentuan Giveaway</div><div class="skc">' + body + '</div><div class="skf">Dengan memilih bersedia mengikuti survei, kamu dianggap telah membaca dan menyetujui Syarat &amp; Ketentuan di atas.</div></div>';
+}
 var FASHION = __FASHION__;
 var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
 
@@ -314,10 +331,8 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     h += '<h1>' + esc(fill((q.id === 'O1' && CFG.o1q) || q.text, k)) + '</h1>';
     var hint = q.hint || (q.type === 'ma' ? (q.max ? 'Pilih maksimal ' + q.max + ' jawaban' : 'Boleh pilih lebih dari satu') : '');
     if (hint) h += '<p class="hint">' + esc(hint) + '</p>';
-    if (q.id === 'O1' && (CFG.privacy || CFG.tnc)) {
-      h += '<p class="links">' + (CFG.privacy ? '<a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a>' : '') +
-        (CFG.privacy && CFG.tnc ? ' · ' : '') + (CFG.tnc ? '<a href="' + esc(CFG.tnc) + '" target="_blank" rel="noopener">Syarat & Ketentuan Giveaway</a>' : '') + '</p>';
-    }
+    if (q.id === 'O1') h += skBox(CFG);
+    if (q.id === 'O1' && CFG.privacy) h += '<p class="links"><a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a></p>';
     h += '<div id="body"></div><div class="err" id="err"></div><div class="wait" id="wait"></div>';
     if (q.id === 'O1') h += '<p class="ver">Versi ' + VERSION + '</p>';
     app.innerHTML = h;
