@@ -99,6 +99,7 @@ var SET_DEFAULTS = [
   ['TUTUP_V2', '2026-12-31T23:59', 'Survei Fashion Wanita, Tas & Aksesori, Hijab tutup otomatis pada tanggal & jam ini (WIB)'],
   ['PERIODE_KE', 1, 'Periode giveaway survei utama (angka)'],
   ['PERIODE_TAHUN', 2026, 'Tahun periode giveaway survei utama'],
+  ['PERIODE_LIST', '[{"ke":1,"tahun":2026,"mulai":"2026-10-01","selesai":"2026-12-31"}]', 'Daftar periode giveaway (diatur dari menu Periode Giveaway)'],
   ['IG_POST_GIVEAWAY', '', 'Link postingan giveaway Instagram (pisahkan dengan koma bila lebih dari satu). Komentar & tag di postingan ini dicek otomatis'],
   ['IG_MIN_TAG', 3, 'Jumlah teman minimal yang harus di-tag di komentar'],
   ['SYARAT_KOMENTAR_WAJIB', false, 'TRUE = hanya yang sudah komentar + tag teman yang ikut diundi (aktifkan setelah Instagram tersambung)'],
@@ -134,8 +135,7 @@ function mainPeriode_(variant) {
 function customPeriode_(c) {
   // survei MIL Gift Club: periode sama dengan survei utama (Pengaturan); survei brand klien: tanpa periode
   var sc = c.schema || {}, client = !!(sc.brand && sc.brand.mode === 'client');
-  var own = sc.periodeKe ? periodeText_(sc.periodeKe, sc.tahun) : '';   // periode yang dipilih saat membuat survei
-  return { label: client ? '' : own ? 'Survei MIL Gift Club · ' + own : mainPeriode_('v1').label, periode: tutupText_(sc.tutup) || sc.periode || '' };
+  return { label: client ? '' : mainPeriode_('v1').label, periode: tutupText_(sc.tutup) || sc.periode || '' };
 }
 var SET_MEMO_ = null;
 /** nilai tanggal untuk input datetime-local di Dashboard */
@@ -991,8 +991,8 @@ function surveyList_() {
 }
 
 /** Ringkasan untuk halaman utama dashboard. */
-function summaryData_() {
-  var rows = readAll_(), today = day_(new Date()), out = { generatedAt: iso_(new Date()), surveys: [], daily: {}, quota: {}, sources: {}, screenout: {}, blok: {}, panel: 0, winners: 0 };
+function summaryData_(per) {
+  var rows = rowsInPeriod_(readAll_(), per), today = day_(new Date()), out = { generatedAt: iso_(new Date()), surveys: [], daily: {}, quota: {}, sources: {}, screenout: {}, blok: {}, panel: 0, winners: 0 };
   var JAWA = ['DKI Jakarta', 'Jawa Barat', 'Banten', 'Jawa Tengah', 'DI Yogyakarta', 'Jawa Timur'];
   var SUM = ['Aceh', 'Sumatera Utara', 'Sumatera Barat', 'Riau', 'Kepulauan Riau', 'Jambi', 'Sumatera Selatan', 'Kepulauan Bangka Belitung', 'Bengkulu', 'Lampung'];
   var region = function (r) { return r.jabodetabek === 'Ya' ? 'Jabodetabek' : JAWA.indexOf(r.provinsi) >= 0 ? 'Jawa lainnya' : SUM.indexOf(r.provinsi) >= 0 ? 'Sumatera' : 'Kalimantan, Sulawesi & Indonesia Timur'; };
@@ -1049,7 +1049,7 @@ function summaryData_() {
   var w = sheet_(SH.WIN); out.winners = w ? Math.max(0, w.getLastRow() - 1) : 0;
   return out;
 }
-function adminSummary() { requireAdmin_(); return summaryData_(); }
+function adminSummary(per) { requireAdmin_(); if (per == null) per = activePeriode_(null); var d = summaryData_(per); d.periode = per; d.periods = periods_().map(function (p) { return p.label; }); d.activePeriod = activePeriode_(null); return d; }
 
 var LIST_COLS = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1', 'kategori_1', 'L1_PT1', 'L1_PT2', 'durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'session_id'];
 /** Daftar jawaban satu survei (kolom ringkas). */
@@ -1175,13 +1175,47 @@ function adminBlokAdd(ig, wa, reason) { var who = requireAdmin_(); addViolation_
 /** Periode giveaway aktif saat jawaban masuk: survei MIL Gift Club = periode di Pengaturan; survei brand klien = tanpa periode. */
 function activePeriode_(cs) {
   if (cs && cs.schema && cs.schema.brand && cs.schema.brand.mode === 'client') return '';
-  if (cs && cs.schema && cs.schema.periodeKe) return periodeText_(cs.schema.periodeKe, cs.schema.tahun);   // periode khusus survei ini
   return periodeText_(set_('PERIODE_KE'), set_('PERIODE_TAHUN'));
 }
+// ---- Periode giveaway: diatur di menu Periode Giveaway (rentang tanggal). Jawaban masuk periode sesuai TANGGAL masuknya. ----
+function periods_() {
+  var l = []; try { l = JSON.parse(String(set_('PERIODE_LIST') || '[]')); } catch (e) {}
+  return (l || []).filter(function (p) { return p && p.ke; }).map(function (p) { return { ke: Number(p.ke), tahun: Number(p.tahun), mulai: String(p.mulai || ''), selesai: String(p.selesai || ''), label: periodeText_(p.ke, p.tahun) }; })
+    .sort(function (a, b) { return (b.tahun - a.tahun) || (b.ke - a.ke); });
+}
+function periodRange_(p) { return { f: new Date(p.mulai + 'T00:00:00+07:00'), t: new Date(p.selesai + 'T23:59:59+07:00') }; }
 function periodeOf_(r) {
-  if (r.periode_giveaway) return String(r.periode_giveaway);
   var c = r._v !== 'v1' && r._v !== 'v2' ? customById_(r._v) : null;
-  return activePeriode_(c);   // jawaban lama (sebelum ada kolom periode) = periode aktif
+  if (c && c.schema && c.schema.brand && c.schema.brand.mode === 'client') return '';   // survei brand klien tidak ikut periode
+  var d = new Date(r.timestamp), ps = periods_();
+  for (var i = 0; i < ps.length; i++) { var g = periodRange_(ps[i]); if (d >= g.f && d <= g.t) return ps[i].label; }
+  return r.periode_giveaway ? String(r.periode_giveaway) : '';
+}
+function rowsInPeriod_(rows, per) { return per ? rows.filter(function (r) { return periodeOf_(r) === per; }) : rows; }
+/** Menu Periode Giveaway */
+function adminPeriods() {
+  requireAdmin_();
+  var cnt = {}; readAll_().forEach(function (r) { if (r.status === 'Valid') { var p = periodeOf_(r); cnt[p] = (cnt[p] || 0) + 1; } });
+  var act = activePeriode_(null);
+  return { active: act, list: periods_().map(function (p) { p.valid = cnt[p.label] || 0; p.aktif = p.label === act; return p; }) };
+}
+function adminPeriodSave(list, activeLabel) {
+  requireAdmin_();
+  var D = /^\d{4}-\d{2}-\d{2}$/, seen = {};
+  var clean = (list || []).map(function (p) {
+    var x = { ke: Number(p.ke), tahun: Number(p.tahun), mulai: String(p.mulai || ''), selesai: String(p.selesai || '') }, lb = periodeText_(x.ke, x.tahun);
+    if (!(x.ke >= 1) || !(x.tahun >= 2000) || !D.test(x.mulai) || !D.test(x.selesai)) throw new Error('Lengkapi periode ke-, tahun, dan tanggal (' + lb + ').');
+    if (x.selesai < x.mulai) throw new Error(lb + ': tanggal selesai sebelum tanggal mulai.');
+    if (seen[lb]) throw new Error(lb + ' tercantum dua kali.'); seen[lb] = 1;
+    return x;
+  });
+  clean.sort(function (a, b) { return a.mulai < b.mulai ? -1 : 1; });
+  for (var i = 1; i < clean.length; i++) if (clean[i].mulai <= clean[i - 1].selesai) throw new Error('Tanggal ' + periodeText_(clean[i - 1].ke, clean[i - 1].tahun) + ' dan ' + periodeText_(clean[i].ke, clean[i].tahun) + ' bertumpuk.');
+  var o = { PERIODE_LIST: JSON.stringify(clean) };
+  var a = clean.filter(function (p) { return periodeText_(p.ke, p.tahun) === activeLabel; })[0];
+  if (a) { o.PERIODE_KE = a.ke; o.PERIODE_TAHUN = a.tahun; }
+  adminSaveSettings(o); SET_MEMO_ = null;
+  return adminPeriods();
 }
 function winSheet_() {
   var w = sheet_(SH.WIN); if (!w) return null;
@@ -1214,7 +1248,7 @@ function eligibleInfo_(v, per) {
 function eligible_(v, per) { return eligibleInfo_(v, per).rows; }
 function periodeList_() {
   var o = {}, cur = activePeriode_(null); if (cur) o[cur] = 1;
-  readAll_().forEach(function (r) { var p = periodeOf_(r); if (p) o[p] = 1; });
+  periods_().forEach(function (p) { o[p.label] = 1; });
   return Object.keys(o).sort(function (a, b) { var x = a.match(/(\d+)\s+(\d{4})/) || [0, 0, 0], y = b.match(/(\d+)\s+(\d{4})/) || [0, 0, 0]; return (y[2] - x[2]) || (y[1] - x[1]); });
 }
 function adminEligible(v, per) {
@@ -1610,6 +1644,7 @@ function apiGet_(p) {
     var key = String(set_('API_KEY') || '');
     if (!key || p.key !== key) throw new Error('Kunci API tidak valid');
     var d = summaryData_(), v = p.survei || 'all';
+    if (p.api === 'summary' && p.periode) d = summaryData_(p.periode);
     if (p.api === 'summary') out = { generatedAt: d.generatedAt, surveys: d.surveys.map(function (s) { return { id: s.v, name: s.name, open: s.open, target: s.target, total: s.total, valid: s.valid, invalid: s.invalid, duplicate: s.dup, today: s.today, median_minutes: s.medianMin }; }), screenout: d.screenout, blocked: d.blok, panel_members: d.panel, sources: d.sources };
     else if (p.api === 'daily') out = d.daily;
     else if (p.api === 'quota') out = v === 'all' ? d.quota : d.quota[v];

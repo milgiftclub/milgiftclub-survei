@@ -133,6 +133,8 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 @media (max-width:760px){.ct-controls{grid-template-columns:1fr}.ct-swap{justify-self:start;margin-top:0}}
 .btn.red{background:var(--red);box-shadow:0 8px 18px rgba(194,54,47,.22)} .btn:disabled{opacity:.5;cursor:not-allowed}
 .ppl{font-size:13px;color:var(--ink2);margin:8px 0 2px} .ppl b{color:var(--ink)}
+.per-pill{margin-left:auto;margin-right:12px;border:1px solid var(--line);background:#fff;color:var(--navy);font:inherit;font-weight:800;font-size:13px;border-radius:999px;padding:7px 14px;cursor:pointer}
+#per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t td{vertical-align:middle}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
@@ -263,6 +265,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="logo"><span class="w">SURVEY</span><span class="sep"></span><span class="m">mil</span></div>
   <div class="grp">DASHBOARD</div>
   <button data-p="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Ringkasan</button>
+  <button data-p="period"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h3"/></svg>Periode Giveaway</button>
   <div class="grp">SURVEI <span class="cnt" id="sv-cnt"></span></div>
   <div id="sv-list"><div class="muted" style="padding:6px 14px">Memuat…</div></div>
   <button class="sv-new" data-p="build" onclick="newSurvey()"><span>+</span>Survei baru</button>
@@ -282,6 +285,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 </nav>
 <main>
 <div class="topbar"><button class="iconbtn" onclick="document.querySelector('.app').classList.toggle('collapsed')" title="Sembunyikan menu"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 10l-2 2 2 2"/></svg></button>
+  <button class="per-pill" id="per-pill" onclick="navTo('period')" title="Periode giveaway aktif">🎁 <span>Memuat…</span></button>
   <div class="user"><div class="avatar" id="u-ini"></div><div><b id="u-name"></b><small>Admin Survei · <span id="u-mail"><?= userEmail ?></span></small></div></div></div>
 <div class="content">
 <!-- RINGKASAN -->
@@ -289,7 +293,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="hero"><div class="d" id="h-date"></div><h1 id="h-greet">Halo!</h1><p>Ini yang terjadi di survei MIL Gift Club hari ini.</p>
     <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span></div>
     <div class="ppl" id="h-ppl" style="margin:12px 0 14px;font-size:14px"></div>
-  <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted" id="h-upd">Memuat…</div></div>
+  <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted"><span id="h-upd">Memuat…</span> · Periode <select id="h-per" onchange="homePer()" style="width:auto;padding:4px 8px;font-size:12.5px"></select></div></div>
     <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="loadHome()">Muat ulang</button></div></div>
   <div class="grid g4" id="h-kpi"><div class="loading">Memuat data…</div></div>
   <div class="grid g2" style="margin-top:16px">
@@ -378,7 +382,6 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         <div class="kv"><label>Perkiraan waktu isi (menit)</label><input id="b-est" type="number" min="1" placeholder="dihitung otomatis"></div>
         <div class="kv"><label>Target respons valid</label><input id="b-target" type="number" min="0" value="300"></div>
         <label class="row"><span>Tutup otomatis saat target tercapai</span><span class="switch"><input type="checkbox" id="b-auto" checked><span></span></span></label>
-        <div class="kv" id="b-per-row"><label>Periode giveaway</label><div><div class="toolbar" style="margin:0">Periode ke-<input type="number" id="b-pke" min="1" style="width:70px">tahun<input type="number" id="b-pth" min="2024" style="width:90px"></div><div class="muted" style="margin-top:4px">Jawaban yang masuk ikut undian periode ini.</div></div></div>
         <div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="b-tutup"><div class="muted">Survei tertutup sendiri di tanggal & jam ini, dan tanggalnya tampil di halaman survei & gambar IG. Kosongkan bila tanpa batas waktu.</div></div>
       </div>
       <div class="card"><h2>Fitur</h2>
@@ -424,6 +427,15 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 </section>
 
 <!-- LAPORAN -->
+<section class="page" id="p-period">
+  <div class="top"><div><div class="eyebrow">Giveaway</div><h1>Periode Giveaway</h1><p class="desc">Atur periode giveaway dengan rentang tanggal. Semua survei MIL Gift Club otomatis mengikuti periode aktif: jawaban masuk ke periode sesuai tanggal isinya, undian hanya mengambil data periode itu, dan Ringkasan menampilkan angka periode tersebut. Survei brand klien tidak ikut periode.</p></div></div>
+  <div class="card"><h2>Daftar periode</h2>
+    <div class="tw"><table id="per-t"></table></div>
+    <div class="toolbar" style="margin-top:12px"><button class="btn sec sm" onclick="perAdd()">+ Tambah periode</button><span style="flex:1"></span><span class="muted" id="per-msg"></span><button class="btn" onclick="perSave()">Simpan</button></div>
+    <p class="muted" style="font-size:12.5px">Pilih <b>Aktif</b> untuk periode yang sedang berjalan. Label "Survei MIL Gift Club · Periode …" di halaman survei serta caption &amp; gambar IG ikut periode aktif.</p>
+  </div>
+</section>
+
 <section class="page" id="p-ct">
   <div class="svhead"><div><div class="eyebrow">Data survei</div><h1>Cross Tab</h1><p class="desc">Silangkan dua pertanyaan, saring responden, dan lihat temuan otomatis: kelompok yang jawabannya berbeda nyata dari rata-rata.</p></div>
     <div class="acts"><button class="btn sec sm" onclick="ctCopy()">Salin tabel (untuk Excel)</button></div></div>
@@ -614,7 +626,7 @@ function bindNav(b) {
     if ($('p-build').classList.contains('on')) markDirty(false);
     showPage(b.dataset.p, b);
     if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
-    var f = { people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    var f = { period: loadPeriod, people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
     if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
   };
 }
@@ -680,8 +692,40 @@ function svToggle() {
 
 // ---------- ringkasan ----------
 var chart, SUM, qv = 'v1';
-function loadHome() {
-  run('adminSummary').then(function (d) {
+// ---------- periode giveaway ----------
+var PER = null;
+function perPill(label) { var b = $('per-pill'); if (b) b.querySelector('span').textContent = label ? label + ' (aktif)' : 'Belum ada periode aktif'; }
+function loadPeriod() { $('per-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminPeriods').then(function (d) { PER = d; perPill(d.active); perDraw(); }); }
+function perDraw() {
+  var h = '<thead><tr><th>Aktif</th><th>Periode ke-</th><th>Tahun</th><th>Mulai</th><th>Selesai</th><th>Jawaban valid</th><th></th></tr></thead><tbody>';
+  PER.list.forEach(function (p, i) {
+    h += '<tr><td><input type="radio" name="per-act" value="' + i + '"' + (p.aktif ? ' checked' : '') + '></td><td><input type="number" min="1" data-f="ke" data-i="' + i + '" value="' + p.ke + '" style="width:70px"></td>' +
+      '<td><input type="number" min="2024" data-f="tahun" data-i="' + i + '" value="' + p.tahun + '" style="width:90px"></td><td><input type="date" data-f="mulai" data-i="' + i + '" value="' + esc(p.mulai) + '"></td>' +
+      '<td><input type="date" data-f="selesai" data-i="' + i + '" value="' + esc(p.selesai) + '"></td><td>' + fmt(p.valid) + '</td><td><button class="trash" title="Hapus periode" onclick="perDel(' + i + ')">' + TRASH + '</button></td></tr>';
+  });
+  $('per-t').innerHTML = h + (PER.list.length ? '' : '<tr><td colspan="7" class="loading">Belum ada periode. Klik "+ Tambah periode".</td></tr>') + '</tbody>';
+  [].forEach.call($('per-t').querySelectorAll('input[data-f]'), function (x) { x.onchange = function () { PER.list[+x.dataset.i][x.dataset.f] = x.type === 'number' ? +x.value : x.value; }; });
+}
+function perAdd() {
+  var last = PER.list[0];
+  var n = last ? { ke: last.ke + 1, tahun: last.tahun, mulai: last.selesai ? new Date(new Date(last.selesai + 'T12:00:00Z').getTime() + 864e5).toISOString().slice(0, 10) : '', selesai: '', valid: 0 } : { ke: 1, tahun: new Date().getFullYear(), mulai: '', selesai: '', valid: 0 };
+  PER.list.unshift(n); perDraw();
+}
+function perDel(i) { if (!confirm('Hapus periode ini? Jawaban tidak ikut terhapus.')) return; PER.list.splice(i, 1); perDraw(); }
+function perSave() {
+  var bad = PER.list.filter(function (p) { return !p.ke || !p.tahun || !p.mulai || !p.selesai || p.selesai < p.mulai; });
+  if (bad.length) return toast('Lengkapi periode ke-, tahun, tanggal mulai & selesai (selesai tidak boleh sebelum mulai)');
+  var r = document.querySelector('input[name=per-act]:checked'), act = r ? PER.list[+r.value] : null;
+  $('per-msg').textContent = 'Menyimpan…';
+  run('adminPeriodSave', PER.list, act ? 'Periode ' + act.ke + ' ' + act.tahun : '').then(function (d) { PER = d; perPill(d.active); perDraw(); $('per-msg').textContent = ''; toast('Periode tersimpan. Berlaku untuk semua survei.'); loaded.home = 0; loaded.draw = 0; BDEF = null; if ($('h-per')) $('h-per').dataset.set = ''; });
+}
+function homePer() { loadHome($('h-per').value); }
+function loadHome(per) {
+  var hp0 = $('h-per');
+  if (per == null && hp0 && hp0.dataset.set) per = hp0.value;
+  run('adminSummary', per == null ? null : per).then(function (d) {
+    perPill(d.activePeriod);
+    var hp = $('h-per'); if (hp) { hp.innerHTML = (d.periods || []).map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + (p === d.activePeriod ? ' (aktif)' : '') + '</option>'; }).join('') + '<option value="">Semua periode</option>'; hp.value = d.periode || ''; hp.dataset.set = '1'; }
     SUM = d; loaded.home = 1; drawSurveyNav(); if (SV && $('p-survey').classList.contains('on')) drawSurvey();
     $('h-upd').textContent = 'Diperbarui ' + d.generatedAt;
     $('h-kpi').innerHTML = d.surveys.map(function (s) {
@@ -864,7 +908,7 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
+var HIDE_SET = ['SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
 function loadSet() {
   run('adminSettings').then(function (d) {
     SET = d; delFill(d);
@@ -877,13 +921,7 @@ function loadSet() {
         '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link) + '"></div>' +
         '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab) + '</span></div>' +
         '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> <a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a></div>';
-    }).join('') + (function () {
-      var v = {}; d.list.forEach(function (x) { v[x.key] = x.val; });
-      return '<div class="card"><h2>Periode giveaway survei utama</h2><p class="muted">Tampil di halaman survei, mis. "Survei MIL Gift Club · Periode 1 2026".</p>' +
-        '<div class="kv"><label>Periode ke-</label><input type="number" min="1" id="per-ke" value="' + esc(v.PERIODE_KE || 1) + '"></div>' +
-        '<div class="kv"><label>Tahun</label><input type="number" min="2024" id="per-th" value="' + esc(v.PERIODE_TAHUN || new Date().getFullYear()) + '"></div>' +
-        '<button class="btn sm" onclick="savePeriode()">Simpan</button></div>';
-    })();
+    }).join('') + '<div class="card"><h2>Periode giveaway</h2><p class="muted">Periode diatur di menu <a href="#" onclick="navTo(\'period\');return false">Periode Giveaway</a> dan berlaku untuk semua survei MIL Gift Club.</p></div>';
     $('s-form').innerHTML = d.list.filter(function (x) { return HIDE_SET.indexOf(x.key) < 0; }).map(function (x) {
       return '<div class="kv"><label><b>' + esc(x.key) + '</b><div class="muted">' + esc(x.note) + '</div></label><input data-k="' + x.key + '"' + (/KEY/.test(x.key) ? ' type="password" autocomplete="off"' : '') + ' value="' + esc(x.val) + '"></div>';
     }).join('');
@@ -892,9 +930,6 @@ function loadSet() {
 function saveSurvey(k) {
   var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value; o['TUTUP_' + k] = $('tut-' + k).value;
   run('adminSaveSettings', o).then(function () { toast('Tersimpan. Berlaku langsung untuk responden.'); loadHome(); });
-}
-function savePeriode() {
-  run('adminSaveSettings', { PERIODE_KE: +$('per-ke').value || 1, PERIODE_TAHUN: +$('per-th').value || new Date().getFullYear() }).then(function () { toast('Periode tersimpan. Berlaku langsung di survei.'); loadSet(); });
 }
 function delFill(d) {
   $('del-sv').innerHTML = '<label class="chk"><input type="checkbox" id="del-all"> <b>Semua survei</b></label>' + d.surveys.map(function (s) {
@@ -971,7 +1006,6 @@ function bFill() {
   $('b-att').checked = B.attention !== false; $('b-gender').value = B.gender || 'all';
   var g = (BDEF && BDEF.giveaway) || {};
   $('b-tutup').value = B.tutup != null ? B.tutup : (B.id ? '' : g.tutup || '');
-  $('b-pke').value = B.periodeKe || g.periodeKe || 1; $('b-pth').value = B.tahun || g.tahun || new Date().getFullYear();
   perPrev(); hdRender(); brandFill();
   $('b-pub').textContent = BMETA && BMETA.status === 'Dibuka' ? 'Simpan perubahan' : 'Publish';
   bState(); bRender();
@@ -984,12 +1018,11 @@ function tglID(v) {
   return +m[3] + ' ' + BULAN[+m[2] - 1] + ' ' + m[1] + t;
 }
 /** periode giveaway berlaku sama untuk semua survei MIL Gift Club (diatur di Pengaturan); survei brand klien tanpa periode */
-function perMil() { var g = (BDEF && BDEF.giveaway) || {}; return 'Periode ' + (+$('b-pke').value || g.periodeKe || 1) + ' ' + (+$('b-pth').value || g.tahun || new Date().getFullYear()); }
+function perMil() { var g = (BDEF && BDEF.giveaway) || {}; return 'Periode ' + (g.periodeKe || 1) + ' ' + (g.tahun || new Date().getFullYear()); }
 function isClient() { var m = $('b-brand-mode').querySelector('.on'); return !!m && m.dataset.m === 'client'; }
 function perPrev() {
-  if ($('b-per-row')) $('b-per-row').style.display = isClient() ? 'none' : '';
   var t = $('b-tutup').value, lewat = t && new Date(t + ':00+07:00') < new Date();
-  $('b-per-prev').innerHTML = (isClient() ? 'Survei brand klien tidak memakai periode.' : 'Tampil di survei: <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> <span>(atur di kartu Info survei)</span>') +
+  $('b-per-prev').innerHTML = (isClient() ? 'Survei brand klien tidak memakai periode.' : 'Tampil di survei: <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> <span>(mengikuti periode aktif — atur di menu Periode Giveaway)</span>') +
     (t ? '<br>Batas waktu: <b>Hingga ' + esc(tglID(t)) + '</b>' : '') +
     (lewat ? '<br><span style="color:var(--red);font-weight:700">Tanggal tutup sudah lewat — survei akan tertutup.</span>' : '');
 }
@@ -999,7 +1032,7 @@ function bRead() {
   B.giveaway = $('b-g').checked; B.profile = $('b-p').checked; B.screenIndustri = $('b-ind').checked; B.attention = $('b-att').checked;
   B.gender = $('b-gender').value;
   B.tutup = $('b-tutup').value || '';
-  if (isClient()) { delete B.periodeKe; delete B.tahun; } else { B.periodeKe = +$('b-pke').value || 1; B.tahun = +$('b-pth').value || new Date().getFullYear(); }
+  delete B.periodeKe; delete B.tahun;
   B.periode = B.tutup ? 'Hingga ' + tglID(B.tutup) : ''; B.periodeLabel = isClient() ? '' : perMil();
   var cl = $('b-brand-mode').querySelector('.on').dataset.m === 'client';
   B.brand = cl ? { mode: 'client', name: $('b-br-name').value.trim(), logo: (B.brand && B.brand.logo) || '', primary: $('b-br-p').value, accent: $('b-br-a').value, ig: $('b-br-ig').value.trim(), ink: $('b-br-k').value, bg: shadeHex($('b-br-p').value, 0.94) } : { mode: 'mil', logo: (B.brand && B.brand.logo) || '' };
@@ -1055,7 +1088,7 @@ function imageUpload(file, maxPx, done) {
   };
   fr.readAsDataURL(file);
 }
-['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-pke', 'b-pth', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
+['b-name', 'b-intro', 'b-est', 'b-target', 'b-auto', 'b-g', 'b-p', 'b-ind', 'b-att', 'b-gender', 'b-tutup', 'b-br-name', 'b-br-p', 'b-br-a', 'b-br-k', 'b-br-ig'].forEach(function (id) {
   var e = $(id); e.addEventListener('input', function () { bRead(); markDirty(); perPrev(); }); e.addEventListener('change', function () { bRead(); markDirty(); perPrev(); });
 });
 [].forEach.call($('b-src').children, function (b) {
@@ -1298,7 +1331,7 @@ function bPublish() {
   $('pub-name').textContent = B.name;
   $('pub-desc').textContent = live ? 'Survei ini sedang dibuka. Perubahan langsung berlaku untuk responden.' : 'Survei langsung bisa diisi responden lewat link-nya dan muncul di menu Survei.';
   $('pub-go').textContent = live ? 'Simpan perubahan' : 'Publish sekarang';
-  $('pub-per').innerHTML = isClient() ? 'Survei brand klien: jawaban tidak masuk periode giveaway MIL Gift Club.' : '🎁 Jawaban yang masuk tercatat untuk <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> dan ikut undian periode ini. <span class="muted" style="font-weight:400">(Ganti periode di Survei &amp; Pengaturan)</span>';
+  $('pub-per').innerHTML = isClient() ? 'Survei brand klien: jawaban tidak masuk periode giveaway MIL Gift Club.' : '🎁 Jawaban yang masuk tercatat untuk <b>Survei MIL Gift Club · ' + esc(perMil()) + '</b> dan ikut undian periode ini. <span class="muted" style="font-weight:400">(Ganti di menu Periode Giveaway)</span>';
   $('pub-img').checked = !live;
   $('pub').classList.add('on');
 }
