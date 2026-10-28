@@ -904,7 +904,7 @@ var PEN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="c
 var PSAVED = [], PCUR = null;
 function loadPanel() {
   $('pn-crit').innerHTML = '<p class="loading">Memuat daftar profil…</p>';
-  $('pn-isv').innerHTML = (SUM ? SUM.surveys.filter(function (x) { return x.status !== 'Draf'; }) : [{ v: 'v1', name: 'Semua Kategori' }]).map(function (x) { return '<option value="' + x.v + '">' + esc(x.name) + '</option>'; }).join('');
+  $('pn-isv').innerHTML = '<option value="all">Semua survei (gabungan)</option>' + (SUM ? SUM.surveys.filter(function (x) { return x.status !== 'Draf'; }) : [{ v: 'v1', name: 'Semua Kategori' }]).map(function (x) { return '<option value="' + x.v + '">' + esc(x.name) + '</option>'; }).join('');
   run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true); searchPanel(); });
   pnRefreshSaved();
 }
@@ -938,7 +938,7 @@ function pnInsight() {
     if (my !== PIG) return;
     if (!d.nSeg) { $('pn-ins').innerHTML = '<p class="loading">Belum ada jawaban survei ini dari anggota panel.</p>'; return; }
     var pc = function (x) { return String(x).replace('.', ',') + '%'; };
-    var h = '<div class="pi-n"><b>' + fmt(d.nSeg) + '</b> anggota panel mengisi survei <b>' + esc(d.survei) + '</b> (dibanding ' + fmt(d.nAll) + ' responden valid)' + (d.nSeg < 30 ? ' <span class="badge b-y">Sampel kecil, baca dengan hati-hati</span>' : '') + '</div>';
+    var h = '<div class="pi-n"><b>' + fmt(d.nSeg) + '</b> anggota panel ' + ($('pn-isv').value === 'all' ? 'punya jawaban di <b>semua survei (gabungan)</b>, dibanding ' + fmt(d.nAll) + ' orang dengan jawaban valid' : 'mengisi survei <b>' + esc(d.survei) + '</b>, dibanding ' + fmt(d.nAll) + ' responden valid') + (d.nSeg < 30 ? ' <span class="badge b-y">Sampel kecil, baca dengan hati-hati</span>' : '') + '</div>';
     if (d.top.length) h += '<div class="pi-top"><b>Yang paling membedakan panel ini</b><ul>' + d.top.map(function (t) {
       return '<li><span class="' + (t.diff > 0 ? 'up' : 'dn') + '">' + (t.diff > 0 ? '▲' : '▼') + '</span> <b>' + esc(t.label) + ':</b> ' + esc(t.cat) + ' — ' + pc(t.pSeg) + ' vs ' + pc(t.pAll) + ' semua responden</li>'; }).join('') + '</ul></div>';
     d.groups.forEach(function (g, gi) {
@@ -1913,7 +1913,7 @@ function ctInit(tries) {
     return;
   }
   var e = $('ct-v'), cur = e.value || (SV || 'v1');
-  e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
+  e.innerHTML = '<option value="all">Semua survei (gabungan)</option>' + SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
   rgFill('ct');
   run('adminPanelSaved').then(function (l) { var e = $('ct-pn'), cur = e.value; e.innerHTML = '<option value="">Semua responden</option>' + l.map(function (x) { return '<option value="' + x.id + '">Panel: ' + esc(x.name) + ' (' + fmt(x.n) + ')</option>'; }).join(''); e.value = cur; if (e.value !== cur) e.value = ''; });
@@ -2078,7 +2078,7 @@ function rgVal(pf) {
 function repInit(tries) {
   if (!SUM) { if ((tries || 0) < 120) setTimeout(function () { repInit((tries || 0) + 1); }, 500); return; }
   var e = $('rp-v'), cur = e.value || (SV || 'v1');
-  e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
+  e.innerHTML = '<option value="all">Semua survei (gabungan)</option>' + SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
   rgFill('rp');
   repLoad(true);
@@ -2106,7 +2106,11 @@ function repDraw(reset) {
   }
   var flt = $('rp-fc').value ? ' · disaring: ' + $('rp-fc').value + ' = ' + $('rp-fv').value : '';
   $('rp-meta').textContent = (d.range || 'Semua waktu') + ' · diperbarui ' + d.generatedAt;
-  $('rp-kpi').innerHTML = '<div><span>Responden dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
+  if (d.gabungan) $('rp-kpi').innerHTML = '<div><span>Orang dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'dengan jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
+    '<div><span>Orang yang mengisi</span><b>' + fmt(d.all) + '</b><span>semua survei, termasuk tidak valid</span></div>' +
+    '<div><span>Cara hitung</span><b style="font-size:17px">1 orang = 1</b><span>jawaban terbaru dari survei mana pun</span></div>' +
+    '<div><span>Pertanyaan</span><b>' + d.questions.length + '</b><span>pilihan, dengan jawaban</span></div>';
+  else $('rp-kpi').innerHTML = '<div><span>Responden dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
     '<div><span>Total jawaban masuk</span><b>' + fmt(d.all) + '</b><span>termasuk tidak valid & duplikat</span></div>' +
     '<div><span>Median waktu isi</span><b>' + d.medianMin + ' <small style="font-size:15px">mnt</small></b><span>responden dalam laporan</span></div>' +
     '<div><span>Pertanyaan</span><b>' + d.questions.length + '</b><span>dengan jawaban</span></div>';

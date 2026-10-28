@@ -1,0 +1,16 @@
+const { makeEnv } = require('./gsmock'); const assert = require('assert');
+const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Ya, bersedia', S2: 'Wanita' };
+const sub = (sid, v, ig, wa, x) => ctx.submitResponse({ sid, variant: v, answers: Object.assign({}, base, { Z2: ig, Z3: wa }, x) });
+sub('a1', 'v1', '@ani', '081211110001', { S1: '18-24 tahun' }); sub('a2', 'v2', '@ani', '081211110001', { S1: '25-34 tahun' });
+sub('b1', 'v1', '@budi', '081211110002', { S1: '35-44 tahun', S2: 'Pria' });
+const cs = ctx.adminBuilderSave({ name: 'Survei X', target: 50, questions: [{ id: 'Q1', text: 'Suka kopi?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true);
+ctx.adminBuilderStatus(cs.id, 'Dibuka'); sub('c1', cs.id, '@ani', '081211110001', { Q1: 'Ya' });
+const d = ctx.adminCrosstab('all', 'Valid'); const i = d.qs.findIndex(q => q.id === 'S1');
+console.log('n', d.meta.n, '|', d.meta.status, '| S1 cats', JSON.stringify(d.qs[i].cats), d.data.map(r => r[i].map(x => d.qs[i].cats[x])).join(';'));
+assert.strictEqual(d.meta.n, 2); assert(d.qs.some(q => q.id === cs.id + '/Q1' && /Survei X/.test(q.text)));
+const r = ctx.adminReport('all', { status: 'Valid' }); const q1 = r.questions.find(q => q.id === 'S1'); console.log('report S1', JSON.stringify(q1.items), 'total', r.total, 'all', r.all);
+assert.strictEqual(r.total, 2);
+const t = ctx.CT_LIB.table(d.qs, d.data, i, d.qs.findIndex(q => q.id === 'S2'), {}); console.log('ct base', t.base);
+const ins = ctx.adminPanelInsight([{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }], 'all'); console.log('insight', ins.survei, ins.nSeg, ins.nAll, ins.groups.map(g => g.name).join(','));
+console.log('OK gabungan_test');
