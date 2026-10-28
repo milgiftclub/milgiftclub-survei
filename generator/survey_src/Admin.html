@@ -135,6 +135,7 @@ tr.click:hover td{background:#F8F9FE;cursor:pointer}
 .ppl{font-size:13px;color:var(--ink2);margin:8px 0 2px} .ppl b{color:var(--ink)}
 .per-pill{margin-left:auto;margin-right:12px;border:1px solid var(--line);background:#fff;color:var(--navy);font:inherit;font-weight:800;font-size:13px;border-radius:999px;padding:7px 14px;cursor:pointer}
 #per-t input{width:auto;max-width:160px;padding:6px 8px} #per-t td{vertical-align:middle}
+.rg-d{display:inline-flex;align-items:center;gap:6px} .rg-d input{width:auto;padding:6px 8px}
 .d-big{font-size:28px;font-weight:900;color:var(--navy)} .d-funnel{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;font-size:12.5px}
 .d-funnel>div{background:var(--navy-l);border-radius:20px;padding:4px 10px} .d-funnel>div.out{background:var(--rl);color:var(--red)} .d-funnel>div.ok{background:var(--gl);color:var(--green)}
 .svsub{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;white-space:normal;max-width:180px}
@@ -441,6 +442,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div class="acts"><button class="btn sec sm" onclick="ctCopy()">Salin tabel (untuk Excel)</button></div></div>
   <div class="card rep-bar"><div class="toolbar" style="margin:0">
     <select id="ct-v" onchange="ctLoad()"></select>
+    <select id="ct-rg" onchange="rgChange('ct', ctLoad)" title="Rentang waktu"><option value="">Semua waktu</option></select><span id="ct-rgd" class="rg-d" style="display:none"><input type="date" id="ct-dari" onchange="ctLoad()"> – <input type="date" id="ct-sampai" onchange="ctLoad()"></span>
     <select id="ct-st" onchange="ctLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
     <span style="flex:1"></span><span class="muted" id="ct-meta"></span></div></div>
   <div class="ct-cards" id="ct-cards"></div>
@@ -470,6 +472,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="card rep-bar">
     <div class="toolbar" style="margin:0">
       <select id="rp-v" onchange="repLoad(true)"></select>
+      <select id="rp-rg" onchange="rgChange('rp', repLoad)" title="Rentang waktu"><option value="">Semua waktu</option></select><span id="rp-rgd" class="rg-d" style="display:none"><input type="date" id="rp-dari" onchange="repLoad()"> – <input type="date" id="rp-sampai" onchange="repLoad()"></span>
       <select id="rp-st" onchange="repLoad()"><option value="Valid">Hanya jawaban valid</option><option value="all">Semua jawaban</option></select>
       <span class="muted">Saring:</span>
       <select id="rp-fc" onchange="repFilterVals()"><option value="">Semua responden</option></select>
@@ -1745,6 +1748,7 @@ function ctInit(tries) {
   var e = $('ct-v'), cur = e.value || (SV || 'v1');
   e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+  rgFill('ct');
   if (!CT || CT.v !== e.value) ctLoad();
 }
 function ctOpen(v) { navTo('ct'); $('ct-v').value = v; ctLoad(); }
@@ -1752,7 +1756,7 @@ function ctLoad() {
   var v = $('ct-v').value; if (!v) return;
   $('ct-tbl').innerHTML = '<p class="loading">Memuat data…</p>'; $('ct-ins').innerHTML = '<p class="muted">Memuat…</p>';
   ['ct-row', 'ct-col', 'ct-fq'].forEach(function (h) { $(h).innerHTML = '<input disabled placeholder="Memuat daftar pertanyaan…">'; });
-  run('adminCrosstab', v, $('ct-st').value).then(function (d) {
+  run('adminCrosstab', v, $('ct-st').value, rgVal('ct')).then(function (d) {
     if (!d || !d.qs || d.qs.length < 2) { CT = null; $('ct-tbl').innerHTML = '<p class="loading">Survei ini belum punya pertanyaan pilihan yang bisa disilangkan.</p>'; $('ct-ins').innerHTML = ''; return; }
     CT = d; CT.v = v; CTS.filters = {}; CTS.fq = null;
     var ix = function (id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; return null; };
@@ -1761,7 +1765,7 @@ function ctLoad() {
     var prof = /^(Profil|Screening|Tentang)/i;
     CTS.row = null; for (var i = 0; i < d.qs.length; i++) if (ban.indexOf(i) < 0 && !prof.test(d.qs[i].sect) && i !== CTS.col) { CTS.row = i; break; }
     if (CTS.row == null) CTS.row = CTS.col === 0 ? 1 : 0;
-    $('ct-meta').textContent = d.meta.n + ' responden · ' + d.meta.status + (d.meta.first ? ' · ' + d.meta.first + ' – ' + d.meta.last : '');
+    $('ct-meta').textContent = d.meta.n + ' responden · ' + d.meta.status + ' · ' + (d.meta.range || 'Semua waktu') + (d.meta.first ? ' (data ' + d.meta.first + ' – ' + d.meta.last + ')' : '');
     ctCombo('ct-row', function (i) { CTS.row = i; ctRender(); }, function () { return CTS.row; });
     ctCombo('ct-col', function (i) { CTS.col = i; ctRender(); }, function () { return CTS.col; });
     ctCombo('ct-fq', function (i) { CTS.fq = i; ctRender(); }, function () { return CTS.fq; }, 'Tambah filter: cari pertanyaan…');
@@ -1884,11 +1888,31 @@ function ctCopy() {
   try { navigator.clipboard.writeText(txt).catch(fb); } catch (e) { fb(); }
   toast('Tabel disalin — tempel di Excel / Google Sheets');
 }
+// ---------- rentang waktu (Laporan & Cross Tab) ----------
+function rgFill(pf) {
+  var e = $(pf + '-rg'), cur = e.value, ps = (SUM && SUM.periods) || [], act = SUM && SUM.activePeriod;
+  e.innerHTML = '<option value="">Semua waktu</option>' + ps.map(function (p) { return '<option value="p:' + esc(p) + '">' + esc(p) + (p === act ? ' (aktif)' : '') + '</option>'; }).join('') +
+    '<option value="d:7">7 hari terakhir</option><option value="d:30">30 hari terakhir</option><option value="custom">Pilih tanggal…</option>';
+  if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+}
+function rgChange(pf, fn) {
+  var c = $(pf + '-rg').value === 'custom'; $(pf + '-rgd').style.display = c ? '' : 'none';
+  if (c && !$(pf + '-dari').value) { $(pf + '-dari').focus(); return; }
+  fn();
+}
+function rgVal(pf) {
+  var v = $(pf + '-rg').value, ymd = function (ms) { return new Date(ms + 7 * 36e5).toISOString().slice(0, 10); };
+  if (!v) return null;
+  if (v.indexOf('p:') === 0) return { periode: v.slice(2) };
+  if (v.indexOf('d:') === 0) return { dari: ymd(Date.now() - (+v.slice(2) - 1) * 864e5), sampai: ymd(Date.now()) };
+  return { dari: $(pf + '-dari').value, sampai: $(pf + '-sampai').value };
+}
 function repInit(tries) {
   if (!SUM) { if ((tries || 0) < 120) setTimeout(function () { repInit((tries || 0) + 1); }, 500); return; }
   var e = $('rp-v'), cur = e.value || (SV || 'v1');
   e.innerHTML = SUM.surveys.filter(function (s) { return s.status !== 'Draf'; }).map(function (s) { return '<option value="' + s.v + '">' + esc(s.name) + '</option>'; }).join('');
   if ([].some.call(e.options, function (o) { return o.value === cur; })) e.value = cur;
+  rgFill('rp');
   repLoad(true);
 }
 function repOpen(v) { navTo('report'); $('rp-v').value = v; repLoad(true); }
@@ -1901,7 +1925,7 @@ function repFilterVals() {
 function repLoad(reset) {
   if (reset) { $('rp-fc').value = ''; $('rp-fv').style.display = 'none'; }
   $('rp-list').innerHTML = '<p class="loading">Menghitung laporan…</p>';
-  var opt = { status: $('rp-st').value, col: $('rp-fc').value, val: $('rp-fc').value ? $('rp-fv').value : '' };
+  var opt = { status: $('rp-st').value, col: $('rp-fc').value, val: $('rp-fc').value ? $('rp-fv').value : '', range: rgVal('rp') };
   run('adminReport', $('rp-v').value, opt).then(function (d) { REP = d; repDraw(reset); });
 }
 function pct(n, d) { return d ? Math.round(n / d * 1000) / 10 : 0; }
@@ -1913,7 +1937,7 @@ function repDraw(reset) {
     $('rp-fc').value = keep;
   }
   var flt = $('rp-fc').value ? ' · disaring: ' + $('rp-fc').value + ' = ' + $('rp-fv').value : '';
-  $('rp-meta').textContent = 'Diperbarui ' + d.generatedAt;
+  $('rp-meta').textContent = (d.range || 'Semua waktu') + ' · diperbarui ' + d.generatedAt;
   $('rp-kpi').innerHTML = '<div><span>Responden dalam laporan</span><b>' + fmt(d.total) + '</b><span>' + ($('rp-st').value === 'Valid' ? 'jawaban valid' : 'semua jawaban') + esc(flt) + '</span></div>' +
     '<div><span>Total jawaban masuk</span><b>' + fmt(d.all) + '</b><span>termasuk tidak valid & duplikat</span></div>' +
     '<div><span>Median waktu isi</span><b>' + d.medianMin + ' <small style="font-size:15px">mnt</small></b><span>responden dalam laporan</span></div>' +

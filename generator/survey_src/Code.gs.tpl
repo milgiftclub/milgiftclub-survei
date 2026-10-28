@@ -1191,6 +1191,20 @@ function periodeOf_(r) {
   for (var i = 0; i < ps.length; i++) { var g = periodRange_(ps[i]); if (d >= g.f && d <= g.t) return ps[i].label; }
   return r.periode_giveaway ? String(r.periode_giveaway) : '';
 }
+/** Rentang waktu Laporan / Cross Tab / API: { periode: 'Periode 1 2026' } atau { dari: 'yyyy-mm-dd', sampai: 'yyyy-mm-dd' } (WIB). Kosong = semua waktu. */
+function timeRange_(rg) {
+  rg = rg || {};
+  if (rg.periode) { var p = periods_().filter(function (x) { return x.label === rg.periode; })[0]; if (!p) throw new Error(rg.periode + ' tidak ditemukan di menu Periode Giveaway.'); var g = periodRange_(p); return { f: g.f, t: g.t, label: p.label + ' (' + tglID_(p.mulai) + ' – ' + tglID_(p.selesai) + ')' }; }
+  var D = /^\d{4}-\d{2}-\d{2}$/, f = D.test(rg.dari || '') ? new Date(rg.dari + 'T00:00:00+07:00') : null, t = D.test(rg.sampai || '') ? new Date(rg.sampai + 'T23:59:59+07:00') : null;
+  if (f && t && t < f) throw new Error('Tanggal "sampai" tidak boleh sebelum tanggal "dari".');
+  if (!f && !t) return null;
+  return { f: f, t: t, label: (f ? tglID_(rg.dari) : 'awal') + ' – ' + (t ? tglID_(rg.sampai) : 'sekarang') };
+}
+function tglID_(ymd) { var B = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], a = String(ymd).split('-'); return Number(a[2]) + ' ' + B[Number(a[1]) - 1] + ' ' + a[0]; }
+function inRange_(rows, rg) {
+  var g = timeRange_(rg); if (!g) return rows;
+  return rows.filter(function (r) { var d = new Date(r.timestamp); return (!g.f || d >= g.f) && (!g.t || d <= g.t); });
+}
 function rowsInPeriod_(rows, per) { return per ? rows.filter(function (r) { return periodeOf_(r) === per; }) : rows; }
 /** Menu Periode Giveaway */
 function adminPeriods() {
@@ -1331,9 +1345,9 @@ function ctGroup_(id, topic, custom) {
   return [CT_GROUPS[5], t];
 }
 /** Data ringkas untuk cross tab: hanya pertanyaan pilihan (tanpa teks bebas & data pribadi). Daftar pertanyaan tetap muncul walau belum ada jawaban. */
-function ctData_(v, status) {
+function ctData_(v, status, rg) {
   var c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
-  var rows = readAll_().filter(function (r) { return r._v === v && (status === 'all' || r.status === 'Valid'); });
+  var rows = inRange_(readAll_().filter(function (r) { return r._v === v && (status === 'all' || r.status === 'Valid'); }), rg);
   rows.forEach(function (r) { r.wilayah = wilayah_(r); if (!r.generasi) r.generasi = generasi_(r.S0); if (!r.segmen_hp) r.segmen_hp = segmenHp_(r); });
   var s = sheet_(respTab_(v)), header = s && s.getLastColumn() ? s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0] : [];
   var meta = reportMeta_(v), base = function (col) { return col.replace(/^L\d_/, ''); };
@@ -1380,7 +1394,7 @@ function ctShort_(t) {
   t = String(t || '').replace(/\s*\((boleh|pilih|maks)[^)]*\)\s*/gi, ' ').replace(/[?.]+\s*$/, '').trim();
   return t.length > 60 ? t.slice(0, 57).replace(/\s+\S*$/, '') + '…' : t;
 }
-function adminCrosstab(v, status) { requireAdmin_(); return ctData_(v, status); }
+function adminCrosstab(v, status, rg) { requireAdmin_(); var d = ctData_(v, status, rg), g = timeRange_(rg); d.meta.range = g ? g.label : 'Semua waktu'; return d; }
 function ctIdx_(d, id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; throw new Error('Pertanyaan tidak ditemukan: ' + id + '. Lihat daftar di ?api=questions'); }
 
 // ====== INSTAGRAM: CEK KOMENTAR & TAG DI POSTINGAN GIVEAWAY ======
@@ -1576,7 +1590,7 @@ function apiGet_(p) {
         .map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { if (API_HIDE.indexOf(k) < 0) o[k] = iso_(r[k]); }); o.survei_id = r._v; return o; });
     } else if (p.api === 'questions' || p.api === 'crosstab' || p.api === 'insights') {
       if (v === 'all') throw new Error('Isi parameter survei, mis. &survei=v1');
-      var cd = ctData_(v, p.status === 'all' ? 'all' : 'Valid');
+      var cd = ctData_(v, p.status === 'all' ? 'all' : 'Valid', { periode: p.periode, dari: p.dari, sampai: p.sampai });
       if (p.api === 'questions') out = { n: cd.meta.n, banners: cd.banners, questions: cd.qs.map(function (q) { return { id: q.id, text: q.text, section: q.sect, multi: q.multi, answers: q.cats }; }) };
       else if (p.api === 'crosstab') out = CT_LIB.table(cd.qs, cd.data, ctIdx_(cd, p.row), ctIdx_(cd, p.col || 'S1'), { mode: p.mode || 'col', sort: p.sort });
       else out = { n: cd.meta.n, insights: CT_LIB.insights(cd.qs, cd.data, { banners: p.banners ? String(p.banners).split(',') : cd.banners, max: Number(p.max) || 8 }) };
@@ -1836,7 +1850,7 @@ function reportMeta_(v) {
 function adminReport(v, opt) { requireAdmin_(); return adminReportCore_(v, opt); }
 function adminReportCore_(v, opt) {
   opt = opt || {};
-  var all = readAll_().filter(function (r) { return r._v === v; });
+  var all = inRange_(readAll_().filter(function (r) { return r._v === v; }), opt.range), g = timeRange_(opt.range);
   var rows = all.filter(function (r) { return opt.status === 'all' || r.status === 'Valid'; });
   var has = function (val, x) { return String(val == null ? '' : val).split(' | ').indexOf(String(x)) >= 0; };
   if (opt.col && opt.val) rows = rows.filter(function (r) { return has(r[opt.col], opt.val); });
@@ -1896,7 +1910,7 @@ function adminReportCore_(v, opt) {
     return item;
   }).filter(function (q) { return q.answered || (q.rows && q.rows.length); });
   var durs = rows.map(function (r) { return Number(r.durasi_detik) || 0; }).filter(Boolean).sort(function (a, b) { return a - b; });
-  return { survey: (surveyList_().filter(function (x) { return x.v === v; })[0] || {}).name, total: rows.length, all: all.length,
+  return { range: g ? g.label : 'Semua waktu', survey: (surveyList_().filter(function (x) { return x.v === v; })[0] || {}).name, total: rows.length, all: all.length,
     medianMin: durs.length ? Math.round(durs[Math.floor(durs.length / 2)] / 6) / 10 : 0, generatedAt: iso_(new Date()), questions: res, filterable: filterable };
 }
 
