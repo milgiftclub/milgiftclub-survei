@@ -1263,36 +1263,27 @@ function panelSet_(crit) {
 function panelById_(id) { var p = panelSavedRaw_().filter(function (x) { return x.id === id; })[0]; if (!p) throw new Error('Panel tidak ditemukan (mungkin sudah dihapus).'); return p; }
 /** Insight panel: sebaran jawaban anggota panel dibanding semua responden survei, dikelompokkan per kelompok pertanyaan. */
 function adminPanelInsight(crit, v) { return cached_(function () { return adminPanelInsightRaw_(crit, v); }); }
-function adminPanelInsightRaw_(crit, v) {
-  requireAdmin_(); v = 'all';   // insight panel selalu memakai semua survei (makin banyak survei, makin banyak insight)
-  var snapAll = snapGet_('ct:all'), cd = snapAll ? { qs: snapAll.qs, data: snapAll.data, meta: snapAll.meta, _wa: snapGet_('wa:all') } : ctDataAll_('Valid', null, null, true);
-  var ps = panelSet_(crit), seg = cd._wa.map(function (k) { return !!ps.set[k]; });
-  var nSeg = seg.filter(Boolean).length, critSrc = {};
+/** Kriteria panel -> id pertanyaan yang tidak dihitung sebagai pembeda (termasuk turunannya). */
+function panelCritSrc_(crit) {
+  var critSrc = {};
   (crit || []).forEach(function (k) { var d = PANEL_COLS.filter(function (c) { return c[0] === k.col; })[0]; if (d && d[1]) critSrc[String(d[1]).replace(/^L\d_/, '')] = 1; });
   // pertanyaan turunan dari kriteria juga dianggap kriteria (mis. usia -> generasi, pengeluaran -> SES)
   var REL = { S1: ['generasi', 'S0'], S0: ['generasi', 'S1'], generasi: ['S1', 'S0'], A7: ['ses', 'kelas_ekonomi'], A7N: ['ses', 'kelas_ekonomi'], ses: ['kelas_ekonomi', 'A7'], kelas_ekonomi: ['ses', 'A7'], A13: ['segmen_hp'], A13H: ['segmen_hp'], segmen_hp: ['A13', 'A13H'], A1: ['wilayah', 'provinsi'], provinsi: ['wilayah'], jabodetabek: ['wilayah'], A4M: ['A4'], A4N: ['A4'], A4K: ['A4'] };
   Object.keys(critSrc).forEach(function (k) { (REL[k] || []).forEach(function (x) { critSrc[x] = 1; }); });
-  var groups = [], gi = {}, top = [];
-  cd.qs.forEach(function (q, qi) {
-    var nc = q.cats.length, cs = [], ca = [], bs = 0, ba = 0, k;
-    for (k = 0; k < nc; k++) { cs.push(0); ca.push(0); }
-    cd.data.forEach(function (row, ri) { var a = row[qi]; if (!a || !a.length) return; ba++; if (seg[ri]) bs++; a.forEach(function (x) { ca[x]++; if (seg[ri]) cs[x]++; }); });
-    if (!bs) return;
-    var isCrit = !!critSrc[q.id.replace(/^L\d_/, '').split(': ')[0]];
-    var items = q.cats.map(function (cat, x) {
-      var pS = cs[x] / bs, pA = ca[x] / ba, nR = ba - bs, pR = nR ? (ca[x] - cs[x]) / nR : 0, pp = ca[x] / ba;
-      var se = Math.sqrt(pp * (1 - pp) * (1 / bs + 1 / Math.max(1, nR))), z = se > 0 && nR > 0 ? (pS - pR) / se : 0;
-      return { cat: cat, n: cs[x], pSeg: Math.round(pS * 1000) / 10, pAll: Math.round(pA * 1000) / 10, diff: Math.round((pS - pA) * 1000) / 10, sig: Math.abs(z) >= 1.96 && bs >= 10 };
-    }).filter(function (it) { return it.n > 0 || it.pAll >= 5; });
-    items.sort(function (a, b) { return b.pSeg - a.pSeg; });
-    var it = { id: q.id, label: q.survei ? q.text.replace(' (' + q.survei + ')', '') : q.text, survei: q.survei || '', full: q.full, multi: q.multi, base: bs, kriteria: isCrit, items: items.slice(0, 6), more: Math.max(0, items.length - 6) };
-    if (!isCrit) items.forEach(function (c) { if (c.sig && Math.abs(c.diff) >= 10 && (c.pSeg >= 10 || c.pAll >= 10)) top.push({ label: q.text, group: q.group, cat: c.cat, pSeg: c.pSeg, pAll: c.pAll, diff: c.diff }); });
-    if (gi[q.group] == null) { gi[q.group] = groups.length; groups.push({ name: q.group, qs: [] }); }
-    groups[gi[q.group]].qs.push(it);
-  });
-  top.sort(function (a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
-  var seen = {}; top = top.filter(function (t) { if (seen[t.label]) return false; seen[t.label] = 1; return true; }).slice(0, 8);
-  return { nPanel: ps.n, nSeg: nSeg, nAll: cd.meta.n, survei: v === 'all' ? 'Semua survei (gabungan)' : (surveyList_().filter(function (x) { return x.v === v; })[0] || {}).name || v, groups: groups, top: top };
+  return critSrc;
+}
+function adminPanelInsightRaw_(crit, v) {
+  requireAdmin_();
+  var snapAll = snapGet_('ct:all'), cd = snapAll ? { qs: snapAll.qs, data: snapAll.data, meta: snapAll.meta, _wa: snapGet_('wa:all') } : ctDataAll_('Valid', null, null, true);
+  var ps = panelSet_(crit), seg = cd._wa.map(function (k) { return !!ps.set[k]; });
+  var d = CT_LIB.panelInsight(cd, seg, panelCritSrc_(crit)); d.nPanel = ps.n; d.survei = 'Semua survei (gabungan)'; return d;
+}
+/** Versi cepat: hanya nomor baris anggota panel di snapshot; perhitungan insight dilakukan di browser. */
+function adminPanelRows(crit) {
+  requireAdmin_();
+  var sn = snapRead_(), wa = sn ? snapGet_('wa:all') : null; if (!wa) return { fallback: true };
+  var ps = panelSet_(crit), rows = []; wa.forEach(function (k, i) { if (ps.set[k]) rows.push(i); });
+  return { rows: rows, nPanel: ps.n, crit: panelCritSrc_(crit), snapAt: sn.meta.at };
 }
 
 /** Daftar Blokir. */

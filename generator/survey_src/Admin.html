@@ -951,11 +951,17 @@ function pnDelete() {
   if (!PCUR || !confirm('Hapus panel "' + PCUR.name + '"? Data responden tidak ikut terhapus.')) return;
   run('adminPanelDelete', PCUR.id).then(function (l) { PCUR = null; pnRefreshSaved(l); toast('Panel dihapus'); });
 }
-var PIG = 0;
+var PIG = 0, PIDATA = null;
 function pnInsight() {
   var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet), my = ++PIG;
   $('pn-ins').innerHTML = '<p class="loading">Menghitung insight…</p>';
-  run('adminPanelInsight', crit, 'all').then(function (d) {
+  // cepat: data gabungan diambil sekali dari snapshot (disimpan di browser), anggota panel cukup nomor barisnya
+  var viaSnap = run('adminPanelRows', crit).then(function (r) {
+    if (r.fallback) return run('adminPanelInsight', crit, 'all');
+    var get = PIDATA && PIDATA.snapAt === r.snapAt ? Promise.resolve(PIDATA) : run('adminCrosstab', 'all', 'Valid', null).then(unpack).then(function (cd) { PIDATA = cd; PIDATA.snapAt = r.snapAt; return cd; });
+    return get.then(function (cd) { var seg = new Array(cd.data.length); r.rows.forEach(function (i) { seg[i] = true; }); var d = CT_LIB.panelInsight(cd, seg, r.crit); d.nPanel = r.nPanel; return d; });
+  });
+  viaSnap.then(function (d) {
     if (my !== PIG) return;
     if (!d.nSeg) { $('pn-ins').innerHTML = '<p class="loading">Belum ada jawaban survei ini dari anggota panel.</p>'; return; }
     var pc = function (x) { return String(x).replace('.', ',') + '%'; };

@@ -36,6 +36,31 @@ var CT_LIB = {
     return { row: { id: rq.id, text: rq.text, multi: !!rq.multi }, col: { id: cq.id, text: cq.text, multi: !!cq.multi }, mode: mode, base: totN,
       cols: cols.map(function (c) { return { name: c.name, n: c.n, small: c.n < 10 }; }), lines: lines };
   },
+  /** Insight panel: sebaran jawaban anggota (seg[i] = true) vs semua responden, per kelompok pertanyaan. */
+  panelInsight: function (cd, seg, critSrc) {
+    var nSeg = 0; for (var s0 = 0; s0 < seg.length; s0++) if (seg[s0]) nSeg++;
+    var groups = [], gi = {}, top = [];
+    cd.qs.forEach(function (q, qi) {
+      var nc = q.cats.length, cs = [], ca = [], bs = 0, ba = 0, k, ri, a, j;
+      for (k = 0; k < nc; k++) { cs.push(0); ca.push(0); }
+      for (ri = 0; ri < cd.data.length; ri++) { a = cd.data[ri][qi]; if (!a || !a.length) continue; ba++; if (seg[ri]) bs++; for (j = 0; j < a.length; j++) { ca[a[j]]++; if (seg[ri]) cs[a[j]]++; } }
+      if (!bs) return;
+      var isCrit = !!critSrc[q.id.replace(/^[^/]*\//, '').replace(/^L\d_/, '').split(': ')[0]];
+      var items = q.cats.map(function (cat, x) {
+        var pS = cs[x] / bs, pA = ca[x] / ba, nR = ba - bs, pR = nR ? (ca[x] - cs[x]) / nR : 0, pp = ca[x] / ba;
+        var se = Math.sqrt(pp * (1 - pp) * (1 / bs + 1 / Math.max(1, nR))), z = se > 0 && nR > 0 ? (pS - pR) / se : 0;
+        return { cat: cat, n: cs[x], pSeg: Math.round(pS * 1000) / 10, pAll: Math.round(pA * 1000) / 10, diff: Math.round((pS - pA) * 1000) / 10, sig: Math.abs(z) >= 1.96 && bs >= 10 };
+      }).filter(function (it) { return it.n > 0 || it.pAll >= 5; });
+      items.sort(function (a, b) { return b.pSeg - a.pSeg; });
+      var it = { id: q.id, label: q.survei ? q.text.replace(' (' + q.survei + ')', '') : q.text, survei: q.survei || '', full: q.full, multi: q.multi, base: bs, kriteria: isCrit, items: items.slice(0, 6), more: Math.max(0, items.length - 6) };
+      if (!isCrit) items.forEach(function (c) { if (c.sig && Math.abs(c.diff) >= 10 && (c.pSeg >= 10 || c.pAll >= 10)) top.push({ label: q.text, group: q.group, cat: c.cat, pSeg: c.pSeg, pAll: c.pAll, diff: c.diff }); });
+      if (gi[q.group] == null) { gi[q.group] = groups.length; groups.push({ name: q.group, qs: [] }); }
+      groups[gi[q.group]].qs.push(it);
+    });
+    top.sort(function (a, b) { return Math.abs(b.diff) - Math.abs(a.diff); });
+    var seen = {}; top = top.filter(function (t) { if (seen[t.label]) return false; seen[t.label] = 1; return true; }).slice(0, 8);
+    return { nSeg: nSeg, nAll: cd.meta.n, groups: groups, top: top };
+  },
   pct: function (a, b) { return b ? Math.round(a / b * 1000) / 10 : null; },
   /** Temuan otomatis: kelompok (banner) yang jawabannya berbeda nyata dari rata-rata. o: { banners: [id], minBase, max, rows } */
   insights: function (qs, data, o) {
