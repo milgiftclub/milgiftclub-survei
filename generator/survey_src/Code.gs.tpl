@@ -1213,7 +1213,11 @@ function summaryData_(per) {
 function adminSummary(per) {
   requireAdmin_(); ensureSnapTrigger_();
   var sn = snapRead_(), act = activePeriode_(null);
-  if (sn && sn.meta.active === act && (per == null || per === act)) { var d = snapGet_('summary'); if (d) { d.snapAt = sn.meta.at; d.fromSnap = true; return d; } }
+  if (sn && sn.meta.active === act && (per == null || per === act)) {
+    var d = snapGet_('summary'), now = surveyList_().map(function (x) { return x.v + x.status; }).join(',');
+    // daftar survei berubah (survei baru/ditutup) sejak snapshot dibuat -> pakai data langsung supaya sidebar tidak ketinggalan
+    if (d && (d.surveys || []).map(function (x) { return x.v + x.status; }).join(',') === now) { d.snapAt = sn.meta.at; d.fromSnap = true; return d; }
+  }
   return cached_(function () { var d = adminSummaryRaw_(per); d.snapAt = sn ? sn.meta.at : ''; return d; });
 }
 function adminSummaryRaw_(per) { requireAdmin_(); if (per == null) per = activePeriode_(null); var d = summaryData_(per); d.periode = per; d.periods = periods_().map(function (p) { return p.label; }); d.activePeriod = activePeriode_(null); return d; }
