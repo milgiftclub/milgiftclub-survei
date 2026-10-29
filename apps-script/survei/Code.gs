@@ -1827,7 +1827,7 @@ function ctGroup_(id, topic, custom) {
   if (/^Lanskap|^Tren/i.test(t)) return [CT_GROUPS[1], t.replace(/^Tren & Perilaku Baru$/, 'Tren & perilaku baru').replace(/^Lanskap Platform$/, 'Platform belanja')];
   if (/^(Penetrasi|Funneling - Produk|Belanja terakhir)/i.test(t) || b === 'kategori_1') return [CT_GROUPS[2], ''];
   if (/^Funneling - /i.test(t)) return [CT_GROUPS[3], t.replace(/^Funneling - /i, '')];
-  if (custom) return [CT_GROUPS[4], ''];
+  if (custom) return /^§/.test(t) ? [t.slice(1).toUpperCase(), ''] : [CT_GROUPS[4], ''];
   return [CT_GROUPS[5], t];
 }
 /** Data ringkas untuk cross tab: hanya pertanyaan pilihan (tanpa teks bebas & data pribadi). Daftar pertanyaan tetap muncul walau belum ada jawaban. */
@@ -1866,11 +1866,11 @@ function ctData_(v, status, rg, panelId, withWa) {
     var multi = vals.some(function (a) { return a.length > 1; }) || m.type === 'multi' || /\(boleh pilih|maksimal \d/i.test(m.text || '');
     var g = ctGroup_(col, m.topic, !!c && !/^(S\d|A\d|ses|kelas|wilayah|segmen_hp|generasi)/.test(base(id)));
     var full = String(m.text || id), lab = CT_LABELS[base(id)] || (c && ctCustomLabel_(c, base(id))) || ctShort_(full);
-    qs.push({ id: col, text: lab + (mx ? ' — ' + mx[2] : ''), full: full + (mx ? ' — ' + mx[2] : ''), sect: m.topic || 'Lainnya', group: g[0], sub: g[1], multi: multi, cats: cats, _vals: vals });
+    qs.push({ id: col, text: lab + (mx ? ' — ' + mx[2] : ''), full: full + (mx ? ' — ' + mx[2] : ''), sect: String(m.topic || 'Lainnya').replace(/^§/, ''), group: g[0], sub: g[1], multi: multi, cats: cats, _vals: vals });
   });
   // urutkan per kelompok (profil dulu), urutan kuesioner tetap di dalam kelompok
   var PO = ['S1', 'generasi', 'S2', 'wilayah', 'A18', 'A19', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7N', 'A7', 'ses', 'kelas_ekonomi', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A13H', 'segmen_hp', 'A14', 'A15', 'A16', 'S3'];
-  qs.forEach(function (q, i) { var p = PO.indexOf(q.id); q._o = CT_GROUPS.indexOf(q.group) * 1000 + (q.group === CT_GROUPS[0] && p >= 0 ? p : 100 + i); });
+  qs.forEach(function (q, i) { var p = PO.indexOf(q.id); q._o = (CT_GROUPS.indexOf(q.group) < 0 ? 4 : CT_GROUPS.indexOf(q.group)) * 1000 + (q.group === CT_GROUPS[0] && p >= 0 ? p : 100 + i); });
   qs.sort(function (a, b) { return a._o - b._o; });
   qs.forEach(function (q, qi) { q.no = qi + 1; var ix = {}; q.cats.forEach(function (c, i) { ix[c] = i; });
     q._vals.forEach(function (a, i) { if (!a.length) { data[i][qi] = CT_EMPTY; return; } var o = []; for (var j = 0; j < a.length; j++) { var k = ix[a[j]]; if (k != null) o.push(k); } data[i][qi] = o; }); delete q._vals; delete q._o; });
@@ -1897,7 +1897,7 @@ function ctDataAll_(status, rg, panelId, withWa) {
       var prof = q.group === CT_GROUPS[0], key = prof ? q.id : sv.v + '/' + q.id, gix = CT_GROUPS.indexOf(q.group), own = gix < 0 || gix === 4;
       var grp = prof ? q.group : own ? 'SURVEI ' + sv.name.replace(/^survei\s+/i, '').toUpperCase() : q.group;   // kelompok topik; survei buatan Dashboard punya kelompok sendiri
       var m = Q[key];
-      if (!m) { m = Q[key] = { id: key, text: prof ? q.text : q.text + ' (' + sv.name + ')', full: q.full, sect: q.sect, group: grp, sub: prof ? q.sub : sv.name + (q.sub ? ' · ' + q.sub : ''), survei: prof ? '' : sv.name, multi: q.multi, cats: [],
+      if (!m) { m = Q[key] = { id: key, text: prof ? q.text : q.text + ' (' + sv.name + ')', full: q.full, sect: q.sect, group: grp, sub: prof ? q.sub : sv.name + (q.sub ? ' · ' + q.sub : gix < 0 ? ' · ' + q.group.charAt(0) + q.group.slice(1).toLowerCase() : ''), survei: prof ? '' : sv.name, multi: q.multi, cats: [],
         _o: prof ? order.length : own ? (4 + svi / 1000) * 1000000 + qi : (gix === 5 ? 9 : gix) * 1000000 + svi * 1000 + qi }; order.push(key); }
       if (q.multi) m.multi = true;
       cd.data.forEach(function (row, ri) {
@@ -2393,7 +2393,7 @@ function reportMeta_(v) {
   if (c) (c.schema.questions || []).forEach(function (q) {
     var o = (q.options || []).map(function (x) { return x.t; }).filter(String);
     if (q.type === 'scale') { o = []; var sc = q.scale || {}; for (var n = Number(sc.min == null ? 1 : sc.min); n <= Number(sc.max || 5); n++) o.push(String(n)); }
-    meta[q.id] = { text: q.text, topic: c.name, opts: o.length ? o : null, type: q.type };
+    meta[q.id] = { text: q.text, topic: q.topic ? '§' + q.topic : c.name, opts: o.length ? o : null, type: q.type };
   });
   meta.provinsi = { text: 'Provinsi (otomatis dari kota)', topic: 'Profil' };
   meta.kelas_ekonomi = { text: 'Kelas ekonomi (otomatis: pengeluaran per kapita vs garis kemiskinan BPS)', topic: 'Profil', opts: SES_KELAS };
@@ -2664,40 +2664,43 @@ function simAnswers_(v, p, r) {
   a.Z1 = r() < 0.55 ? 'Ya, bersedia' : 'Tidak';
   return a;
 }
-function simTarget_(v, info) { return v === 'custom' ? info.customId : v; }
+function simTarget_(v, info) { return v === 'custom' ? info.customId : v === 'onycha' ? info.onyId : v; }
+function simPlan_(info) { var p = info && info.hanyaOny ? [] : SIM_PLAN.slice(); if (info && info.onyId) p.push({ v: 'onycha', n: SIM_ONY_N, from: 3000, wanita: 0.85 }); return p; }
 /** Mulai simulasi: buat survei contoh (buatan Dashboard) & simpan rencana. */
 function adminSimulasiMulai() {
   requireAdmin_();
   var info = simInfo_(); if (info && !info.selesai) return adminSimulasiStatus();
-  if (info && info.selesai) throw new Error('Data simulasi sudah ada. Hapus dulu sebelum mengisi ulang.');
+  if (info && info.selesai && !info.hanyaOny) throw new Error('Data simulasi sudah ada. Hapus dulu sebelum mengisi ulang.');
   var cs = adminBuilderSave({ name: 'Survei Skincare (Simulasi)', target: 3000, intro: 'Survei contoh untuk simulasi.', questions: [
     { id: 'Q1', text: 'Merek skincare apa yang paling sering Anda pakai?', type: 'single', options: ['Wardah', 'Skintific', 'Somethinc', 'Emina', 'Azarine', 'Scarlett', 'The Originote', 'Lainnya'].map(function (t) { return { t: t }; }) },
     { id: 'Q2', text: 'Di mana Anda biasanya membeli skincare?', type: 'multi', options: ['Shopee', 'TikTok Shop', 'Tokopedia', 'Watsons / Guardian', 'Minimarket', 'Official store brand'].map(function (t) { return { t: t }; }) },
     { id: 'Q3', text: 'Berapa pengeluaran skincare Anda per bulan?', type: 'single', options: ['< Rp100rb', 'Rp100–250rb', 'Rp250–500rb', '> Rp500rb'].map(function (t) { return { t: t }; }) }] }, true);
   setCustomStatus_(cs.id, 'Dibuka'); CUSTOM_MEMO_ = null;
-  simSave_({ customId: cs.id, step: 0, pos: {}, done: 0, selesai: false, mulai: new Date().toISOString(), oleh: viewer_() });
+  if (info && info.hanyaOny) { info.customId = cs.id; info.hanyaOny = false; info.panel = false; info.selesai = false; simSave_(info); }
+  else simSave_({ customId: cs.id, step: 0, pos: {}, done: 0, selesai: false, mulai: new Date().toISOString(), oleh: viewer_() });
   return adminSimulasiStatus();
 }
 function adminSimulasiStatus() {
-  requireAdmin_(); var info = simInfo_(), total = SIM_PLAN.reduce(function (a, p) { return a + p.n; }, 0);
-  return { ada: !!info, selesai: !!(info && info.selesai), done: info ? info.done : 0, total: total, panel: !!(info && info.panel), mulai: info ? info.mulai : '' };
+  requireAdmin_(); var info = simInfo_(), plan = simPlan_(info), total = plan.reduce(function (a, p) { return a + p.n; }, 0);
+  return { ada: !!info, selesai: !!(info && info.selesai), done: info ? info.done : 0, total: total, panel: !!(info && info.panel), mulai: info ? info.mulai : '', onycha: !!(info && info.onyId), hanyaOny: !!(info && info.hanyaOny) };
 }
 /** Satu tahap: menulis SIM_BATCH jawaban sekaligus. Dipanggil berulang dari Dashboard sampai selesai. */
 function adminSimulasiBatch() {
   requireAdmin_(); var info = simInfo_(); if (!info) throw new Error('Simulasi belum dimulai.');
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
-    var plan = null, k; for (k = 0; k < SIM_PLAN.length; k++) { if ((info.pos[SIM_PLAN[k].v] || 0) < SIM_PLAN[k].n) { plan = SIM_PLAN[k]; break; } }
+    var PL = simPlan_(info), plan = null, k; for (k = 0; k < PL.length; k++) { if ((info.pos[PL[k].v] || 0) < PL[k].n) { plan = PL[k]; break; } }
     if (!plan) { if (!info.panel) simFinish_(info); info.selesai = true; simSave_(info); return adminSimulasiStatus(); }
-    var v = simTarget_(plan.v, info), cs = plan.v === 'custom' ? customById_(info.customId) : null;
+    var v = simTarget_(plan.v, info), cs = plan.v === 'custom' || plan.v === 'onycha' ? customById_(v) : null, onyQs = plan.v === 'onycha' ? cs.schema.questions : null;
     if (cs) ensureCustomTab_(cs);
     var s = sheet_(respTab_(v)), header = s.getRange(1, 1, 1, Math.max(1, s.getLastColumn())).getValues()[0].filter(String);
     var sname = cs ? cs.name : CONFIG.SURVEY_NAME, start = new Date('2026-10-01T08:00:00+07:00').getTime(), span = Math.max(3600e3, Date.now() - start);
     var objs = [], idx = info.cur && info.cur[plan.v] != null ? info.cur[plan.v] : plan.from, made = info.pos[plan.v] || 0;
     while (objs.length < SIM_BATCH && made < plan.n) {
-      var p = simPerson_(idx++); if (plan.wanita && p.S2 !== 'Wanita') continue;
+      var p = simPerson_(idx++); if (plan.wanita === true && p.S2 !== 'Wanita') continue; if (plan.wanita && plan.wanita !== true && p.S2 !== 'Wanita' && simRng_(p.i * 13 + 7)() < plan.wanita) continue;
       var r = simRng_(p.i * 31 + plan.v.length * 1009 + 5);
-      var a = plan.v === 'custom' ? simAnswers_('v1', p, r) : simAnswers_(plan.v, p, r);
+      var a = plan.v === 'custom' || plan.v === 'onycha' ? simAnswers_('v1', p, r) : simAnswers_(plan.v, p, r);
+      if (plan.v === 'onycha') { var keepO = {}; Object.keys(a).forEach(function (x) { if (/^(O1|Z1|Z2|Z3|QC1|S\d|A\d|provinsi|tipe_wilayah|jabodetabek)/.test(x)) keepO[x] = a[x]; }); a = keepO; var oa = simOnyAnswers_(onyQs, p, r); Object.keys(oa).forEach(function (x) { a[x] = oa[x]; }); }
       if (plan.v === 'custom') {   // survei buatan Dashboard: profil + 3 pertanyaan sendiri
         var keepP = {}; Object.keys(a).forEach(function (x) { if (/^(O1|Z1|Z2|Z3|QC1|S\d|A\d|provinsi|tipe_wilayah|jabodetabek)/.test(x)) keepP[x] = a[x]; }); a = keepP;
         a.Q1 = ['Wardah', 'Skintific', 'Somethinc', 'Emina', 'Azarine', 'Scarlett', 'The Originote', 'Lainnya'][Math.floor(Math.pow(r(), 1.5) * 8)];
@@ -2713,7 +2716,7 @@ function adminSimulasiBatch() {
       var gen = generasi_(a.S0); if (gen) a.generasi = gen;
       var ts = new Date(start + Math.pow(r(), 0.8) * span), flat = flatten_(a);
       var row = { timestamp: ts, survei: sname, varian: varianLabel_(v), versi_kuesioner: 'simulasi', session_id: 'SIM-' + plan.v + '-' + p.i, status: status,
-        durasi_detik: speed ? 60 + Math.floor(r() * 60) : Math.round(240 + Math.pow(r(), 0.7) * 600), kategori_1: a.C1 || '', kategori_2: '',
+        durasi_detik: speed ? 60 + Math.floor(r() * 60) : plan.v === 'onycha' ? Math.round(560 + Math.pow(r(), 0.7) * 700) : Math.round(240 + Math.pow(r(), 0.7) * 600), kategori_1: a.C1 || '', kategori_2: '',
         attention_check: att ? 'Lulus' : 'Gagal', wa_normal: p.wa, ig_normal: p.ig, profil_dari_survei_sebelumnya: '', periode_giveaway: activePeriode_(cs), profil_diperbarui: ts,
         sumber: ['ig_story', 'linktree', 'ig_bio', 'langsung', 'wa'][Math.floor(Math.pow(r(), 1.4) * 5)], device_fp: '', user_agent: 'simulasi' };
       Object.keys(flat).forEach(function (x) { row[x] = flat[x]; });
@@ -2724,10 +2727,1008 @@ function adminSimulasiBatch() {
     if (addL.length) { s.getRange(1, header.length + 1, 1, addL.length).setValues([addL]).setFontWeight('bold'); header = header.concat(addL); }
     var vals = objs.map(function (o) { return header.map(function (h) { return h in o ? o[h] : ''; }); });
     if (vals.length) s.getRange(s.getLastRow() + 1, 1, vals.length, header.length).setValues(vals);
-    info.pos[plan.v] = made; info.cur = info.cur || {}; info.cur[plan.v] = idx; info.done = SIM_PLAN.reduce(function (t, x) { return t + (info.pos[x.v] || 0); }, 0);
+    info.pos[plan.v] = made; info.cur = info.cur || {}; info.cur[plan.v] = idx; info.done = PL.reduce(function (t, x) { return t + (info.pos[x.v] || 0); }, 0);
     simSave_(info);
     return adminSimulasiStatus();
   } finally { lock.releaseLock(); }
+}
+// ---- simulasi survei contoh Onycha vs Zara (10.000 jawaban, pola dibuat masuk akal) ----
+var SURVEY_TEMPLATES = {
+ "onycha-zara": {
+  "judul": "Onycha vs Zara: persepsi brand lokal vs internasional",
+  "ringkas": "Contoh survei kompleks untuk brand fashion: kebiasaan belanja, awareness & pembelian, rating atribut kedua brand, head-to-head, sikap terhadap brand lokal, dan uji konsep koleksi.",
+  "name": "Survei Fashion: Brand Lokal vs Internasional",
+  "intro": "Kami ingin memahami pilihan fashion kamu, terutama brand lokal dan internasional. Jawab sesuai pengalaman pribadi, tidak ada jawaban benar atau salah.",
+  "estimasi": 14,
+  "kupon": 3,
+  "questions": [
+   {
+    "text": "Dalam 3 bulan terakhir, seberapa sering Anda membeli pakaian (atasan, bawahan, dress, outer)?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Lebih dari 1 kali sebulan"
+     },
+     {
+      "t": "Sekitar 1 kali sebulan"
+     },
+     {
+      "t": "2–3 kali dalam 3 bulan"
+     },
+     {
+      "t": "1 kali dalam 3 bulan"
+     },
+     {
+      "t": "Tidak membeli sama sekali",
+      "screen": true
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "label": "Frekuensi beli pakaian"
+   },
+   {
+    "text": "Biasanya Anda membeli pakaian di mana?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Shopee"
+     },
+     {
+      "t": "TikTok Shop"
+     },
+     {
+      "t": "Tokopedia"
+     },
+     {
+      "t": "Website / aplikasi resmi brand"
+     },
+     {
+      "t": "Instagram brand"
+     },
+     {
+      "t": "Toko fisik di mal"
+     },
+     {
+      "t": "Butik / toko independen"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "max": 3,
+    "label": "Tempat beli pakaian"
+   },
+   {
+    "text": "Berapa rata-rata harga satu potong pakaian yang biasa Anda beli?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Di bawah Rp150.000"
+     },
+     {
+      "t": "Rp150.000 – Rp300.000"
+     },
+     {
+      "t": "Rp300.001 – Rp500.000"
+     },
+     {
+      "t": "Rp500.001 – Rp1.000.000"
+     },
+     {
+      "t": "Di atas Rp1.000.000"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "label": "Harga per item"
+   },
+   {
+    "text": "Untuk acara apa Anda paling sering membeli pakaian?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Kerja / kantor"
+     },
+     {
+      "t": "Sehari-hari / santai"
+     },
+     {
+      "t": "Acara formal / kondangan"
+     },
+     {
+      "t": "Hangout / nongkrong"
+     },
+     {
+      "t": "Ibadah / acara keagamaan"
+     },
+     {
+      "t": "Liburan"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "max": 3,
+    "label": "Acara pemakaian"
+   },
+   {
+    "text": "Gaya berpakaian mana yang paling menggambarkan Anda?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Klasik & elegan (tailored, rapi)"
+     },
+     {
+      "t": "Minimalis (warna netral, potongan simpel)"
+     },
+     {
+      "t": "Trendy (ikut tren terbaru)"
+     },
+     {
+      "t": "Feminin (detail manis, bunga, renda)"
+     },
+     {
+      "t": "Kasual & sporty"
+     },
+     {
+      "t": "Modest / tertutup"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "label": "Gaya berpakaian"
+   },
+   {
+    "text": "Apa yang paling Anda pertimbangkan saat membeli pakaian?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harga"
+     },
+     {
+      "t": "Kualitas bahan"
+     },
+     {
+      "t": "Model sedang tren"
+     },
+     {
+      "t": "Potongan / fitting"
+     },
+     {
+      "t": "Bisa dipadupadankan"
+     },
+     {
+      "t": "Merek"
+     },
+     {
+      "t": "Ramah lingkungan / bahan alami"
+     },
+     {
+      "t": "Ulasan pembeli lain"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "max": 3,
+    "label": "Pertimbangan utama"
+   },
+   {
+    "text": "Merek fashion mana saja yang Anda KENAL?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Pull&Bear"
+     },
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Erigo"
+     }
+    ],
+    "topic": "Kenal & pernah beli",
+    "label": "Merek yang dikenal",
+    "random": true
+   },
+   {
+    "text": "Merek mana saja yang pernah Anda BELI dalam 12 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Pull&Bear"
+     },
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "Tidak satu pun dari merek di atas",
+      "exclusive": true
+     }
+    ],
+    "topic": "Kenal & pernah beli",
+    "label": "Merek yang dibeli 12 bln",
+    "random": true
+   },
+   {
+    "text": "Seberapa puas Anda dengan produk Zara yang pernah Anda beli?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak puas",
+     "maxLabel": "Sangat puas"
+    },
+    "showIf": {
+     "q": 8,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Kepuasan Zara"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: kualitas bahan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Kualitas bahan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: kerapian jahitan & potongan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Kerapian jahitan & potongan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: desain & model?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Desain & model"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: harga sebanding dengan kualitas?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Harga sebanding dengan kualitas"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: ukuran & fitting pas di badan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Ukuran & fitting pas di badan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: tahan lama / tidak cepat rusak?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Tahan lama / tidak cepat rusak"
+   },
+   {
+    "text": "Apa alasan utama Anda membeli Zara?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Model selalu up to date"
+     },
+     {
+      "t": "Merek internasional / bergengsi"
+     },
+     {
+      "t": "Mudah ditemukan di mal"
+     },
+     {
+      "t": "Sering diskon / sale"
+     },
+     {
+      "t": "Kualitas bahan"
+     },
+     {
+      "t": "Cocok untuk kerja"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Pengalaman dengan Zara",
+    "max": 3,
+    "showIf": {
+     "q": 8,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Alasan beli Zara"
+   },
+   {
+    "text": "Dari mana Anda pertama kali mengenal Onycha?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Instagram"
+     },
+     {
+      "t": "TikTok"
+     },
+     {
+      "t": "Teman / keluarga"
+     },
+     {
+      "t": "Fashion show / event"
+     },
+     {
+      "t": "Media / artikel"
+     },
+     {
+      "t": "Marketplace"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Pengalaman dengan Onycha",
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Sumber kenal Onycha"
+   },
+   {
+    "text": "Seberapa puas Anda dengan produk Onycha yang pernah Anda beli?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak puas",
+     "maxLabel": "Sangat puas"
+    },
+    "showIf": {
+     "q": 8,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Kepuasan Onycha"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: kualitas bahan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Kualitas bahan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: kerapian jahitan & potongan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Kerapian jahitan & potongan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: desain & model?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Desain & model"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: harga sebanding dengan kualitas?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Harga sebanding dengan kualitas"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: ukuran & fitting pas di badan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Ukuran & fitting pas di badan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: tahan lama / tidak cepat rusak?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Tahan lama / tidak cepat rusak"
+   },
+   {
+    "text": "Apa yang membuat Anda belum membeli Onycha?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harganya lebih mahal dari yang saya biasa beli"
+     },
+     {
+      "t": "Belum tahu tempat membelinya"
+     },
+     {
+      "t": "Belum pernah melihat produknya langsung"
+     },
+     {
+      "t": "Ragu soal ukuran / fitting"
+     },
+     {
+      "t": "Modelnya kurang sesuai gaya saya"
+     },
+     {
+      "t": "Belum ada kebutuhan"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Pengalaman dengan Onycha",
+    "max": 3,
+    "showIf": {
+     "q": 8,
+     "op": "isnot",
+     "val": "Onycha"
+    },
+    "label": "Hambatan beli Onycha"
+   },
+   {
+    "text": "Untuk pakaian kerja / kantor: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: kerja"
+   },
+   {
+    "text": "Untuk acara formal atau penting: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: acara formal"
+   },
+   {
+    "text": "Kualitas jahitan & potongan lebih baik: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: kualitas jahitan"
+   },
+   {
+    "text": "Desain lebih unik & tidak pasaran: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: desain unik"
+   },
+   {
+    "text": "Harga lebih sebanding dengan kualitas: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: value for money"
+   },
+   {
+    "text": "Lebih ramah lingkungan: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: ramah lingkungan"
+   },
+   {
+    "text": "Lebih bangga saat memakainya: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: kebanggaan"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Saya bangga memakai produk fashion lokal Indonesia.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Bangga brand lokal"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Kualitas brand fashion lokal sekarang setara dengan brand internasional.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Lokal setara internasional"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Saya mau membayar lebih untuk pakaian berbahan & pewarna alami.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Mau bayar lebih: bahan alami"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Saya lebih suka pakaian yang awet dipakai bertahun-tahun daripada mengikuti tren.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Awet > tren"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Merek internasional membuat saya terlihat lebih berkelas.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Gengsi brand internasional"
+   },
+   {
+    "text": "Apa yang paling bisa membuat Anda beralih dari brand internasional ke brand lokal?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Kualitas yang terbukti setara"
+     },
+     {
+      "t": "Harga lebih terjangkau"
+     },
+     {
+      "t": "Desain yang lebih unik"
+     },
+     {
+      "t": "Mudah dicoba di toko fisik"
+     },
+     {
+      "t": "Rekomendasi influencer / teman"
+     },
+     {
+      "t": "Cerita brand & nilai keberlanjutan"
+     },
+     {
+      "t": "Garansi ukuran / tukar mudah"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Sikap terhadap brand lokal",
+    "max": 3,
+    "label": "Pemicu pindah ke lokal"
+   },
+   {
+    "text": "Bayangkan koleksi ini: blazer, celana, dan dress berpotongan rapi (tailored) dengan warna netral (mocha, beige, hitam), detail bordir bunga, dibuat dari benang organik dan pewarna alami oleh desainer lokal. Seberapa menarik koleksi ini bagi Anda?",
+    "type": "scale",
+    "topic": "Uji konsep Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak menarik",
+     "maxLabel": "Sangat menarik"
+    },
+    "label": "Daya tarik konsep"
+   },
+   {
+    "text": "Seberapa besar kemungkinan Anda membeli dari koleksi tersebut dalam 3 bulan ke depan?",
+    "type": "scale",
+    "topic": "Uji konsep Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Pasti tidak",
+     "maxLabel": "Pasti beli"
+    },
+    "label": "Niat beli konsep"
+   },
+   {
+    "text": "Berapa harga yang menurut Anda wajar untuk satu blazer dari koleksi tersebut?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Di bawah Rp300.000"
+     },
+     {
+      "t": "Rp300.000 – Rp500.000"
+     },
+     {
+      "t": "Rp500.001 – Rp800.000"
+     },
+     {
+      "t": "Rp800.001 – Rp1.200.000"
+     },
+     {
+      "t": "Di atas Rp1.200.000"
+     }
+    ],
+    "topic": "Uji konsep Onycha",
+    "label": "Harga wajar blazer"
+   },
+   {
+    "text": "Bagian mana dari koleksi tersebut yang paling menarik?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Potongan tailored yang rapi"
+     },
+     {
+      "t": "Warna netral mudah dipadukan"
+     },
+     {
+      "t": "Detail bordir bunga"
+     },
+     {
+      "t": "Bahan & pewarna alami"
+     },
+     {
+      "t": "Dibuat desainer lokal"
+     },
+     {
+      "t": "Bisa dipakai kerja & sehari-hari"
+     }
+    ],
+    "topic": "Uji konsep Onycha",
+    "max": 2,
+    "label": "Bagian paling menarik"
+   },
+   {
+    "text": "Apa yang membuat brand internasional seperti Zara masih lebih menarik dibanding brand lokal bagi Anda? (opsional)",
+    "type": "longtext",
+    "topic": "Uji konsep Onycha",
+    "required": false,
+    "label": "Keunggulan Zara (terbuka)"
+   },
+   {
+    "text": "Seberapa besar kemungkinan Anda merekomendasikan Onycha kepada teman?",
+    "type": "scale",
+    "topic": "Uji konsep Onycha",
+    "scale": {
+     "min": 0,
+     "max": 10,
+     "minLabel": "Sangat tidak mungkin",
+     "maxLabel": "Sangat mungkin"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Rekomendasi Onycha (NPS)"
+   }
+  ]
+ }
+};
+var SIM_ONY_N = 10000;
+function simOnySchema_() {
+  var t = SURVEY_TEMPLATES['onycha-zara'], qs = JSON.parse(JSON.stringify(t.questions));
+  qs.forEach(function (q, i) { q.id = 'Q' + (i + 1); if (q.showIf) q.showIf.q = 'Q' + q.showIf.q; if (q.required == null) q.required = true; });
+  return { name: 'Onycha vs Zara (Simulasi)', intro: t.intro, estimasi: t.estimasi, kupon: t.kupon, target: SIM_ONY_N, questions: qs };
+}
+function simOnyAnswers_(qs, p, r) {
+  var age = 2026 - Number(p.S0), young = age < 27, loc = r(), a = {};
+  var cl = function (x, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(x))); };
+  var nrm = function () { return (r() + r() + r() - 1.5) * 1.15; };
+  var sc = function (m, lo, hi) { return String(cl(m + nrm(), lo || 1, hi || 5)); };
+  var wp = function (o, ws) { var t = 0, k; for (k = 0; k < o.length; k++) t += ws[k] || 0; var x = r() * t; for (k = 0; k < o.length; k++) { x -= ws[k] || 0; if (x <= 0) return o[k]; } return o[o.length - 1]; };
+  var mp = function (o, pr, max) { var out = o.filter(function (x, i) { return r() < (pr[i] || 0); }); if (max) { while (out.length > max) out.splice(Math.floor(r() * out.length), 1); } if (!out.length) out = [wp(o, pr)]; return out; };
+  var O = function (n) { return qs[n - 1].options.map(function (x) { return x.t; }); };
+  a.Q1 = wp(O(1), [young ? 3 : 2, 4, 5, 3, 0]);
+  a.Q2 = mp(O(2), [0.7, young ? 0.6 : 0.25, 0.3, 0.25 + loc * 0.2, 0.2 + loc * 0.2, 0.45, 0.15, 0.05], 3);
+  var inc = age < 23 ? 0 : age < 30 ? 1 : 2, Q3 = O(3);
+  a.Q3 = wp(Q3, inc === 0 ? [4, 5, 2, 0.5, 0.1] : inc === 1 ? [1.5, 4, 4, 2, 0.4] : [1, 3, 4, 3, 1]);
+  var pr = Q3.indexOf(a.Q3);
+  a.Q4 = mp(O(4), [0.3 + inc * 0.2, 0.7, 0.35, young ? 0.5 : 0.2, 0.3, 0.3], 3);
+  a.Q5 = wp(O(5), [1 + inc + loc * 2, 3, young ? 3 : 1.5, 1.5 + loc, young ? 2 : 1, 2]);
+  var classy = /Klasik|Minimalis|Feminin/.test(a.Q5);
+  a.Q6 = mp(O(6), [0.65 - pr * 0.08, 0.5 + pr * 0.06, young ? 0.35 : 0.15, 0.35, 0.3, 0.12 + pr * 0.04, 0.08 + loc * 0.15, 0.3], 3);
+  var B = O(7), aw = { 'Zara': 0.88, 'H&M': 0.78, 'Uniqlo': 0.9, 'Mango': 0.5, 'Pull&Bear': 0.42, 'Onycha': 0.07 + loc * 0.2 + pr * 0.04 + (classy ? 0.07 : 0), 'Cotton Ink': 0.3 + loc * 0.15, 'This Is April': 0.25 + loc * 0.15, 'Buttonscarves': 0.45, 'Erigo': young ? 0.6 : 0.4 };
+  a.Q7 = B.filter(function (b) { return r() < aw[b]; }); if (!a.Q7.length) a.Q7 = ['Uniqlo'];
+  var buy = { 'Zara': 0.32 + pr * 0.08, 'H&M': 0.35, 'Uniqlo': 0.5, 'Mango': 0.25 + pr * 0.05, 'Pull&Bear': 0.25, 'Onycha': 0.16 + pr * 0.06 + loc * 0.14, 'Cotton Ink': 0.3, 'This Is April': 0.3, 'Buttonscarves': 0.25 + pr * 0.06, 'Erigo': 0.3 };
+  a.Q8 = a.Q7.filter(function (b) { return r() < buy[b]; }); if (!a.Q8.length) a.Q8 = [O(8)[O(8).length - 1]];
+  var kZ = a.Q7.indexOf('Zara') >= 0, bZ = a.Q8.indexOf('Zara') >= 0, kO = a.Q7.indexOf('Onycha') >= 0, bO = a.Q8.indexOf('Onycha') >= 0;
+  if (bZ) a.Q9 = sc(3.7);
+  if (kZ) { var zm = [3.3, 3.3, 4.2, 2.9, 3.6, 3.0]; for (var i = 0; i < 6; i++) a['Q' + (10 + i)] = sc(zm[i] + (bZ ? 0.3 : 0) - loc * 0.3); }
+  if (bZ) a.Q16 = mp(O(16), [0.6, 0.35 + (1 - loc) * 0.2, 0.4, 0.35, 0.15, 0.3, 0.04], 3);
+  if (kO) a.Q17 = wp(O(17), [5, 2.5, 2.5, 0.8, 0.8, 1.5, 0.3]);
+  if (bO) a.Q18 = sc(4.2);
+  if (kO) { var om = [4.1, 4.3, 4.0, 3.4, 3.9, 4.1]; for (var j = 0; j < 6; j++) a['Q' + (19 + j)] = sc(om[j] + (bO ? 0.35 : -0.2) + loc * 0.3 - (j === 3 ? (2 - pr) * 0.25 : 0)); }
+  if (!bO) a.Q25 = kO ? mp(O(25), [0.55 - pr * 0.1, 0.25, 0.4, 0.3, 0.15, 0.2, 0.05], 3) : mp(O(25), [0.35, 0.5, 0.55, 0.15, 0.1, 0.25, 0.05], 3);
+  var H = O(26), hO = [0.55, 0.5, 0.62, 0.55, 0.3, 0.6, 0.62], hZ = [0.25, 0.3, 0.18, 0.25, 0.45, 0.08, 0.2];
+  for (var h = 0; h < 7; h++) {
+    var po = kO ? hO[h] + loc * 0.15 + (bO ? 0.15 : 0) : 0.04, pz = kZ ? hZ[h] + (bZ ? 0.1 : 0) : 0.03;
+    a['Q' + (26 + h)] = wp(H, [po, pz, kO && kZ ? 0.18 : 0.04, kO ? 0.1 : 0.7]);
+  }
+  var am = [3.6 + loc * 1.2, 3.0 + loc * 1.0, 2.8 + loc * 1.0 + pr * 0.2, 3.4 + (classy ? 0.4 : 0) + (young ? -0.3 : 0.2), 3.4 - loc * 1.2 + (young ? 0.3 : 0)];
+  for (var s = 0; s < 5; s++) a['Q' + (33 + s)] = sc(am[s]);
+  a.Q38 = mp(O(38), [0.5, 0.45 - pr * 0.05, 0.35 + (young ? 0.1 : 0), 0.3, young ? 0.35 : 0.2, 0.15 + loc * 0.2, 0.3, 0.03], 3);
+  var ap = 3.1 + loc * 0.9 + (classy ? 0.5 : -0.2) + (/Kerja/.test(a.Q4.join()) ? 0.25 : 0);
+  a.Q39 = sc(ap); a.Q40 = sc(Number(a.Q39) - 0.7 + pr * 0.2 + (bO ? 0.5 : 0));
+  a.Q41 = wp(O(41), [pr < 1 ? 4 : 1, 3 + (pr < 2 ? 2 : 0), 2 + pr, 0.5 + pr * 0.7, pr > 3 ? 1.5 : 0.2]);
+  a.Q42 = mp(O(42), [0.45, 0.4, 0.3 + (classy ? 0.15 : 0), 0.15 + loc * 0.3, 0.12 + loc * 0.3, 0.4], 2);
+  if (r() < 0.35) a.Q43 = wp(['Modelnya selalu baru dan cepat berganti', 'Gampang dicari di mal', 'Lebih bergengsi kalau pakai merek luar', 'Sering ada sale besar', 'Ukurannya sudah pasti, tinggal coba di toko', 'Banyak pilihan model dalam satu toko'], [4, 3, 2, 2.5, 2, 2]);
+  if (kO) a.Q44 = String(cl((bO ? 8.3 : 6.4) + loc * 1.5 + nrm() * 1.4, 0, 10));
+  return a;
+}
+/** Tambahkan survei contoh Onycha vs Zara + 10.000 jawaban simulasi (bisa ditambahkan walau simulasi 20rb sudah ada). */
+function adminSimulasiOnycha() {
+  requireAdmin_();
+  var info = simInfo_();
+  if (info && info.onyId && customById_(info.onyId)) return adminSimulasiStatus();
+  var cs = adminBuilderSave(simOnySchema_(), true);
+  setCustomStatus_(cs.id, 'Ditutup'); CUSTOM_MEMO_ = null;   // tampil di Dashboard, tidak tampil ke responden
+  ensureCustomTab_(customById_(cs.id));
+  info = info || { step: 0, pos: {}, done: 0, mulai: new Date().toISOString(), oleh: viewer_(), panel: true, hanyaOny: true };
+  info.onyId = cs.id; info.selesai = false; info.pos = info.pos || {}; info.pos.onycha = 0;
+  simSave_(info);
+  return adminSimulasiStatus();
 }
 /** Tahap akhir: Panel (yang bersedia dihubungi) & Daftar Blokir dari jawaban simulasi. */
 function simFinish_(info) {
@@ -2803,6 +3804,7 @@ function adminSimulasiHapus() {
     res.penukaran = strip(sheet_('Penukaran Hadiah'), function (r, h) { return String(r[h.indexOf('instagram')]).indexOf('@sim_uji_') === 0; });
     katalog_().forEach(function (x) { if (back[x.id]) katSheet_().getRange(x.row, 5).setValue(x.stok + back[x.id]); });
     if (info && info.customId && customById_(info.customId)) { try { adminBuilderDelete(info.customId); } catch (e) {} }
+    if (info && info.onyId && customById_(info.onyId)) { try { adminBuilderDelete(info.onyId); } catch (e) {} }
     PropertiesService.getScriptProperties().deleteProperty('SIM_INFO'); CUSTOM_MEMO_ = null;
     return res;
   } finally { lock.releaseLock(); }

@@ -621,6 +621,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <div id="sim-st" class="muted" style="margin:8px 0">Memuat status…</div>
     <div class="bar" id="sim-bar" style="display:none;margin:8px 0"><i style="width:0%"></i></div>
     <button class="btn sm" id="sim-go" onclick="simGo()">Isi 20.000 data simulasi</button>
+    <button class="btn soft sm" id="sim-ony" onclick="simGo('ony')">Tambah survei contoh Onycha vs Zara (10.000 jawaban)</button>
     <button class="btn red sm" id="sim-del" onclick="simDel()" style="display:none">Hapus data simulasi</button>
   </div>
   <div class="card" id="s-new" style="margin-top:16px"><h2>Membuat survei baru</h2><p class="muted">Susun survei baru dengan bantuan AI atau tempel daftar pertanyaan, lalu publish langsung dari Dashboard.</p><button class="btn sm" onclick="newSurvey()">+ Buat survei baru</button></div>
@@ -1168,21 +1169,22 @@ function tkDraw() {
 }
 // ---------- data simulasi ----------
 function simDraw(st) {
-  $('sim-go').style.display = st.ada && st.selesai ? 'none' : ''; $('sim-del').style.display = st.ada ? '' : 'none';
+  $('sim-go').style.display = st.ada && st.selesai && !st.hanyaOny ? 'none' : ''; $('sim-del').style.display = st.ada ? '' : 'none';
+  $('sim-ony').style.display = st.onycha || (st.ada && !st.selesai) ? 'none' : '';
   $('sim-go').textContent = st.ada && !st.selesai ? 'Lanjutkan pengisian' : 'Isi 20.000 data simulasi';
   $('sim-st').innerHTML = !st.ada ? 'Belum ada data simulasi.' : st.selesai ? '✅ Data simulasi aktif: <b>' + fmt(st.done) + '</b> jawaban (dimulai ' + esc(String(st.mulai).slice(0, 10)) + '). Undian dikunci sampai data simulasi dihapus.'
     : 'Terisi <b>' + fmt(st.done) + '</b> dari ' + fmt(st.total) + ' jawaban.';
   $('sim-bar').style.display = st.ada && !st.selesai ? '' : 'none'; $('sim-bar').querySelector('i').style.width = Math.round(st.done / st.total * 100) + '%';
 }
 function simLoad() { run('adminSimulasiStatus').then(simDraw); }
-function simGo() {
-  if (!confirm('Isi ±20.000 jawaban simulasi ke Google Sheet? Prosesnya bertahap (±1.000 jawaban per langkah, beberapa menit). Jangan tutup halaman ini sampai selesai.')) return;
-  $('sim-go').disabled = true;
+function simGo(mode) {
+  if (!confirm(mode === 'ony' ? 'Buat survei contoh "Onycha vs Zara (Simulasi)" dan isi 10.000 jawaban simulasi? Survei ini hanya tampil di Dashboard (status Ditutup), tidak tampil ke responden. Prosesnya bertahap, jangan tutup halaman ini sampai selesai.' : 'Isi ±20.000 jawaban simulasi ke Google Sheet? Prosesnya bertahap (±1.000 jawaban per langkah, beberapa menit). Jangan tutup halaman ini sampai selesai.')) return;
+  $('sim-go').disabled = true; $('sim-ony').disabled = true;
   var step = function () {
-    run('adminSimulasiBatch').then(function (st) { simDraw(st); if (st.selesai) { $('sim-st').textContent = 'Menyiapkan tampilan cepat Dashboard…'; snapRebuild().then(function () { $('sim-go').disabled = false; simLoad(); toast('Data simulasi selesai diisi'); }); } else step(); },
-      function (e) { $('sim-go').disabled = false; toast('Terhenti: ' + (e.message || e) + '. Klik "Lanjutkan pengisian" untuk meneruskan.'); simLoad(); });
+    run('adminSimulasiBatch').then(function (st) { simDraw(st); if (st.selesai) { $('sim-st').textContent = 'Menyiapkan tampilan cepat Dashboard…'; snapRebuild().then(function () { $('sim-go').disabled = false; $('sim-ony').disabled = false; simLoad(); loadHome && loadHome(); toast('Data simulasi selesai diisi'); }); } else step(); },
+      function (e) { $('sim-go').disabled = false; $('sim-ony').disabled = false; toast('Terhenti: ' + (e.message || e) + '. Klik "Lanjutkan pengisian" untuk meneruskan.'); simLoad(); });
   };
-  run('adminSimulasiMulai').then(function (st) { simDraw(st); step(); }, function (e) { $('sim-go').disabled = false; toast(e.message || e); });
+  run(mode === 'ony' ? 'adminSimulasiOnycha' : 'adminSimulasiMulai').then(function (st) { simDraw(st); step(); }, function (e) { $('sim-go').disabled = false; $('sim-ony').disabled = false; toast(e.message || e); });
 }
 function simDel() {
   var k = prompt('Hapus SEMUA data simulasi (jawaban, panel, blokir, pemenang, dan survei contoh)? Data asli tidak tersentuh.\n\nKetik HAPUS untuk lanjut:');
@@ -1552,6 +1554,8 @@ function bTake(list, append, meta) {
     var n = { id: nextId(), text: q.text || '', type: q.type || 'single', options: (q.options || []).map(function (o) { return typeof o === 'string' ? optFrom(o) : { t: o.t || '', other: !!o.other, exclusive: !!o.exclusive, screen: !!o.screen }; }), required: q.required !== false, random: !!q.random, max: q.max || 0 };
     if (q.scale) n.scale = q.scale;
     if (q.hint) n.hint = q.hint;
+    if (q.topic) n.topic = q.topic;
+    if (q.label) n.label = q.label;
     if (q.showIf && q.showIf.q) n._if = q.showIf;
     B.questions.push(n); idx.push(n.id);
   });
