@@ -376,7 +376,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
-        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="paste">Tempel pertanyaan</button><button data-m="blank">Kosong</button></div>
+        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="paste">Tempel pertanyaan</button><button data-m="tpl">Contoh siap pakai</button><button data-m="blank">Kosong</button></div>
         <div id="b-m-ai">
           <textarea class="bwide" id="b-brief" rows="5" placeholder="Contoh: Saya ingin tahu kebiasaan wanita 20–35 tahun membeli skincare lewat TikTok Shop: apa yang membuat mereka percaya pada produk, peran review & live, sensitivitas harga, dan alasan pindah brand."></textarea>
           <div class="toolbar" style="margin:10px 0 0"><label class="muted">Jumlah pertanyaan</label><select id="b-n"><option>8</option><option>12</option><option selected>15</option><option>20</option><option>25</option></select>
@@ -388,6 +388,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
           <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><button class="btn soft sm" id="b-ai2" onclick="bAi('parse')">✨ Rapikan dengan AI</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
           <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Logika: tulis <code>(tampilkan jika no. 2 = TikTok Shop)</code> atau <code>(jika no. 2 bukan Shopee)</code> di belakang pertanyaan. Pilihan "Lainnya" otomatis bisa diisi; tambahkan <code>(tidak lolos)</code> di belakang pilihan yang membuat responden berhenti. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
         </div>
+        <div id="b-m-tpl" style="display:none"><div id="b-tpls"></div></div>
         <div id="b-m-blank" style="display:none"><p class="muted">Mulai dari nol dengan tombol <b>+ Tambah pertanyaan</b> di bawah.</p></div>
       </div>
       <div class="card"><div class="top" style="margin:0 0 12px"><div><h2>Pertanyaan <span class="muted" id="b-count"></span></h2><div class="muted">Muncul setelah profil responden, sebelum data kontak.</div></div><button class="btn sec sm" onclick="bAdd()">+ Tambah pertanyaan</button></div>
@@ -1376,7 +1377,7 @@ function imageUpload(file, maxPx, done) {
 [].forEach.call($('b-src').children, function (b) {
   b.onclick = function () {
     [].forEach.call($('b-src').children, function (x) { x.classList.toggle('on', x === b); });
-    ['ai', 'paste', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
+    ['ai', 'paste', 'tpl', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
   };
 });
 function bState() {
@@ -1567,6 +1568,945 @@ function bTake(list, append, meta) {
   if (meta) { if (meta.name && !$('b-name').value) $('b-name').value = meta.name; if (meta.intro && !$('b-intro').value) $('b-intro').value = meta.intro; if (meta.estimasi && !$('b-est').value) $('b-est').value = meta.estimasi; bRead(); }
   markDirty(); bRender(); toast(list.length + ' pertanyaan ditambahkan. Cek dan rapikan sebelum publish.');
 }
+var B_TPL = {
+ "onycha-zara": {
+  "judul": "Onycha vs Zara: persepsi brand lokal vs internasional",
+  "ringkas": "Contoh survei kompleks untuk brand fashion: kebiasaan belanja, awareness & pembelian, rating atribut kedua brand, head-to-head, sikap terhadap brand lokal, dan uji konsep koleksi.",
+  "name": "Survei Fashion: Brand Lokal vs Internasional",
+  "intro": "Kami ingin memahami pilihan fashion kamu, terutama brand lokal dan internasional. Jawab sesuai pengalaman pribadi, tidak ada jawaban benar atau salah.",
+  "estimasi": 14,
+  "kupon": 3,
+  "questions": [
+   {
+    "text": "Dalam 3 bulan terakhir, seberapa sering Anda membeli pakaian (atasan, bawahan, dress, outer)?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Lebih dari 1 kali sebulan"
+     },
+     {
+      "t": "Sekitar 1 kali sebulan"
+     },
+     {
+      "t": "2–3 kali dalam 3 bulan"
+     },
+     {
+      "t": "1 kali dalam 3 bulan"
+     },
+     {
+      "t": "Tidak membeli sama sekali",
+      "screen": true
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "label": "Frekuensi beli pakaian"
+   },
+   {
+    "text": "Biasanya Anda membeli pakaian di mana?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Shopee"
+     },
+     {
+      "t": "TikTok Shop"
+     },
+     {
+      "t": "Tokopedia"
+     },
+     {
+      "t": "Website / aplikasi resmi brand"
+     },
+     {
+      "t": "Instagram brand"
+     },
+     {
+      "t": "Toko fisik di mal"
+     },
+     {
+      "t": "Butik / toko independen"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "max": 3,
+    "label": "Tempat beli pakaian"
+   },
+   {
+    "text": "Berapa rata-rata harga satu potong pakaian yang biasa Anda beli?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Di bawah Rp150.000"
+     },
+     {
+      "t": "Rp150.000 – Rp300.000"
+     },
+     {
+      "t": "Rp300.001 – Rp500.000"
+     },
+     {
+      "t": "Rp500.001 – Rp1.000.000"
+     },
+     {
+      "t": "Di atas Rp1.000.000"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "label": "Harga per item"
+   },
+   {
+    "text": "Untuk acara apa Anda paling sering membeli pakaian?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Kerja / kantor"
+     },
+     {
+      "t": "Sehari-hari / santai"
+     },
+     {
+      "t": "Acara formal / kondangan"
+     },
+     {
+      "t": "Hangout / nongkrong"
+     },
+     {
+      "t": "Ibadah / acara keagamaan"
+     },
+     {
+      "t": "Liburan"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "max": 3,
+    "label": "Acara pemakaian"
+   },
+   {
+    "text": "Gaya berpakaian mana yang paling menggambarkan Anda?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Klasik & elegan (tailored, rapi)"
+     },
+     {
+      "t": "Minimalis (warna netral, potongan simpel)"
+     },
+     {
+      "t": "Trendy (ikut tren terbaru)"
+     },
+     {
+      "t": "Feminin (detail manis, bunga, renda)"
+     },
+     {
+      "t": "Kasual & sporty"
+     },
+     {
+      "t": "Modest / tertutup"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "label": "Gaya berpakaian"
+   },
+   {
+    "text": "Apa yang paling Anda pertimbangkan saat membeli pakaian?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harga"
+     },
+     {
+      "t": "Kualitas bahan"
+     },
+     {
+      "t": "Model sedang tren"
+     },
+     {
+      "t": "Potongan / fitting"
+     },
+     {
+      "t": "Bisa dipadupadankan"
+     },
+     {
+      "t": "Merek"
+     },
+     {
+      "t": "Ramah lingkungan / bahan alami"
+     },
+     {
+      "t": "Ulasan pembeli lain"
+     }
+    ],
+    "topic": "Kebiasaan belanja fashion",
+    "max": 3,
+    "label": "Pertimbangan utama"
+   },
+   {
+    "text": "Merek fashion mana saja yang Anda KENAL?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Pull&Bear"
+     },
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Erigo"
+     }
+    ],
+    "topic": "Kenal & pernah beli",
+    "label": "Merek yang dikenal",
+    "random": true
+   },
+   {
+    "text": "Merek mana saja yang pernah Anda BELI dalam 12 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Pull&Bear"
+     },
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "Tidak satu pun dari merek di atas",
+      "exclusive": true
+     }
+    ],
+    "topic": "Kenal & pernah beli",
+    "label": "Merek yang dibeli 12 bln",
+    "random": true
+   },
+   {
+    "text": "Seberapa puas Anda dengan produk Zara yang pernah Anda beli?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak puas",
+     "maxLabel": "Sangat puas"
+    },
+    "showIf": {
+     "q": 8,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Kepuasan Zara"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: kualitas bahan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Kualitas bahan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: kerapian jahitan & potongan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Kerapian jahitan & potongan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: desain & model?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Desain & model"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: harga sebanding dengan kualitas?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Harga sebanding dengan kualitas"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: ukuran & fitting pas di badan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Ukuran & fitting pas di badan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Zara dalam hal: tahan lama / tidak cepat rusak?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Zara",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Zara — Tahan lama / tidak cepat rusak"
+   },
+   {
+    "text": "Apa alasan utama Anda membeli Zara?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Model selalu up to date"
+     },
+     {
+      "t": "Merek internasional / bergengsi"
+     },
+     {
+      "t": "Mudah ditemukan di mal"
+     },
+     {
+      "t": "Sering diskon / sale"
+     },
+     {
+      "t": "Kualitas bahan"
+     },
+     {
+      "t": "Cocok untuk kerja"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Pengalaman dengan Zara",
+    "max": 3,
+    "showIf": {
+     "q": 8,
+     "op": "is",
+     "val": "Zara"
+    },
+    "label": "Alasan beli Zara"
+   },
+   {
+    "text": "Dari mana Anda pertama kali mengenal Onycha?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Instagram"
+     },
+     {
+      "t": "TikTok"
+     },
+     {
+      "t": "Teman / keluarga"
+     },
+     {
+      "t": "Fashion show / event"
+     },
+     {
+      "t": "Media / artikel"
+     },
+     {
+      "t": "Marketplace"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Pengalaman dengan Onycha",
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Sumber kenal Onycha"
+   },
+   {
+    "text": "Seberapa puas Anda dengan produk Onycha yang pernah Anda beli?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak puas",
+     "maxLabel": "Sangat puas"
+    },
+    "showIf": {
+     "q": 8,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Kepuasan Onycha"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: kualitas bahan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Kualitas bahan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: kerapian jahitan & potongan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Kerapian jahitan & potongan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: desain & model?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Desain & model"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: harga sebanding dengan kualitas?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Harga sebanding dengan kualitas"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: ukuran & fitting pas di badan?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Ukuran & fitting pas di badan"
+   },
+   {
+    "text": "Menurut Anda, bagaimana Onycha dalam hal: tahan lama / tidak cepat rusak?",
+    "type": "scale",
+    "topic": "Pengalaman dengan Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat buruk",
+     "maxLabel": "Sangat baik"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Onycha — Tahan lama / tidak cepat rusak"
+   },
+   {
+    "text": "Apa yang membuat Anda belum membeli Onycha?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harganya lebih mahal dari yang saya biasa beli"
+     },
+     {
+      "t": "Belum tahu tempat membelinya"
+     },
+     {
+      "t": "Belum pernah melihat produknya langsung"
+     },
+     {
+      "t": "Ragu soal ukuran / fitting"
+     },
+     {
+      "t": "Modelnya kurang sesuai gaya saya"
+     },
+     {
+      "t": "Belum ada kebutuhan"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Pengalaman dengan Onycha",
+    "max": 3,
+    "showIf": {
+     "q": 8,
+     "op": "isnot",
+     "val": "Onycha"
+    },
+    "label": "Hambatan beli Onycha"
+   },
+   {
+    "text": "Untuk pakaian kerja / kantor: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: kerja"
+   },
+   {
+    "text": "Untuk acara formal atau penting: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: acara formal"
+   },
+   {
+    "text": "Kualitas jahitan & potongan lebih baik: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: kualitas jahitan"
+   },
+   {
+    "text": "Desain lebih unik & tidak pasaran: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: desain unik"
+   },
+   {
+    "text": "Harga lebih sebanding dengan kualitas: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: value for money"
+   },
+   {
+    "text": "Lebih ramah lingkungan: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: ramah lingkungan"
+   },
+   {
+    "text": "Lebih bangga saat memakainya: menurut Anda mana yang lebih unggul?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Keduanya sama"
+     },
+     {
+      "t": "Tidak tahu"
+     }
+    ],
+    "topic": "Onycha vs Zara",
+    "label": "Pilihan: kebanggaan"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Saya bangga memakai produk fashion lokal Indonesia.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Bangga brand lokal"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Kualitas brand fashion lokal sekarang setara dengan brand internasional.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Lokal setara internasional"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Saya mau membayar lebih untuk pakaian berbahan & pewarna alami.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Mau bayar lebih: bahan alami"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Saya lebih suka pakaian yang awet dipakai bertahun-tahun daripada mengikuti tren.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Awet > tren"
+   },
+   {
+    "text": "Seberapa setuju Anda: \"Merek internasional membuat saya terlihat lebih berkelas.\"",
+    "type": "scale",
+    "topic": "Sikap terhadap brand lokal",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Gengsi brand internasional"
+   },
+   {
+    "text": "Apa yang paling bisa membuat Anda beralih dari brand internasional ke brand lokal?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Kualitas yang terbukti setara"
+     },
+     {
+      "t": "Harga lebih terjangkau"
+     },
+     {
+      "t": "Desain yang lebih unik"
+     },
+     {
+      "t": "Mudah dicoba di toko fisik"
+     },
+     {
+      "t": "Rekomendasi influencer / teman"
+     },
+     {
+      "t": "Cerita brand & nilai keberlanjutan"
+     },
+     {
+      "t": "Garansi ukuran / tukar mudah"
+     },
+     {
+      "t": "Lainnya"
+     }
+    ],
+    "topic": "Sikap terhadap brand lokal",
+    "max": 3,
+    "label": "Pemicu pindah ke lokal"
+   },
+   {
+    "text": "Bayangkan koleksi ini: blazer, celana, dan dress berpotongan rapi (tailored) dengan warna netral (mocha, beige, hitam), detail bordir bunga, dibuat dari benang organik dan pewarna alami oleh desainer lokal. Seberapa menarik koleksi ini bagi Anda?",
+    "type": "scale",
+    "topic": "Uji konsep Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak menarik",
+     "maxLabel": "Sangat menarik"
+    },
+    "label": "Daya tarik konsep"
+   },
+   {
+    "text": "Seberapa besar kemungkinan Anda membeli dari koleksi tersebut dalam 3 bulan ke depan?",
+    "type": "scale",
+    "topic": "Uji konsep Onycha",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Pasti tidak",
+     "maxLabel": "Pasti beli"
+    },
+    "label": "Niat beli konsep"
+   },
+   {
+    "text": "Berapa harga yang menurut Anda wajar untuk satu blazer dari koleksi tersebut?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Di bawah Rp300.000"
+     },
+     {
+      "t": "Rp300.000 – Rp500.000"
+     },
+     {
+      "t": "Rp500.001 – Rp800.000"
+     },
+     {
+      "t": "Rp800.001 – Rp1.200.000"
+     },
+     {
+      "t": "Di atas Rp1.200.000"
+     }
+    ],
+    "topic": "Uji konsep Onycha",
+    "label": "Harga wajar blazer"
+   },
+   {
+    "text": "Bagian mana dari koleksi tersebut yang paling menarik?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Potongan tailored yang rapi"
+     },
+     {
+      "t": "Warna netral mudah dipadukan"
+     },
+     {
+      "t": "Detail bordir bunga"
+     },
+     {
+      "t": "Bahan & pewarna alami"
+     },
+     {
+      "t": "Dibuat desainer lokal"
+     },
+     {
+      "t": "Bisa dipakai kerja & sehari-hari"
+     }
+    ],
+    "topic": "Uji konsep Onycha",
+    "max": 2,
+    "label": "Bagian paling menarik"
+   },
+   {
+    "text": "Apa yang membuat brand internasional seperti Zara masih lebih menarik dibanding brand lokal bagi Anda? (opsional)",
+    "type": "longtext",
+    "topic": "Uji konsep Onycha",
+    "required": false,
+    "label": "Keunggulan Zara (terbuka)"
+   },
+   {
+    "text": "Seberapa besar kemungkinan Anda merekomendasikan Onycha kepada teman?",
+    "type": "scale",
+    "topic": "Uji konsep Onycha",
+    "scale": {
+     "min": 0,
+     "max": 10,
+     "minLabel": "Sangat tidak mungkin",
+     "maxLabel": "Sangat mungkin"
+    },
+    "showIf": {
+     "q": 7,
+     "op": "is",
+     "val": "Onycha"
+    },
+    "label": "Rekomendasi Onycha (NPS)"
+   }
+  ]
+ }
+};
+function bTplRender() {
+  $('b-tpls').innerHTML = Object.keys(B_TPL).map(function (k) { var t = B_TPL[k];
+    return '<div class="tip" style="margin:0 0 10px"><b>' + esc(t.judul) + '</b><div class="muted" style="margin:4px 0 8px">' + esc(t.ringkas) + ' ' + t.questions.length + ' pertanyaan · ±' + t.estimasi + ' menit · ' + t.kupon + ' kupon.</div><button class="btn sm" onclick="bTpl(\'' + k + '\')">Pakai contoh ini</button></div>'; }).join('');
+}
+function bTpl(k) { var t = B_TPL[k], first = t.questions[0].text; bTake(JSON.parse(JSON.stringify(t.questions)), false, t); if (B.questions[0] && B.questions[0].text === first) { if (!$('b-kupon').value) $('b-kupon').value = String(t.kupon); bRead(); markDirty(); } }
+bTplRender();
 function bParse() { bTake(parseText($('b-paste').value), $('b-append2').checked); }
 function bAi(mode) {
   var txt = mode === 'brief' ? $('b-brief').value.trim() : $('b-paste').value.trim();

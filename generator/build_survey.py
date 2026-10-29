@@ -118,4 +118,4 @@ print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 
 import base64, glob
 _assets = {os.path.basename(f)[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('assets/promo/*.webp'))}
-open('survey_out/Admin.html', 'w').write(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)).replace('__CROSSTAB_LIB__', open('survey_src/crosstab.js').read()))
+open('survey_out/Admin.html', 'w').write(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)).replace('__CROSSTAB_LIB__', open('survey_src/crosstab.js').read()).replace('__TEMPLATES__', open('templates/templates.json').read()))

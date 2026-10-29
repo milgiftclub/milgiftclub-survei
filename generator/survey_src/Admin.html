@@ -376,7 +376,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
-        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="paste">Tempel pertanyaan</button><button data-m="blank">Kosong</button></div>
+        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="paste">Tempel pertanyaan</button><button data-m="tpl">Contoh siap pakai</button><button data-m="blank">Kosong</button></div>
         <div id="b-m-ai">
           <textarea class="bwide" id="b-brief" rows="5" placeholder="Contoh: Saya ingin tahu kebiasaan wanita 20–35 tahun membeli skincare lewat TikTok Shop: apa yang membuat mereka percaya pada produk, peran review & live, sensitivitas harga, dan alasan pindah brand."></textarea>
           <div class="toolbar" style="margin:10px 0 0"><label class="muted">Jumlah pertanyaan</label><select id="b-n"><option>8</option><option>12</option><option selected>15</option><option>20</option><option>25</option></select>
@@ -388,6 +388,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
           <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><button class="btn soft sm" id="b-ai2" onclick="bAi('parse')">✨ Rapikan dengan AI</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
           <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Logika: tulis <code>(tampilkan jika no. 2 = TikTok Shop)</code> atau <code>(jika no. 2 bukan Shopee)</code> di belakang pertanyaan. Pilihan "Lainnya" otomatis bisa diisi; tambahkan <code>(tidak lolos)</code> di belakang pilihan yang membuat responden berhenti. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
         </div>
+        <div id="b-m-tpl" style="display:none"><div id="b-tpls"></div></div>
         <div id="b-m-blank" style="display:none"><p class="muted">Mulai dari nol dengan tombol <b>+ Tambah pertanyaan</b> di bawah.</p></div>
       </div>
       <div class="card"><div class="top" style="margin:0 0 12px"><div><h2>Pertanyaan <span class="muted" id="b-count"></span></h2><div class="muted">Muncul setelah profil responden, sebelum data kontak.</div></div><button class="btn sec sm" onclick="bAdd()">+ Tambah pertanyaan</button></div>
@@ -1376,7 +1377,7 @@ function imageUpload(file, maxPx, done) {
 [].forEach.call($('b-src').children, function (b) {
   b.onclick = function () {
     [].forEach.call($('b-src').children, function (x) { x.classList.toggle('on', x === b); });
-    ['ai', 'paste', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
+    ['ai', 'paste', 'tpl', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
   };
 });
 function bState() {
@@ -1567,6 +1568,13 @@ function bTake(list, append, meta) {
   if (meta) { if (meta.name && !$('b-name').value) $('b-name').value = meta.name; if (meta.intro && !$('b-intro').value) $('b-intro').value = meta.intro; if (meta.estimasi && !$('b-est').value) $('b-est').value = meta.estimasi; bRead(); }
   markDirty(); bRender(); toast(list.length + ' pertanyaan ditambahkan. Cek dan rapikan sebelum publish.');
 }
+var B_TPL = __TEMPLATES__;
+function bTplRender() {
+  $('b-tpls').innerHTML = Object.keys(B_TPL).map(function (k) { var t = B_TPL[k];
+    return '<div class="tip" style="margin:0 0 10px"><b>' + esc(t.judul) + '</b><div class="muted" style="margin:4px 0 8px">' + esc(t.ringkas) + ' ' + t.questions.length + ' pertanyaan · ±' + t.estimasi + ' menit · ' + t.kupon + ' kupon.</div><button class="btn sm" onclick="bTpl(\'' + k + '\')">Pakai contoh ini</button></div>'; }).join('');
+}
+function bTpl(k) { var t = B_TPL[k], first = t.questions[0].text; bTake(JSON.parse(JSON.stringify(t.questions)), false, t); if (B.questions[0] && B.questions[0].text === first) { if (!$('b-kupon').value) $('b-kupon').value = String(t.kupon); bRead(); markDirty(); } }
+bTplRender();
 function bParse() { bTake(parseText($('b-paste').value), $('b-append2').checked); }
 function bAi(mode) {
   var txt = mode === 'brief' ? $('b-brief').value.trim() : $('b-paste').value.trim();
