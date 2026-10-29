@@ -59,6 +59,11 @@ function makeEnv() {
     base64Encode: (x) => Buffer.from(Array.isArray(x) ? x.map(v => v & 255) : x).toString('base64'),
     base64Decode: (s) => Array.from(Buffer.from(s, 'base64')).map(v => v > 127 ? v - 256 : v),
   });
+  // CacheService: default tidak menyimpan apa pun (tes deterministik); MOCK_CACHE=1 untuk menguji cache sungguhan
+  const cstore = {};
+  ctx.CacheService = { getScriptCache: () => process.env.MOCK_CACHE ? { get: k => (k in cstore ? cstore[k] : null), getAll: ks => { const o = {}; ks.forEach(k => { if (k in cstore) o[k] = cstore[k]; }); return o; }, put: (k, v) => { if (String(v).length > 100000) throw new Error('too big'); cstore[k] = String(v); }, putAll: o => { Object.keys(o).forEach(k => { cstore[k] = String(o[k]); }); }, remove: k => { delete cstore[k]; } }
+    : { get: () => null, getAll: () => ({}), put() {}, putAll() {}, remove() {} } };
+  ctx.__cstore = cstore;
   const trig = [];
   Object.assign(ctx.ScriptApp, { getProjectTriggers: () => trig, newTrigger: (h) => { const b = { timeBased: () => b, everyMinutes: () => b, everyHours: () => b, create: () => { trig.push({ getHandlerFunction: () => h }); } }; return b; }, deleteTrigger: () => {} });
   vm.createContext(ctx);

@@ -302,7 +302,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
   }
   function ctaButtons(igFirst) {
     var ig = CFG.linkIg ? '<a class="cta ' + (igFirst ? '' : 'cta2') + '" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || ('Follow ' + ig())) + '</a>' : '';
-    var lk = CFG.linkLain && ST.lastIg && /milgiftclub\.github\.io\/milgiftclub-survei\/?$/.test(CFG.linkLain) ? CFG.linkLain + '?ig=' + encodeURIComponent(String(ST.lastIg).replace(/^@/, '')) + '&ok=1' : CFG.linkLain;
+    var LIG = ST.lastIg || (ST.a && ST.a.Z2), lk = CFG.linkLain && LIG && /milgiftclub\.github\.io\/milgiftclub-survei\/?$/.test(CFG.linkLain) ? CFG.linkLain + '?ig=' + encodeURIComponent(String(LIG).replace(/^@/, '')) + '&ok=1' : CFG.linkLain;
     var sv = lk ? '<a class="cta ' + (igFirst ? 'cta2' : '') + '" href="' + esc(lk) + '">' + esc(CFG.tombolLain || 'Isi survei lainnya') + ' →</a>' : '';
     return '<div class="ctas">' + (igFirst ? ig + sv : sv + ig) + '</div>';
   }
@@ -333,6 +333,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     if (intro) h += '<p class="intro">' + esc(fill(intro, k)) + '</p>';
     h += '<h1>' + esc(fill((q.id === 'O1' && CFG.o1q) || q.text, k)) + '</h1>';
     var hint = q.hint || (q.type === 'ma' ? (q.max ? 'Pilih maksimal ' + q.max + ' jawaban' : 'Boleh pilih lebih dari satu') : '');
+    if (q.id === 'PT1' && ST.diffBuy) hint = 'Ceritakan pembelian yang BERBEDA dari yang sudah kamu ceritakan di survei sebelumnya. ' + (hint || '');
     if (hint) h += '<p class="hint">' + esc(hint) + '</p>';
     if (q.id === 'O1') h += skBox(CFG);
     if (q.id === 'O1' && CFG.privacy) h += '<p class="links"><a href="' + esc(CFG.privacy) + '" target="_blank" rel="noopener">Kebijakan Privasi</a></p>';
@@ -543,7 +544,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
         res = res || {};
         if (res.state === 'sudah_isi') { done1 = true; waitMsg(''); busy(false); return endScreenout('Sudah pernah mengisi survei ini (Instagram sama)'); }
         if (res.state === 'diblokir' || res.state === 'suspend') { done1 = true; waitMsg(''); busy(false); return endBlocked(res); }
-        ST.known = !!res.known; ST.pvTry = 0;
+        ST.known = !!res.known; ST.pvTry = 0; ST.covered = res.covered || [];
         go1();
       }).withFailureHandler(go1).lookupIg(ST.a.Z2, VARIANT);
     }
@@ -571,6 +572,11 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     if (q.id === 'C1') {
       var c1 = ST.a.C1;
       var eligible = !isOtherCat(c1) && (CFG.funnelAll !== false || (CFG.high || []).indexOf(c1) >= 0);
+      // cegah data ganda: pembelian yang sama sudah diceritakan di survei MIL lain
+      var cov = (ST.covered || []).filter(function (x) { return x.kategori === c1; });
+      delete ST.a.modul_dilewati; delete ST.a.pembelian_berbeda; ST.diffBuy = false;
+      if (cov.length && VARIANT === 'v1' && cov.some(function (x) { return x.v === 'v2'; })) { eligible = false; ST.a.modul_dilewati = 'Kategori sudah diceritakan di survei Fashion Wanita, Tas & Aksesori, Hijab'; }
+      else if (cov.length) { ST.diffBuy = true; ST.a.pembelian_berbeda = 'Ya'; }
       busy(true);
       return assign(eligible ? [c1] : [], function () { busy(false); go(1); });
     }
