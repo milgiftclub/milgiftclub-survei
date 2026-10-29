@@ -656,7 +656,14 @@ function unpack(d) {
 function snapAge(at) { if (!at) return ''; var m = Math.round((Date.now() - new Date(at).getTime()) / 60000); return m < 1 ? 'baru saja' : m < 60 ? m + ' menit lalu' : Math.round(m / 60) + ' jam lalu'; }
 function snapRebuild(btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Menghitung ulang…'; }
-  return run('adminSnapshotRebuild').then(function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } toast('Data diperbarui'); loaded = {}; CT = null; SVINS = {}; loadHome(); }, function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } });
+  var reset = function () { if (btn) { btn.disabled = false; btn.textContent = 'Perbarui data sekarang'; } };
+  var step = function (lanjut) {
+    return run('adminSnapshotRebuild', lanjut).then(function (r) {
+      if (r && r.done === false) { if (btn && r.total) btn.textContent = 'Menghitung ulang… (' + r.step + '/' + r.total + ')'; if (r.sibuk) return new Promise(function (ok) { setTimeout(ok, 5000); }).then(function () { return step(true); }); return step(true); }
+      reset(); toast('Data diperbarui'); loaded = {}; CT = null; SVINS = {}; loadHome();
+    });
+  };
+  return step(false).catch(reset);
 }
 var run = function (fn) { var a = [].slice.call(arguments, 1); return new Promise(function (ok, no) { google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { toast((e && e.message) || 'Gagal'); no(e); })[fn].apply(null, a); }); };
 var $ = function (id) { return document.getElementById(id); };
@@ -851,6 +858,7 @@ function loadHome(per) {
     var hp = $('h-per'); if (hp) { hp.innerHTML = (d.periods || []).map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + (p === d.activePeriod ? ' (aktif)' : '') + '</option>'; }).join('') + '<option value="">Semua periode</option>'; hp.value = d.periode || ''; hp.dataset.set = '1'; }
     SUM = d; loaded.home = 1; drawSurveyNav(); if (SV && $('p-survey').classList.contains('on')) drawSurvey();
     $('h-upd').innerHTML = d.snapAt ? 'Data per ' + esc(String(d.generatedAt)) + ' (' + snapAge(d.snapAt) + ', diperbarui otomatis tiap ±15 menit bila ada data baru)' : 'Diperbarui ' + esc(d.generatedAt);
+    if (d.stale) { $('h-upd').innerHTML += ' · <b>Ada perubahan daftar survei, angka sedang dihitung ulang…</b>'; if (!window.__autoSnap) { window.__autoSnap = 1; snapRebuild(); } }
     $('h-kpi').innerHTML = d.surveys.map(function (s) {
       var pct = s.target ? Math.round(s.valid / s.target * 100) : 0;
       return '<div class="card kpi"><div class="lab">' + esc(s.name) + ' <span class="badge ' + (s.open ? 'b-open">Dibuka' : 'b-closed">Ditutup') + '</span></div>' +

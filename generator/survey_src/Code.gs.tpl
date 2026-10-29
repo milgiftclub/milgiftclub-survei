@@ -1216,7 +1216,17 @@ function adminSummary(per) {
   if (sn && sn.meta.active === act && (per == null || per === act)) {
     var d = snapGet_('summary'), now = surveyList_().map(function (x) { return x.v + x.status; }).join(',');
     // daftar survei berubah (survei baru/ditutup) sejak snapshot dibuat -> pakai data langsung supaya sidebar tidak ketinggalan
-    if (d && (d.surveys || []).map(function (x) { return x.v + x.status; }).join(',') === now) { d.snapAt = sn.meta.at; d.fromSnap = true; return d; }
+    if (d) {
+      if ((d.surveys || []).map(function (x) { return x.v + x.status; }).join(',') !== now) {
+        // daftar survei berubah sejak snapshot: susun ulang daftar dari data terbaru (angka survei baru menyusul saat snapshot diperbarui)
+        var by = {}; (d.surveys || []).forEach(function (x) { by[x.v] = x; });
+        d.surveys = surveyList_().map(function (x) { var o = by[x.v]; if (o) { o.status = x.status; o.open = x.open; o.name = x.name; return o; }
+          var sh = sheet_(x.tab), n = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
+          return Object.assign({}, x, { total: n, valid: 0, invalid: 0, dup: 0, today: 0, people: 0, peopleValid: 0, medianMin: 0, menunggu: true }); });
+        d.stale = true;
+      }
+      d.snapAt = sn.meta.at; d.fromSnap = true; return d;
+    }
   }
   return cached_(function () { var d = adminSummaryRaw_(per); d.snapAt = sn ? sn.meta.at : ''; return d; });
 }
@@ -2692,34 +2702,69 @@ function snapSig_() {
   var p = sheet_(SH.PANEL), b = sheet_(SH.BLOK);
   return n + '|' + (p ? p.getLastRow() : 0) + '|' + (b ? b.getLastRow() : 0) + '|' + set_('PERIODE_LIST') + set_('PERIODE_KE') + set_('PERIODE_TAHUN') + set_('RONDE_SURVEI') + surveyList_().map(function (x) { return x.v + x.status; }).join(',');
 }
-function snapBuild_() {
-  return cached_(function () {
-    var t0 = Date.now(), per = activePeriode_(null), items = {};
-    var sm = summaryData_(per); sm.periode = per; sm.periods = periods_().map(function (p) { return p.label; }); sm.activePeriod = per;
-    items.summary = snapPack_(sm);
-    surveyList_().filter(function (x) { return x.status !== 'Draf'; }).forEach(function (sv) {
-      var cd = ctData_(sv.v, 'Valid', null, null); cd.meta.range = 'Semua waktu'; delete cd._wa; delete cd._ts;
-      items['ct:' + sv.v] = snapPack_(cd);
-      items['rep:' + sv.v] = snapPack_(adminReportCore_(sv.v, { status: 'Valid' }));
-    });
+// Snapshot dibangun BERTAHAP: tiap bagian (ringkasan, tiap survei, gabungan, indeks) dihitung terpisah & disimpan
+// sementara di tab "_SnapStage". Satu eksekusi Apps Script dibatasi 6 menit, jadi dengan data puluhan ribu baris
+// pekerjaan dipecah ke beberapa eksekusi; snapshot lama tetap dipakai sampai yang baru selesai.
+var SNAP_STAGE = '_SnapStage', SNAP_BUDGET_MS = 200e3;
+function snapParts_() { return ['summary'].concat(surveyList_().filter(function (x) { return x.status !== 'Draf'; }).map(function (x) { return 'sv:' + x.v; }), ['ct:all', 'rep:all', 'idx']); }
+function snapJob_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('SNAP_JOB') || 'null'); } catch (e) { return null; } }
+function snapJobSave_(j) { var pr = PropertiesService.getScriptProperties(); if (j) pr.setProperty('SNAP_JOB', JSON.stringify(j)); else pr.deleteProperty('SNAP_JOB'); }
+function snapStageSheet_() { var s = sheet_(SNAP_STAGE); if (!s) { s = ss_().insertSheet(SNAP_STAGE); try { s.hideSheet(); } catch (e) {} } return s; }
+function snapPart_(part) {
+  var items = {}, per = activePeriode_(null);
+  if (part === 'summary') { var sm = summaryData_(per); sm.periode = per; sm.periods = periods_().map(function (p) { return p.label; }); sm.activePeriod = per; items.summary = snapPack_(sm); }
+  else if (part.indexOf('sv:') === 0) {
+    var v = part.slice(3), cd = ctData_(v, 'Valid', null, null); cd.meta.range = 'Semua waktu'; delete cd._wa; delete cd._ts;
+    items['ct:' + v] = snapPack_(cd); items['rep:' + v] = snapPack_(adminReportCore_(v, { status: 'Valid' }));
+  } else if (part === 'ct:all') {
     var all = ctDataAll_('Valid', null, null, true), keys = all._wa; delete all._wa; all.meta.range = 'Semua waktu';
-    items['ct:all'] = snapPack_(all); items['wa:all'] = snapPack_(keys);
-    items['rep:all'] = snapPack_(adminReportAll_({ status: 'Valid' }));
+    items['ct:all'] = snapPack_(all); items['wa:all'] = snapPack_(keys); items._n = all.meta.n;
+  } else if (part === 'rep:all') items['rep:all'] = snapPack_(adminReportAll_({ status: 'Valid' }));
+  else if (part === 'idx') {
     // indeks akun IG -> survei yang sudah diisi (untuk halaman depan & cek username yang cepat)
-    var igx = {}; readAll_().forEach(function (r) { var n = String(r.ig_normal || ''); if (!n) return; (igx[n] = igx[n] || []).push([r._v, r.ronde || 1, r.status === 'Valid' ? 1 : 0, new Date(r.timestamp).getTime() || 0, periodeOf_(r), r.S1 && r.wa_normal && !/^(Tidak valid|Diblokir)/.test(String(r.status)) ? 1 : 0, String(r.kategori_1 || '')]); });
-    items.ig = snapPack_(igx);
-    var wax = {}; readAll_().forEach(function (r) { var w = String(r.wa_normal || ''); if (!w) return; (wax[w] = wax[w] || []).push([r._v, r.ronde || 1]); });
-    items.wa = snapPack_(wax);
-    var rowsAt = {}; respTabs_().forEach(function (t) { var sh = sheet_(t[0]); rowsAt[t[0]] = sh ? sh.getLastRow() : 0; });
-    var meta = { at: new Date().toISOString(), active: per, ms: Date.now() - t0, n: all.meta.n, sig: snapSig_(), rows: rowsAt };
-    snapWrite_(items, meta);
-    return meta;
-  });
+    var igx = {}, wax = {};
+    readAll_().forEach(function (r) {
+      var n = String(r.ig_normal || ''); if (n) (igx[n] = igx[n] || []).push([r._v, r.ronde || 1, r.status === 'Valid' ? 1 : 0, new Date(r.timestamp).getTime() || 0, periodeOf_(r), r.S1 && r.wa_normal && !/^(Tidak valid|Diblokir)/.test(String(r.status)) ? 1 : 0, String(r.kategori_1 || '')]);
+      var w = String(r.wa_normal || ''); if (w) (wax[w] = wax[w] || []).push([r._v, r.ronde || 1]);
+    });
+    items.ig = snapPack_(igx); items.wa = snapPack_(wax);
+  }
+  return items;
 }
+/** Satu langkah pembangunan snapshot. Mengembalikan {done, step, total, meta?}. */
+function snapStep_(budget) {
+  var t0 = Date.now(), j = snapJob_(), lim = budget || SNAP_BUDGET_MS;
+  if (!j || Date.now() - (j.t || 0) > 3 * 3600e3) { j = { parts: snapParts_(), i: 0, at: new Date().toISOString(), sig: snapSig_(), ms: 0, n: 0, t: Date.now() }; snapStageSheet_().clearContents(); }
+  var st = snapStageSheet_();
+  while (j.i < j.parts.length && (j.i === 0 || Date.now() - t0 < lim)) {
+    var it = cached_(function () { return snapPart_(j.parts[j.i]); }), rows = [];
+    if (it._n != null) { j.n = it._n; delete it._n; }
+    Object.keys(it).forEach(function (k) { var p = it[k]; for (var c = 0; c * SNAP_CHUNK < p.length; c++) rows.push([k, c, 'x' + p.slice(c * SNAP_CHUNK, (c + 1) * SNAP_CHUNK)]); });
+    if (rows.length) st.getRange(st.getLastRow() + 1, 1, rows.length, 3).setValues(rows);
+    j.i++; j.t = Date.now(); snapJobSave_(j);
+    if (Date.now() - t0 > lim * 0.6) break;   // bagian berikutnya bisa berat (gabungan) -> lanjut di eksekusi baru
+  }
+  j.ms += Date.now() - t0;
+  if (j.i < j.parts.length) { snapJobSave_(j); return { done: false, step: j.i, total: j.parts.length }; }
+  // selesai: pindahkan hasil ke _Snapshot sekaligus
+  var lr = st.getLastRow(), staged = lr ? st.getRange(1, 1, lr, 3).getValues() : [], rowsAt = {};
+  respTabs_().forEach(function (t) { var sh = sheet_(t[0]); rowsAt[t[0]] = sh ? sh.getLastRow() : 0; });
+  var meta = { at: j.at, active: activePeriode_(null), ms: j.ms, n: j.n, sig: j.sig, rows: rowsAt };
+  var out = [['__meta', 0, 'x' + JSON.stringify(meta)]].concat(staged), sn = snapSheet_(); sn.clearContents(); sn.getRange(1, 1, out.length, 3).setValues(out);
+  SNAP_MEMO_ = null; st.clearContents(); snapJobSave_(null); cacheDel_('snap:meta');
+  return { done: true, step: j.parts.length, total: j.parts.length, meta: meta };
+}
+/** Kompatibel: bangun snapshot penuh dalam satu eksekusi (dipakai tes & data kecil). */
+function snapBuild_() { snapJobSave_(null); var r; do { r = snapStep_(1e12); } while (!r.done); return r.meta; }
+function snapLanjut() { try { ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'snapLanjut') ScriptApp.deleteTrigger(t); }); } catch (e) {} autoSnapshot(true); }
+function snapJadwalLanjut_() { try { ScriptApp.newTrigger('snapLanjut').timeBased().after(60 * 1000).create(); } catch (e) {} }
 /** Trigger tiap 10 menit (dipasang otomatis saat Dashboard dibuka). */
 function autoSnapshot() {
   var lock = LockService.getScriptLock(); if (!lock.tryLock(1000)) return;
-  try { var o = snapRead_(); if (o && (Date.now() - new Date(o.meta.at).getTime() < 10 * 60e3 || o.meta.sig === snapSig_())) return; snapBuild_(); } finally { lock.releaseLock(); }   // tidak ada data baru -> lewati (hemat kuota)
+  try {
+    if (!snapJob_()) { var o = snapRead_(); if (o && (Date.now() - new Date(o.meta.at).getTime() < 10 * 60e3 || o.meta.sig === snapSig_())) return; }   // tidak ada data baru -> lewati (hemat kuota)
+    var r = snapStep_(); if (!r.done) snapJadwalLanjut_();
+  } finally { lock.releaseLock(); }
 }
 function ensureSnapTrigger_() {
   var pr = PropertiesService.getScriptProperties(), last = Number(pr.getProperty('SNAP_TRIG_CEK') || 0);
@@ -2728,7 +2773,11 @@ function ensureSnapTrigger_() {
   try { if (!ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'autoSnapshot'; })) ScriptApp.newTrigger('autoSnapshot').timeBased().everyMinutes(15).create(); } catch (e) {}
 }
 /** Tombol "Perbarui data sekarang" di Dashboard. */
-function adminSnapshotRebuild() { requireAdmin_(); var m = snapBuild_(); ensureSnapTrigger_(); return m; }
+/** Tombol "Perbarui data sekarang": satu langkah per panggilan; Dashboard memanggil berulang sampai done. */
+function adminSnapshotRebuild(lanjut) {
+  requireAdmin_(); var lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { done: false, step: 0, total: 0, sibuk: true };
+  try { if (!lanjut) snapJobSave_(null); var r = snapStep_(); ensureSnapTrigger_(); return r; } finally { lock.releaseLock(); }
+}
 function snapInfo_() { var o = snapRead_(); return o ? { at: o.meta.at, ms: o.meta.ms } : null; }
 
 // ====== HALAMAN DEPAN (satu link untuk semua survei) ======
