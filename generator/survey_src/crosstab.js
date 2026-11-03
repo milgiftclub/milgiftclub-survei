@@ -223,5 +223,41 @@ var CT_LIB = {
       out.push(f);
     }
     return out;
+  },
+  /** Cocokkan baris Panel dengan kriteria. cols = header, rows = nilai (teks). Mengembalikan indeks baris yang lolos. */
+  panelMatch: function (cols, rows, crit) {
+    var low = function (x) { return String(x == null ? '' : x).toLowerCase().trim(); }, sq = cols.indexOf('status_kualitas_terakhir');
+    var cs = (crit || []).filter(function (k) { return k.col && k.val !== '' && k.val != null && !(Array.isArray(k.val) && !k.val.length); }).map(function (k) {
+      return { i: cols.indexOf(k.col), op: k.op, n: low(k.val), raw: k.val, want: (Array.isArray(k.val) ? k.val : [k.val]).map(low) };
+    });
+    var out = [];
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r]; if (sq >= 0 && String(row[sq]).indexOf('Tidak valid') === 0) continue;
+      var ok = true;
+      for (var c = 0; c < cs.length && ok; c++) {
+        var k = cs[c]; if (k.i < 0) { ok = false; break; }
+        var v = low(row[k.i]), vs = v.split(' | ').map(function (x) { return x.trim(); }), w = k.want;
+        if (k.op === 'adalah') ok = w.indexOf(v) >= 0;
+        else if (k.op === 'bukan') ok = w.indexOf(v) < 0;
+        else if (k.op === 'memilih salah satu') ok = w.some(function (x) { return vs.indexOf(x) >= 0; });
+        else if (k.op === 'memilih semua') ok = w.every(function (x) { return vs.indexOf(x) >= 0; });
+        else if (k.op === 'tidak memilih') ok = !w.some(function (x) { return vs.indexOf(x) >= 0; });
+        else if (k.op === 'minimal' || k.op === 'maksimal') { var a = parseFloat(String(row[k.i]).replace(/[^\d.,-]/g, '').replace(',', '.')), b = parseFloat(k.raw); ok = !(isNaN(a) || isNaN(b)) && (k.op === 'minimal' ? a >= b : a <= b); }
+        else ok = k.op === 'sama dengan' ? v === k.n : k.op === 'tidak sama dengan' ? v !== k.n : k.op === 'mengandung' ? v.indexOf(k.n) >= 0 : k.op === 'tidak mengandung' ? v.indexOf(k.n) < 0 : true;
+      }
+      if (ok) out.push(r);
+    }
+    return out;
+  },
+  /** Kunci nomor WA (tanpa 0 / 62 di depan). */
+  waKey: function (x) { return String(x == null ? '' : x).replace(/\D/g, '').replace(/^(62|0)/, ''); },
+  /** Pertanyaan yang menjadi kriteria panel (beserta turunannya) -> tidak dihitung sebagai pembeda. src: kolom panel -> id pertanyaan. */
+  critSrc: function (crit, src) {
+    var o = {};
+    (crit || []).forEach(function (k) { if (src[k.col]) o[String(src[k.col]).replace(/^L\d_/, '')] = 1; });
+    var REL = { S1: ['generasi', 'S0'], S0: ['generasi', 'S1'], generasi: ['S1', 'S0'], A7: ['ses', 'kelas_ekonomi'], A7N: ['ses', 'kelas_ekonomi'], ses: ['kelas_ekonomi', 'A7'], kelas_ekonomi: ['ses', 'A7'], A13: ['segmen_hp'], A13H: ['segmen_hp'], segmen_hp: ['A13', 'A13H'], A1: ['wilayah', 'provinsi'], provinsi: ['wilayah'], jabodetabek: ['wilayah'], A4M: ['A4'], A4N: ['A4'], A4K: ['A4'] };
+    Object.keys(o).forEach(function (k) { (REL[k] || []).forEach(function (x) { o[x] = 1; }); });
+    return o;
   }
+
 };

@@ -660,7 +660,7 @@ function snapRebuild(btn) {
   var step = function (lanjut) {
     return run('adminSnapshotRebuild', lanjut).then(function (r) {
       if (r && r.done === false) { if (btn && r.total) btn.textContent = 'Menghitung ulang… (' + r.step + '/' + r.total + ')'; if (r.sibuk) return new Promise(function (ok) { setTimeout(ok, 5000); }).then(function () { return step(true); }); return step(true); }
-      reset(); toast('Data diperbarui'); loaded = {}; CT = null; SVINS = {}; loadHome();
+      reset(); toast('Data diperbarui'); loaded = {}; CT = null; SVINS = {}; PDATA = null; PIDATA = null; loadHome();
     });
   };
   return step(false).catch(reset);
@@ -963,10 +963,27 @@ var POPS = { sa: [['adalah', 'adalah'], ['bukan', 'bukan']], ma: [['memilih sala
   num: [['minimal', 'minimal'], ['maksimal', 'maksimal']], text: [['mengandung', 'mengandung'], ['sama dengan', 'sama dengan']] };
 var PEN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 var PSAVED = [], PCUR = null;
+var PDATA = null;   // { cols, rows, wa, src, snapAt } — data Panel di browser; penyaringan & insight dihitung di sini (tanpa bolak-balik ke server)
+function pnCount(crit) { return PDATA ? CT_LIB.panelMatch(PDATA.cols, PDATA.rows, crit).length : 0; }
+function pnSavedN(l) { return (l || []).map(function (x) { x.n = pnCount(x.crit); return x; }); }
+var PIPROM = null;
+function pnInsData() {   // data gabungan untuk insight: diambil sekali, disimpan di browser
+  if (PIDATA && (!PDATA || PIDATA.snapAt === PDATA.snapAt)) return Promise.resolve(PIDATA);
+  if (PIPROM) return PIPROM;
+  return (PIPROM = run('adminCrosstab', 'all', 'Valid', null).then(unpack).then(function (cd) { PIDATA = cd; PIPROM = null; return cd; }, function (e) { PIPROM = null; throw e; }));
+}
 function loadPanel() {
-  $('pn-crit').innerHTML = '<p class="loading">Memuat daftar profil…</p>';
-  run('adminPanelColumns').then(function (c) { PCOLS = c; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true); searchPanel(); });
-  pnRefreshSaved();
+  $('pn-crit').innerHTML = '<p class="loading">Memuat data panel…</p>';
+  $('pn-ins').innerHTML = '<p class="loading">Memuat…</p>';
+  run('adminPanelData').then(function (d) {
+    return Promise.all([unpack({ packed: d.packed }), d.wa ? unpack({ packed: d.wa }) : null]).then(function (x) {
+      var src = {}; d.pcols.forEach(function (c) { if (c.src) src[c.col] = c.src; });
+      PDATA = { cols: x[0].cols, rows: x[0].rows, wa: x[1], src: src, snapAt: d.snapAt };
+      PCOLS = d.pcols; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true);
+      pnRefreshSaved(pnSavedN(d.saved)); searchPanel();
+    });
+  }, function (e) { $('pn-crit').innerHTML = '<p class="loading">' + esc(e.message || e) + '</p>'; });
+  if (!PIDATA) pnInsData().catch(function () {});   // mulai unduh data insight bersamaan
 }
 function pnRefreshSaved(list) {
   var draw = function (l) { PSAVED = l; $('pn-saved').innerHTML = '<option value="">— Panel baru —</option>' + l.map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + ' · ' + fmt(x.n) + ' orang</option>'; }).join(''); $('pn-saved').value = PCUR ? PCUR.id : ''; pnName(); };
@@ -984,22 +1001,23 @@ function pnSave(asNew) {
   if (!crit.length) return toast('Isi minimal satu kriteria dulu');
   var nm = asNew ? prompt('Nama panel baru (mis. "Wanita muda Jawa Barat"):', '') : PCUR.name;
   if (nm === null) return;
-  run('adminPanelSave', nm, crit, asNew ? null : PCUR.id).then(function (r) { PCUR = r.list.filter(function (x) { return x.id === r.id; })[0]; pnRefreshSaved(r.list); toast(asNew ? 'Panel baru tersimpan. Bisa dipilih di Cross Tab & Laporan.' : 'Perubahan panel tersimpan'); });
+  run('adminPanelSave', nm, crit, asNew ? null : PCUR.id).then(function (r) { var l = PDATA ? pnSavedN(r.list) : r.list; PCUR = l.filter(function (x) { return x.id === r.id; })[0]; pnRefreshSaved(l); toast(asNew ? 'Panel baru tersimpan. Bisa dipilih di Cross Tab & Laporan.' : 'Perubahan panel tersimpan'); });
 }
 function pnDelete() {
   if (!PCUR || !confirm('Hapus panel "' + PCUR.name + '"? Data responden tidak ikut terhapus.')) return;
-  run('adminPanelDelete', PCUR.id).then(function (l) { PCUR = null; pnRefreshSaved(l); toast('Panel dihapus'); });
+  run('adminPanelDelete', PCUR.id).then(function (l) { PCUR = null; pnRefreshSaved(PDATA ? pnSavedN(l) : l); toast('Panel dihapus'); });
 }
 var PIG = 0, PIDATA = null;
 function pnInsight() {
   var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet), my = ++PIG;
   $('pn-ins').innerHTML = '<p class="loading">Menghitung insight…</p>';
-  // cepat: data gabungan diambil sekali dari snapshot (disimpan di browser), anggota panel cukup nomor barisnya
-  var viaSnap = run('adminPanelRows', crit).then(function (r) {
-    if (r.fallback) return run('adminPanelInsight', crit, 'all');
-    var get = PIDATA && PIDATA.snapAt === r.snapAt ? Promise.resolve(PIDATA) : run('adminCrosstab', 'all', 'Valid', null).then(unpack).then(function (cd) { PIDATA = cd; PIDATA.snapAt = r.snapAt; return cd; });
-    return get.then(function (cd) { var seg = new Array(cd.data.length); r.rows.forEach(function (i) { seg[i] = true; }); var d = CT_LIB.panelInsight(cd, seg, r.crit); d.nPanel = r.nPanel; return d; });
-  });
+  // insight dihitung di browser: anggota panel dicocokkan dengan data gabungan lewat nomor WA
+  var viaSnap = (PDATA && PDATA.wa) ? pnInsData().then(function (cd) {
+    var idx = CT_LIB.panelMatch(PDATA.cols, PDATA.rows, crit), hp = PDATA.cols.indexOf('nomor_hp'), set = {}, n = 0;
+    idx.forEach(function (i) { var k = CT_LIB.waKey(PDATA.rows[i][hp]); if (k && !set[k]) { set[k] = 1; n++; } });
+    var seg = PDATA.wa.map(function (k) { return !!set[k]; });
+    var d = CT_LIB.panelInsight(cd, seg, CT_LIB.critSrc(crit, PDATA.src)); d.nPanel = n; return d;
+  }) : run('adminPanelInsight', crit, 'all');
   viaSnap.then(function (d) {
     if (my !== PIG) return;
     if (!d.nSeg) { $('pn-ins').innerHTML = '<p class="loading">Belum ada jawaban survei ini dari anggota panel.</p>'; return; }
@@ -1074,9 +1092,11 @@ function critGet(d) {
 }
 function searchPanel() {
   var crit = [].map.call(document.querySelectorAll('#pn-crit .crit'), critGet);
-  $('pn-n').textContent = 'Mencari…';
   pnInsight();
-  run('adminPanelSearch', crit).then(function (d) { PRES = d; $('pn-n').textContent = fmt(d.rows.length) + ' responden'; $('pn-n2').textContent = '(' + fmt(d.rows.length) + ' orang)'; table($('pn-t'), d.cols, d.rows.slice(0, 300)); });
+  var show = function (d) { PRES = d; $('pn-n').textContent = fmt(d.rows.length) + ' responden'; $('pn-n2').textContent = '(' + fmt(d.rows.length) + ' orang)'; table($('pn-t'), d.cols, d.rows.slice(0, 300)); };
+  if (PDATA) return show({ cols: PDATA.cols, rows: CT_LIB.panelMatch(PDATA.cols, PDATA.rows, crit).map(function (i) { return PDATA.rows[i]; }) });
+  $('pn-n').textContent = 'Mencari…';
+  run('adminPanelSearch', crit).then(show);
 }
 function csvPanel() { csv('panel', PRES.cols, PRES.rows); }
 

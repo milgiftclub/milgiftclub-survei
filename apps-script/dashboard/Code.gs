@@ -1316,9 +1316,18 @@ function adminSetStatus(v, sid, status, violation) {
 /** Kolom Panel untuk filter: label, tipe (sa = pilih satu, ma = pilihan ganda, num = angka, text) dan pilihan jawaban (+ jumlah responden). */
 var PANEL_SKIP = ['panel_id', 'nomor_hp', 'tgl_bergabung', 'update_terakhir', 'profil_diperbarui'];
 var PANEL_NUM = ['jumlah_survei', 'pengeluaran_per_kapita'];
-function panelColumns_() {
+/** Isi tab Panel {cols, rows} (nilai sudah jadi teks). live=true baca Sheet langsung; selain itu pakai snapshot bila ada. */
+function panelDataLive_() {
   var p = sheet_(SH.PANEL), h = p && p.getLastColumn() ? p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0] : [];
   var data = p && p.getLastRow() > 1 ? p.getRange(2, 1, p.getLastRow() - 1, h.length).getValues() : [];
+  return { cols: h, rows: data.map(function (r) { return r.map(function (x) { x = iso_(x); return x == null ? '' : x; }); }) };
+}
+function panelData_(live) {
+  if (live) return panelDataLive_();
+  return memo_('panelData', function () { var sn = snapRead_(), d = sn ? snapGet_('panel') : null; return d || panelDataLive_(); });
+}
+function panelColumns_(pd) {
+  pd = pd || panelData_(); var h = pd.cols, data = pd.rows;
   var meta = reportMeta_('v1');
   return PANEL_COLS.filter(function (c) { return PANEL_SKIP.indexOf(c[0]) < 0; }).map(function (c) {
     var col = c[0], src = String(c[1] || ''), id = src.replace(/^L\d_/, ''), m = meta[id] || {}, ci = h.indexOf(col);
@@ -1331,40 +1340,30 @@ function panelColumns_() {
     var opts = (m.opts || []).slice();
     seen.sort(function (a, b) { return cnt[b] - cnt[a]; }).forEach(function (x) { if (opts.indexOf(x) < 0 && opts.length < 400) opts.push(x); });
     var lab = CT_LABELS[id] || col.replace(/_/g, ' ');
-    return { col: col, label: lab.charAt(0).toUpperCase() + lab.slice(1), type: type, opts: type === 'text' || type === 'num' ? [] : opts.map(function (o) { return [o, cnt[o] || 0]; }) };
+    return { col: col, src: src, label: lab.charAt(0).toUpperCase() + lab.slice(1), type: type, opts: type === 'text' || type === 'num' ? [] : opts.map(function (o) { return [o, cnt[o] || 0]; }) };
   });
 }
-function adminPanelColumns() { requireAdmin_(); return panelColumns_(); }
-function adminPanelSearch(crit) { requireAdmin_(); var m = panelMatch_(crit); return { cols: m.cols, rows: m.rows.map(function (r) { return r.map(iso_); }) }; }
+function adminPanelColumns() { requireAdmin_(); var sn = snapRead_(), c = sn ? snapGet_('pcols') : null; return c || panelColumns_(); }
+function adminPanelSearch(crit) { requireAdmin_(); var m = panelMatch_(crit); return { cols: m.cols, rows: m.rows }; }
+/** Halaman Panel: semua yang dibutuhkan dalam SATU panggilan (dari snapshot, terkompresi). Penyaringan dilakukan di browser. */
+function adminPanelData() {
+  requireAdmin_();
+  var sn = snapRead_(), pk = sn ? snapPacked_('panel') : null, pc = sn ? snapGet_('pcols') : null, wa = sn ? snapPacked_('wa:all') : null;
+  if (!pk || !pc) { var pd = panelDataLive_(); pk = snapPack_(pd); pc = panelColumns_(pd); }
+  return { packed: pk, pcols: pc, wa: wa, saved: panelSavedRaw_(), snapAt: sn ? sn.meta.at : '' };
+}
 /** Kunci nomor WA untuk mencocokkan panel dengan jawaban survei (tanpa 0 / 62 di depan). */
-function waKey_(x) { return String(x == null ? '' : x).replace(/\D/g, '').replace(/^(62|0)/, ''); }
-function panelMatch_(crit) {
-  var p = sheet_(SH.PANEL), h = p.getRange(1, 1, 1, p.getLastColumn()).getValues()[0];
-  var data = p.getLastRow() > 1 ? p.getRange(2, 1, p.getLastRow() - 1, h.length).getValues() : [];
-  var low = function (x) { return String(x == null ? '' : x).toLowerCase().trim(); };
-  var res = data.filter(function (r) {
-    if (String(r[h.indexOf('status_kualitas_terakhir')]).indexOf('Tidak valid') === 0) return false;
-    return (crit || []).every(function (k) {
-      if (!k.col || k.val === '' || k.val == null || (Array.isArray(k.val) && !k.val.length)) return true;
-      var i = h.indexOf(k.col); if (i < 0) return false;
-      var v = low(r[i]), n = low(k.val), vs = v.split(' | ').map(function (x) { return x.trim(); }), want = (Array.isArray(k.val) ? k.val : [k.val]).map(low);
-      if (k.op === 'adalah') return want.indexOf(v) >= 0;
-      if (k.op === 'bukan') return want.indexOf(v) < 0;
-      if (k.op === 'memilih salah satu') return want.some(function (x) { return vs.indexOf(x) >= 0; });
-      if (k.op === 'memilih semua') return want.every(function (x) { return vs.indexOf(x) >= 0; });
-      if (k.op === 'tidak memilih') return !want.some(function (x) { return vs.indexOf(x) >= 0; });
-      if (k.op === 'minimal' || k.op === 'maksimal') { var a = parseFloat(String(r[i]).replace(/[^\d.,-]/g, '').replace(',', '.')), b = parseFloat(k.val); if (isNaN(a) || isNaN(b)) return false; return k.op === 'minimal' ? a >= b : a <= b; }
-      return k.op === 'sama dengan' ? v === n : k.op === 'tidak sama dengan' ? v !== n : k.op === 'mengandung' ? v.indexOf(n) >= 0 : k.op === 'tidak mengandung' ? v.indexOf(n) < 0 : true;
-    });
-  });
-  return { cols: h, rows: res };
+function waKey_(x) { return CT_LIB.waKey(x); }
+function panelMatch_(crit, live) {
+  var pd = panelData_(live), idx = CT_LIB.panelMatch(pd.cols, pd.rows, crit);
+  return { cols: pd.cols, rows: idx.map(function (i) { return pd.rows[i]; }) };
 }
 // ====== PANEL TERSIMPAN ======
 function panelSavedRaw_() { try { return JSON.parse(String(set_('PANEL_TERSIMPAN') || '[]')) || []; } catch (e) { return []; } }
 function panelSavedSave_(l) { adminSaveSettings({ PANEL_TERSIMPAN: JSON.stringify(l) }); SET_MEMO_ = null; }
 function adminPanelSaved() {
   requireAdmin_();
-  return panelSavedRaw_().map(function (x) { var n = 0; try { n = panelMatch_(x.crit).rows.length; } catch (e) {} return { id: x.id, name: x.name, crit: x.crit, n: n, oleh: x.oleh, diubah: x.diubah }; });
+  return cached_(function () { return panelSavedRaw_().map(function (x) { var n = 0; try { n = panelMatch_(x.crit).rows.length; } catch (e) {} return { id: x.id, name: x.name, crit: x.crit, n: n, oleh: x.oleh, diubah: x.diubah }; }); });
 }
 function adminPanelSave(name, crit, id) {
   var who = requireAdmin_(); name = String(name || '').trim(); if (!name) throw new Error('Beri nama panel dulu.');
@@ -1384,14 +1383,7 @@ function panelById_(id) { var p = panelSavedRaw_().filter(function (x) { return 
 /** Insight panel: sebaran jawaban anggota panel dibanding semua responden survei, dikelompokkan per kelompok pertanyaan. */
 function adminPanelInsight(crit, v) { return cached_(function () { return adminPanelInsightRaw_(crit, v); }); }
 /** Kriteria panel -> id pertanyaan yang tidak dihitung sebagai pembeda (termasuk turunannya). */
-function panelCritSrc_(crit) {
-  var critSrc = {};
-  (crit || []).forEach(function (k) { var d = PANEL_COLS.filter(function (c) { return c[0] === k.col; })[0]; if (d && d[1]) critSrc[String(d[1]).replace(/^L\d_/, '')] = 1; });
-  // pertanyaan turunan dari kriteria juga dianggap kriteria (mis. usia -> generasi, pengeluaran -> SES)
-  var REL = { S1: ['generasi', 'S0'], S0: ['generasi', 'S1'], generasi: ['S1', 'S0'], A7: ['ses', 'kelas_ekonomi'], A7N: ['ses', 'kelas_ekonomi'], ses: ['kelas_ekonomi', 'A7'], kelas_ekonomi: ['ses', 'A7'], A13: ['segmen_hp'], A13H: ['segmen_hp'], segmen_hp: ['A13', 'A13H'], A1: ['wilayah', 'provinsi'], provinsi: ['wilayah'], jabodetabek: ['wilayah'], A4M: ['A4'], A4N: ['A4'], A4K: ['A4'] };
-  Object.keys(critSrc).forEach(function (k) { (REL[k] || []).forEach(function (x) { critSrc[x] = 1; }); });
-  return critSrc;
-}
+function panelCritSrc_(crit) { var src = {}; PANEL_COLS.forEach(function (c) { if (c[1]) src[c[0]] = c[1]; }); return CT_LIB.critSrc(crit, src); }
 function adminPanelInsightRaw_(crit, v) {
   requireAdmin_();
   var snapAll = snapGet_('ct:all'), cd = snapAll ? { qs: snapAll.qs, data: snapAll.data, meta: snapAll.meta, _wa: snapGet_('wa:all') } : ctDataAll_('Valid', null, null, true);
@@ -1821,7 +1813,43 @@ var CT_LIB = {
       out.push(f);
     }
     return out;
+  },
+  /** Cocokkan baris Panel dengan kriteria. cols = header, rows = nilai (teks). Mengembalikan indeks baris yang lolos. */
+  panelMatch: function (cols, rows, crit) {
+    var low = function (x) { return String(x == null ? '' : x).toLowerCase().trim(); }, sq = cols.indexOf('status_kualitas_terakhir');
+    var cs = (crit || []).filter(function (k) { return k.col && k.val !== '' && k.val != null && !(Array.isArray(k.val) && !k.val.length); }).map(function (k) {
+      return { i: cols.indexOf(k.col), op: k.op, n: low(k.val), raw: k.val, want: (Array.isArray(k.val) ? k.val : [k.val]).map(low) };
+    });
+    var out = [];
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r]; if (sq >= 0 && String(row[sq]).indexOf('Tidak valid') === 0) continue;
+      var ok = true;
+      for (var c = 0; c < cs.length && ok; c++) {
+        var k = cs[c]; if (k.i < 0) { ok = false; break; }
+        var v = low(row[k.i]), vs = v.split(' | ').map(function (x) { return x.trim(); }), w = k.want;
+        if (k.op === 'adalah') ok = w.indexOf(v) >= 0;
+        else if (k.op === 'bukan') ok = w.indexOf(v) < 0;
+        else if (k.op === 'memilih salah satu') ok = w.some(function (x) { return vs.indexOf(x) >= 0; });
+        else if (k.op === 'memilih semua') ok = w.every(function (x) { return vs.indexOf(x) >= 0; });
+        else if (k.op === 'tidak memilih') ok = !w.some(function (x) { return vs.indexOf(x) >= 0; });
+        else if (k.op === 'minimal' || k.op === 'maksimal') { var a = parseFloat(String(row[k.i]).replace(/[^\d.,-]/g, '').replace(',', '.')), b = parseFloat(k.raw); ok = !(isNaN(a) || isNaN(b)) && (k.op === 'minimal' ? a >= b : a <= b); }
+        else ok = k.op === 'sama dengan' ? v === k.n : k.op === 'tidak sama dengan' ? v !== k.n : k.op === 'mengandung' ? v.indexOf(k.n) >= 0 : k.op === 'tidak mengandung' ? v.indexOf(k.n) < 0 : true;
+      }
+      if (ok) out.push(r);
+    }
+    return out;
+  },
+  /** Kunci nomor WA (tanpa 0 / 62 di depan). */
+  waKey: function (x) { return String(x == null ? '' : x).replace(/\D/g, '').replace(/^(62|0)/, ''); },
+  /** Pertanyaan yang menjadi kriteria panel (beserta turunannya) -> tidak dihitung sebagai pembeda. src: kolom panel -> id pertanyaan. */
+  critSrc: function (crit, src) {
+    var o = {};
+    (crit || []).forEach(function (k) { if (src[k.col]) o[String(src[k.col]).replace(/^L\d_/, '')] = 1; });
+    var REL = { S1: ['generasi', 'S0'], S0: ['generasi', 'S1'], generasi: ['S1', 'S0'], A7: ['ses', 'kelas_ekonomi'], A7N: ['ses', 'kelas_ekonomi'], ses: ['kelas_ekonomi', 'A7'], kelas_ekonomi: ['ses', 'A7'], A13: ['segmen_hp'], A13H: ['segmen_hp'], segmen_hp: ['A13', 'A13H'], A1: ['wilayah', 'provinsi'], provinsi: ['wilayah'], jabodetabek: ['wilayah'], A4M: ['A4'], A4N: ['A4'], A4K: ['A4'] };
+    Object.keys(o).forEach(function (k) { (REL[k] || []).forEach(function (x) { o[x] = 1; }); });
+    return o;
   }
+
 };
 
 var CT_LABELS = {"S0": "Tahun lahir", "S1": "Usia", "S2": "Jenis kelamin", "S3": "Bekerja di industri terkait", "S4": "Platform belanja (1 bulan terakhir)", "S5": "Frekuensi belanja online", "SC1": "Kategori fokus yang dibeli", "A1": "Kota", "provinsi": "Provinsi", "wilayah": "Wilayah", "A18": "Jenis tempat tinggal", "A19": "Status tempat tinggal", "A4M": "Status pernikahan", "A4N": "Jumlah anak", "A4K": "Usia anak", "A4": "Life stage", "A5": "Pekerjaan", "A6": "Pendidikan terakhir", "A7N": "Jumlah anggota rumah tangga", "A7": "Pengeluaran rumah tangga per bulan", "A8": "Belanja online pribadi per bulan", "ses": "SES", "kelas_ekonomi": "Kelas ekonomi", "A9": "Pengambil keputusan belanja rumah tangga", "A10": "Media sosial harian", "A11": "Durasi media sosial per hari", "A12": "Metode pembayaran", "A13": "Merek HP", "A13H": "Harga HP", "segmen_hp": "Segmen HP", "generasi": "Generasi", "A14": "Minat / hobi", "A15": "Mengenakan hijab", "A16": "Kendaraan yang dimiliki", "B2": "Platform paling sering dipakai", "B4": "Platform paling sesuai", "C1": "Kategori belanja terakhir", "kategori_1": "Kategori yang dibahas", "C2": "Frekuensi beli kategori (3 bulan)", "PT1": "Produk yang dibeli", "PT2": "Harga produk per item", "AW1": "Platform tempat membeli", "AW3": "Pemicu ingin membeli", "AW5": "Sumber pertama tahu produk", "AW6": "Konten yang menarik perhatian", "AW7": "Yang ingin dipastikan dari konten", "CO2": "Cara membandingkan pilihan", "CO4": "Pendorong keputusan membeli", "PTB": "Merek yang dibeli", "AW5K": "Kata kunci pencarian", "AW5S": "Aplikasi tempat melihat konten", "AW5C": "Kreator / akun yang diingat", "AW5R": "Yang merekomendasikan", "AW5G": "Jenis grup / komunitas", "AW5T": "Jenis toko fisik", "AW5M": "Media iklan konvensional", "FA2": "Sikap terhadap harga (fashion)", "CO6": "Jeda melihat hingga membeli", "CO7": "Melihat/mencoba di toko fisik dulu", "PU1": "Alasan memilih platform", "PU2": "Momen pembelian", "PU4": "Total nilai belanja", "PU5": "Pemakaian voucher / promo", "PU6": "Membatalkan checkout", "PU7": "Alasan tidak jadi membeli", "OF1": "Riwayat beli online vs toko fisik", "OF2": "Alasan dulu beli di toko fisik", "OF3": "Alasan pindah beli online", "OF4": "Kondisi tetap beli di toko fisik", "LO1": "Yang dipertahankan saat beli ulang", "LO2": "Alasan kembali membeli", "LO4": "Pemicu berhenti berlangganan", "RE1": "Kemungkinan merekomendasikan (NPS)", "RE2": "Tindakan setelah menerima produk", "RE3": "Pendorong memberi ulasan", "D0": "Porsi belanja online vs toko fisik", "D1": "Pengalaman live shopping", "D4": "Momen memutuskan beli saat live", "D5": "Format iklan sosmed yang dilihat"};   // label pendek per pertanyaan (questions.py)
@@ -3865,7 +3893,7 @@ function snapSig_() {
 // sementara di tab "_SnapStage". Satu eksekusi Apps Script dibatasi 6 menit, jadi dengan data puluhan ribu baris
 // pekerjaan dipecah ke beberapa eksekusi; snapshot lama tetap dipakai sampai yang baru selesai.
 var SNAP_STAGE = '_SnapStage', SNAP_BUDGET_MS = 200e3;
-function snapParts_() { return ['summary'].concat(surveyList_().filter(function (x) { return x.status !== 'Draf'; }).map(function (x) { return 'sv:' + x.v; }), ['ct:all', 'rep:all', 'idx']); }
+function snapParts_() { return ['summary'].concat(surveyList_().filter(function (x) { return x.status !== 'Draf'; }).map(function (x) { return 'sv:' + x.v; }), ['ct:all', 'rep:all', 'idx', 'panel']); }
 function snapJob_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('SNAP_JOB') || 'null'); } catch (e) { return null; } }
 function snapJobSave_(j) { var pr = PropertiesService.getScriptProperties(); if (j) pr.setProperty('SNAP_JOB', JSON.stringify(j)); else pr.deleteProperty('SNAP_JOB'); }
 function snapStageSheet_() { var s = sheet_(SNAP_STAGE); if (!s) { s = ss_().insertSheet(SNAP_STAGE); try { s.hideSheet(); } catch (e) {} } return s; }
@@ -3879,6 +3907,7 @@ function snapPart_(part) {
     var all = ctDataAll_('Valid', null, null, true), keys = all._wa; delete all._wa; all.meta.range = 'Semua waktu';
     items['ct:all'] = snapPack_(all); items['wa:all'] = snapPack_(keys); items._n = all.meta.n;
   } else if (part === 'rep:all') items['rep:all'] = snapPack_(adminReportAll_({ status: 'Valid' }));
+  else if (part === 'panel') { var pd = panelDataLive_(); items.panel = snapPack_(pd); items.pcols = snapPack_(panelColumns_(pd)); }
   else if (part === 'idx') {
     // indeks akun IG -> survei yang sudah diisi (untuk halaman depan & cek username yang cepat)
     var igx = {}, wax = {};
@@ -3921,7 +3950,7 @@ function snapJadwalLanjut_() { try { ScriptApp.newTrigger('snapLanjut').timeBase
 function autoSnapshot() {
   var lock = LockService.getScriptLock(); if (!lock.tryLock(1000)) return;
   try {
-    if (!snapJob_()) { var o = snapRead_(); if (o && (Date.now() - new Date(o.meta.at).getTime() < 10 * 60e3 || o.meta.sig === snapSig_())) return; }   // tidak ada data baru -> lewati (hemat kuota)
+    if (!snapJob_()) { var o = snapRead_(); if (o && o.idx.panel && (Date.now() - new Date(o.meta.at).getTime() < 10 * 60e3 || o.meta.sig === snapSig_())) return; }   // snapshot versi lama (tanpa data Panel) -> bangun ulang   // tidak ada data baru -> lewati (hemat kuota)
     var r = snapStep_(); if (!r.done) snapJadwalLanjut_();
   } finally { lock.releaseLock(); }
 }

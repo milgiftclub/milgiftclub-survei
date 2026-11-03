@@ -1,0 +1,28 @@
+const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
+const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup();
+const SP = (process.env.SHOTS || require('os').tmpdir() + '/') ;
+global.__viewer = 'robert@mildigital.id';
+let st = ctx.adminSimulasiMulai(), n0 = 0; while (!st.selesai && n0++ < 60) st = ctx.adminSimulasiBatch(); ctx.snapBuild_();
+const calls = []; const origCall = (fn, args) => { const t = Date.now(); let r; try { r = JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { r = JSON.stringify({ err: e.message }); } calls.push(fn + ' ' + (Date.now() - t) + 'ms ' + Math.round(r.length / 1024) + 'KB'); return r; };
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id'); fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
+(async () => {
+  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept('Tidak bisa dihubungi'));
+  await p.exposeFunction('gsCall', origCall);
+  await p.addInitScript(`window.google={script:{run:(function mk(ok,fail){return new Proxy({},{get(_,fn){if(fn==='withSuccessHandler')return f=>mk(f,fail);if(fn==='withFailureHandler')return f=>mk(ok,f);return (...a)=>window.gsCall(fn,JSON.stringify(a)).then(r=>{r=JSON.parse(r); if(r.err){fail&&fail(new Error(r.err))} else ok&&ok(r.ok)})}})})()}};`);
+  await p.route('https://cdnjs.cloudflare.com/**', r => r.fulfill({ body: fs.readFileSync(path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js'), 'utf8'), contentType: 'application/javascript' }));
+  await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(2500);
+  calls.length = 0; let t = Date.now();
+  await p.locator('nav.side button', { hasText: 'Panel Responden' }).click();
+  await p.waitForFunction(() => /responden/.test(document.getElementById('pn-n').textContent), null, { timeout: 120000 });
+  console.log('jumlah tampil', Date.now() - t, 'ms:', await p.textContent('#pn-n'));
+  await p.waitForFunction(() => /anggota panel/.test(document.getElementById('pn-ins').textContent), null, { timeout: 120000 });
+  console.log('insight tampil', Date.now() - t, 'ms'); console.log('panggilan server:', calls.join(' | '));
+  calls.length = 0; t = Date.now();
+  await p.evaluate(() => { addCrit('usia', 'adalah', ['18-24 tahun'], true); searchPanel(); });
+  await p.waitForFunction(() => /anggota panel/.test(document.getElementById('pn-ins').textContent), null, { timeout: 120000 });
+  console.log('ganti kriteria', Date.now() - t, 'ms:', await p.textContent('#pn-n'), '| panggilan server:', calls.join(' | ') || '(tidak ada)');
+  const srv = ctx.adminPanelSearch([{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }, { col: 'usia', op: 'adalah', val: ['18-24 tahun'] }]).rows.length; console.log('cek server:', srv);
+  console.log('JS errors:', errs); await b.close();
+})();
