@@ -1349,7 +1349,10 @@ function adminPanelSearch(crit) { requireAdmin_(); var m = panelMatch_(crit); re
 function adminPanelData() {
   requireAdmin_();
   var sn = snapRead_(), pk = sn ? snapPacked_('panel') : null, pc = sn ? snapGet_('pcols') : null, wa = sn ? snapPacked_('wa:all') : null;
-  if (!pk || !pc) { var pd = panelDataLive_(); pk = snapPack_(pd); pc = panelColumns_(pd); }
+  if (!pk || !pc) {
+    var pd = panelDataLive_(); pk = snapPack_(pd); pc = panelColumns_(pd);
+    if (sn) snapAppend_({ panel: pk, pcols: snapPack_(pc) });   // simpan ke snapshot -> pembukaan berikutnya langsung cepat
+  }
   return { packed: pk, pcols: pc, wa: wa, saved: panelSavedRaw_(), snapAt: sn ? sn.meta.at : '' };
 }
 /** Kunci nomor WA untuk mencocokkan panel dengan jawaban survei (tanpa 0 / 62 di depan). */
@@ -2681,6 +2684,16 @@ function snapRead_() {
   var m = String(s.getRange(1, 3).getValue() || '').slice(1); if (!m) return null;
   var o = { meta: JSON.parse(m), idx: idx, obj: {}, cache: {} };
   SNAP_MEMO_ = o; return o;
+}
+/** Tambahkan item ke snapshot yang sudah ada (tanpa membangun ulang semuanya). */
+function snapAppend_(items) {
+  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
+  try {
+    var o = snapRead_(); if (!o) return;
+    var rows = []; Object.keys(items).forEach(function (k) { if (o.idx[k]) return; var p = items[k]; for (var c = 0; c * SNAP_CHUNK < p.length; c++) rows.push([k, c, 'x' + p.slice(c * SNAP_CHUNK, (c + 1) * SNAP_CHUNK)]); });
+    if (!rows.length) return;
+    var sh = snapSheet_(); sh.getRange(sh.getLastRow() + 1, 1, rows.length, 3).setValues(rows); SNAP_MEMO_ = null;
+  } finally { lock.releaseLock(); }
 }
 function snapPacked_(key) {
   var o = snapRead_(); if (!o || !o.idx[key]) return null;

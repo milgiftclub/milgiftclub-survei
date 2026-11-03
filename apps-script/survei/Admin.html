@@ -974,12 +974,13 @@ function pnInsData() {   // data gabungan untuk insight: diambil sekali, disimpa
 }
 function loadPanel() {
   $('pn-crit').innerHTML = '<p class="loading">Memuat data panel…</p>';
+  var slow = setTimeout(function () { var e = $('pn-crit').querySelector('.loading'); if (e) e.textContent = 'Memuat data panel… Pembukaan pertama setelah data diperbarui bisa ±30–60 detik; berikutnya langsung cepat.'; }, 6000);
   $('pn-ins').innerHTML = '<p class="loading">Memuat…</p>';
   run('adminPanelData').then(function (d) {
     return Promise.all([unpack({ packed: d.packed }), d.wa ? unpack({ packed: d.wa }) : null]).then(function (x) {
       var src = {}; d.pcols.forEach(function (c) { if (c.src) src[c.col] = c.src; });
       PDATA = { cols: x[0].cols, rows: x[0].rows, wa: x[1], src: src, snapAt: d.snapAt };
-      PCOLS = d.pcols; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true);
+      clearTimeout(slow); PCOLS = d.pcols; $('pn-crit').innerHTML = ''; addCrit('jenis_kelamin', 'adalah', ['Wanita'], true);
       pnRefreshSaved(pnSavedN(d.saved)); searchPanel();
     });
   }, function (e) { $('pn-crit').innerHTML = '<p class="loading">' + esc(e.message || e) + '</p>'; });
