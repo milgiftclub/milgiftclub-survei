@@ -213,6 +213,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 .bq textarea.qt{font-weight:600;font-size:15px;min-height:52px}
 .bo{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
 .bo input[type=text]{flex:1;min-width:180px;padding:8px 12px;border-radius:10px}
+.bo input[type=url]{flex:3;min-width:220px;padding:8px 12px;border-radius:10px}
 .flag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);white-space:nowrap;cursor:pointer;border:1px solid var(--line);border-radius:20px;padding:4px 9px;user-select:none}
 .flag input{margin:0}
 .flag.on{background:var(--navy-l);color:var(--navy);border-color:var(--navy-m)}
@@ -1290,8 +1291,21 @@ loadHome();
 // ---------- BUAT SURVEI (builder) ----------
 // =====================================================================
 var B = null, BMETA = null, BDEF = null, bDirty = false;
-var BTYPES = [['single', 'Pilih satu'], ['multi', 'Pilih beberapa'], ['dropdown', 'Dropdown (daftar panjang)'], ['scale', 'Skala'], ['number', 'Angka'], ['text', 'Isian singkat'], ['longtext', 'Isian panjang']];
-var HAS_OPT = { single: 1, multi: 1, dropdown: 1 };
+var BTYPES = [['single', 'Pilih satu'], ['multi', 'Pilih beberapa'], ['media', 'Pilih video / gambar (A/B)'], ['dropdown', 'Dropdown (daftar panjang)'], ['scale', 'Skala'], ['number', 'Angka'], ['text', 'Isian singkat'], ['longtext', 'Isian panjang']];
+var HAS_OPT = { single: 1, multi: 1, dropdown: 1, media: 1 };
+/** Link video / gambar -> cara menampilkannya. Dipakai di Dashboard (pembuat survei) & halaman survei. */
+function mediaInfo(u) {
+  u = String(u || '').trim(); if (!/^https?:\/\//i.test(u)) return null;
+  var m;
+  if ((m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/i))) return { kind: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + m[1] + '?rel=0&playsinline=1&modestbranding=1', vertical: /shorts\//i.test(u), via: 'YouTube' };
+  if ((m = u.match(/tiktok\.com\/(?:@[\w.-]+\/video|embed(?:\/v2)?|v)\/(\d+)/i))) return { kind: 'iframe', src: 'https://www.tiktok.com/embed/v2/' + m[1], vertical: true, via: 'TikTok' };
+  if ((m = u.match(/instagram\.com\/(?:[\w.]+\/)?(reel|reels|p|tv)\/([\w-]+)/i))) return { kind: 'iframe', src: 'https://www.instagram.com/' + (m[1] === 'p' ? 'p' : 'reel') + '/' + m[2] + '/embed', vertical: true, via: 'Instagram' };
+  if ((m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:.*&)?id=)([\w-]{10,})/i))) return { kind: 'iframe', src: 'https://drive.google.com/file/d/' + m[1] + '/preview', vertical: true, via: 'Google Drive' };
+  if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return { kind: 'video', src: u, vertical: true, via: 'video' };
+  if (/\.(jpe?g|png|gif|webp|avif)(\?|#|$)/i.test(u) || /googleusercontent\.com|imgur\.com/i.test(u)) return { kind: 'image', src: u, vertical: false, via: 'gambar' };
+  return null;
+}
+
 function bNew() { return { hadiah: defaultPrizes(), questions: [], target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all' }; }
 function markDirty(v) { bDirty = v !== false; $('b-dirty').textContent = bDirty ? '● Belum disimpan' : ''; }
 function openBuilder(id) {
@@ -1453,15 +1467,18 @@ function bRender() {
       '<textarea class="qt" data-f="text" rows="2" placeholder="Tulis pertanyaan…">' + esc(q.text) + '</textarea>';
     if (HAS_OPT[q.type]) {
       h += '<div style="margin-top:8px">' + (q.options || []).map(function (o, j) {
+        if (q.type === 'media') return '<div class="bo bm" data-j="' + j + '"><input type="text" data-o="t" value="' + esc(o.t) + '" placeholder="Nama, mis. Video ' + 'ABCD'.charAt(j) + '" style="max-width:160px">' +
+          '<input type="url" data-o="media" value="' + esc(o.media || '') + '" placeholder="Link video / gambar (YouTube Shorts, TikTok, Instagram Reels, Google Drive, .mp4, .jpg)">' +
+          '<button class="ib del" data-a="odel" title="Hapus pilihan">✕</button></div>' + (o.media && !mediaInfo(o.media) ? '<div class="tip" style="margin:2px 0 8px">Link ini belum dikenali. Pakai link YouTube/Shorts, TikTok, Instagram Reels, Google Drive (akses: siapa saja yang punya link), atau file .mp4/.jpg/.png.</div>' : '');
         return '<div class="bo" data-j="' + j + '"><input type="text" data-o="t" value="' + esc(o.t) + '" placeholder="Pilihan ' + (j + 1) + '">' +
           '<label class="flag' + (o.other ? ' on' : '') + '" title="Responden bisa menulis jawaban sendiri"><input type="checkbox" data-o="other"' + (o.other ? ' checked' : '') + '> Isian</label>' +
           (q.type === 'multi' ? '<label class="flag' + (o.exclusive ? ' on' : '') + '" title="Tidak bisa dipilih bersama pilihan lain"><input type="checkbox" data-o="exclusive"' + (o.exclusive ? ' checked' : '') + '> Eksklusif</label>' : '') +
           '<label class="flag scr' + (o.screen ? ' on' : '') + '" title="Responden yang memilih ini berhenti (tidak lolos)"><input type="checkbox" data-o="screen"' + (o.screen ? ' checked' : '') + '> Tidak lolos</label>' +
           '<button class="ib del" data-a="odel" title="Hapus pilihan">✕</button></div>';
-      }).join('') + '<button class="btn sec sm" data-a="oadd" style="margin-top:4px">+ Pilihan</button> <button class="btn sec sm" data-a="obulk">Tempel banyak pilihan</button></div>';
+      }).join('') + '<button class="btn sec sm" data-a="oadd" style="margin-top:4px">+ Pilihan</button>' + (q.type === 'media' ? ' <span class="muted" style="font-size:12px">Responden menonton tiap video lalu memilih satu yang paling disukai. Centang <b>Acak urutan</b> supaya posisi kiri/kanan tidak memengaruhi pilihan.</span>' : ' <button class="btn sec sm" data-a="obulk">Tempel banyak pilihan</button>') + '</div>';
     }
     h += '<div class="bopts"><label><input type="checkbox" data-f="required"' + (q.required !== false ? ' checked' : '') + '> Wajib diisi</label>';
-    if (q.type === 'single' || q.type === 'multi') h += '<label><input type="checkbox" data-f="random"' + (q.random ? ' checked' : '') + '> Acak urutan pilihan</label>';
+    if (q.type === 'single' || q.type === 'multi' || q.type === 'media') h += '<label><input type="checkbox" data-f="random"' + (q.random ? ' checked' : '') + '> Acak urutan pilihan</label>';
     if (q.type === 'multi') h += '<label>Maks. pilihan <input type="number" min="0" data-f="max" value="' + (q.max || '') + '" placeholder="bebas"></label>';
     if (q.type === 'scale') { var sc = q.scale || {}; h += '<label>Dari <input type="number" data-s="min" value="' + (sc.min == null ? 1 : sc.min) + '"></label><label>sampai <input type="number" data-s="max" value="' + (sc.max || 5) + '"></label><input type="text" data-s="minLabel" placeholder="Label nilai terendah" value="' + esc(sc.minLabel || '') + '"><input type="text" data-s="maxLabel" placeholder="Label nilai tertinggi" value="' + esc(sc.maxLabel || '') + '">'; }
     if (q.type === 'number') h += '<label>Min <input type="number" data-f="min" value="' + (q.min == null ? '' : q.min) + '"></label><label>Maks <input type="number" data-f="maxNum" value="' + (q.maxNum == null ? '' : q.maxNum) + '"></label>';
@@ -1498,6 +1515,7 @@ function bBind(card) {
     var j = +row.dataset.j, o = q.options[j];
     row.querySelector('[data-o="t"]').addEventListener('input', function (e) { o.t = e.target.value; markDirty(); });
     row.querySelector('[data-o="t"]').addEventListener('change', bRender);
+    var mu = row.querySelector('[data-o="media"]'); if (mu) { mu.addEventListener('input', function (e) { o.media = e.target.value.trim(); markDirty(); }); mu.addEventListener('change', bRender); }
     row.querySelector('[data-o="t"]').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); q.options.splice(j + 1, 0, { t: '' }); markDirty(); bRender(); var n = document.querySelector('#b-qs .bq[data-i="' + i + '"] .bo[data-j="' + (j + 1) + '"] input'); if (n) n.focus(); } });
     [].forEach.call(row.querySelectorAll('input[type=checkbox]'), function (c) { c.addEventListener('change', function () { o[c.dataset.o] = c.checked; markDirty(); bRender(); }); });
   });
@@ -1580,7 +1598,7 @@ function bTake(list, append, meta) {
   if (!append) B.questions = [];
   var idx = [];
   list.forEach(function (q) {
-    var n = { id: nextId(), text: q.text || '', type: q.type || 'single', options: (q.options || []).map(function (o) { return typeof o === 'string' ? optFrom(o) : { t: o.t || '', other: !!o.other, exclusive: !!o.exclusive, screen: !!o.screen }; }), required: q.required !== false, random: !!q.random, max: q.max || 0 };
+    var n = { id: nextId(), text: q.text || '', type: q.type || 'single', options: (q.options || []).map(function (o) { return typeof o === 'string' ? optFrom(o) : { t: o.t || '', other: !!o.other, exclusive: !!o.exclusive, screen: !!o.screen, media: o.media || undefined }; }), required: q.required !== false, random: !!q.random, max: q.max || 0 };
     if (q.scale) n.scale = q.scale;
     if (q.hint) n.hint = q.hint;
     if (q.topic) n.topic = q.topic;
@@ -1602,6 +1620,1498 @@ function bTake(list, append, meta) {
   markDirty(); bRender(); toast(list.length + ' pertanyaan ditambahkan. Cek dan rapikan sebelum publish.');
 }
 var B_TPL = {
+ "konten-hook": {
+  "judul": "Konten & Hook: apa yang bikin berhenti scroll dan membeli",
+  "ringkas": "Kebiasaan menonton, hook pembuka, alasan skip, uji A/B 2 video dan 2 sampul, isi konten, ajakan beli, dan siapa yang paling dipercaya. Video & gambar contoh bisa diganti dengan materi klien.",
+  "name": "Survei Konten & Hook Video",
+  "intro": "Kami ingin tahu konten seperti apa yang membuat kamu berhenti scroll dan tertarik membeli. Ada 2 video dan 2 gambar singkat untuk dibandingkan.",
+  "estimasi": 7,
+  "kupon": 2,
+  "questions": [
+   {
+    "text": "Dalam seminggu terakhir, seberapa sering Anda menonton konten video pendek (TikTok, Reels, Shorts, Shopee Video)?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Setiap hari, lebih dari 1 jam"
+     },
+     {
+      "t": "Setiap hari, kurang dari 1 jam"
+     },
+     {
+      "t": "3–5 hari dalam seminggu"
+     },
+     {
+      "t": "1–2 hari dalam seminggu"
+     },
+     {
+      "t": "Tidak menonton sama sekali",
+      "screen": true
+     }
+    ],
+    "topic": "Kebiasaan menonton konten",
+    "label": "Frekuensi nonton video pendek"
+   },
+   {
+    "text": "Di aplikasi mana Anda paling sering menemukan konten produk yang membuat Anda tertarik membeli?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "TikTok"
+     },
+     {
+      "t": "Instagram Reels"
+     },
+     {
+      "t": "Instagram Story"
+     },
+     {
+      "t": "YouTube Shorts"
+     },
+     {
+      "t": "Shopee Video"
+     },
+     {
+      "t": "Facebook"
+     }
+    ],
+    "topic": "Kebiasaan menonton konten",
+    "max": 2,
+    "label": "Aplikasi konten produk"
+   },
+   {
+    "text": "Biasanya, dalam berapa detik Anda memutuskan lanjut menonton atau menggeser sebuah video?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Kurang dari 1 detik"
+     },
+     {
+      "t": "1–2 detik"
+     },
+     {
+      "t": "3–5 detik"
+     },
+     {
+      "t": "Lebih dari 5 detik"
+     }
+    ],
+    "topic": "Kebiasaan menonton konten",
+    "label": "Detik memutuskan"
+   },
+   {
+    "text": "Pembuka video seperti apa yang paling sering membuat Anda BERHENTI scroll?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Pertanyaan yang relate (“Sering salah pilih ukuran?”)"
+     },
+     {
+      "t": "Harga atau diskon langsung di awal"
+     },
+     {
+      "t": "Hasil before–after"
+     },
+     {
+      "t": "Wajah orang yang langsung bicara ke kamera"
+     },
+     {
+      "t": "Produk dipakai langsung / close-up"
+     },
+     {
+      "t": "Teks besar di layar"
+     },
+     {
+      "t": "Lagu / suara yang sedang tren"
+     },
+     {
+      "t": "Cerita pribadi / POV"
+     },
+     {
+      "t": "Sesuatu yang lucu atau tidak terduga"
+     }
+    ],
+    "topic": "Hook: yang bikin berhenti scroll",
+    "max": 3,
+    "random": true,
+    "label": "Hook yang bikin berhenti"
+   },
+   {
+    "text": "Apa yang paling sering membuat Anda langsung MENGGESER (skip) sebuah video?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Terlalu kelihatan seperti iklan"
+     },
+     {
+      "t": "Pembukaannya lambat / bertele-tele"
+     },
+     {
+      "t": "Suara atau musiknya mengganggu"
+     },
+     {
+      "t": "Kualitas gambar jelek"
+     },
+     {
+      "t": "Orangnya tidak menarik / tidak relate"
+     },
+     {
+      "t": "Produknya tidak jelas apa"
+     },
+     {
+      "t": "Terlalu banyak teks"
+     },
+     {
+      "t": "Sudah sering melihat konten serupa"
+     }
+    ],
+    "topic": "Hook: yang bikin berhenti scroll",
+    "max": 3,
+    "random": true,
+    "label": "Alasan skip"
+   },
+   {
+    "text": "Tonton kedua video berikut. Mana yang lebih membuat Anda ingin terus menonton?",
+    "type": "media",
+    "options": [
+     {
+      "t": "Video A",
+      "media": "https://milgiftclub.github.io/milgiftclub-survei/contoh/hook-a.mp4"
+     },
+     {
+      "t": "Video B",
+      "media": "https://milgiftclub.github.io/milgiftclub-survei/contoh/hook-b.mp4"
+     }
+    ],
+    "topic": "Uji hook (A/B)",
+    "random": true,
+    "label": "A/B hook video"
+   },
+   {
+    "text": "Apa yang membuat Anda memilih video tersebut?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Pembukanya langsung menarik perhatian"
+     },
+     {
+      "t": "Terasa relate dengan masalah saya"
+     },
+     {
+      "t": "Ada informasi harga"
+     },
+     {
+      "t": "Tidak terasa seperti iklan"
+     },
+     {
+      "t": "Lebih jelas produknya apa"
+     },
+     {
+      "t": "Visual / warnanya lebih menarik"
+     },
+     {
+      "t": "Lainnya",
+      "other": true
+     }
+    ],
+    "topic": "Uji hook (A/B)",
+    "max": 2,
+    "label": "Alasan pilih video"
+   },
+   {
+    "text": "Kalau melihat dua gambar sampul (thumbnail) berikut di beranda, mana yang lebih ingin Anda klik?",
+    "type": "media",
+    "options": [
+     {
+      "t": "Sampul A",
+      "media": "https://milgiftclub.github.io/milgiftclub-survei/contoh/thumb-a.jpg"
+     },
+     {
+      "t": "Sampul B",
+      "media": "https://milgiftclub.github.io/milgiftclub-survei/contoh/thumb-b.jpg"
+     }
+    ],
+    "topic": "Uji hook (A/B)",
+    "random": true,
+    "label": "A/B thumbnail"
+   },
+   {
+    "text": "Menurut Anda, berapa durasi ideal video yang mempromosikan produk?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Kurang dari 15 detik"
+     },
+     {
+      "t": "15–30 detik"
+     },
+     {
+      "t": "31–60 detik"
+     },
+     {
+      "t": "1–3 menit"
+     },
+     {
+      "t": "Lebih dari 3 menit, asal menarik"
+     }
+    ],
+    "topic": "Isi konten & ajakan beli",
+    "label": "Durasi ideal"
+   },
+   {
+    "text": "Setelah tertarik, apa yang paling Anda butuhkan dari isi video sebelum mau membeli?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Detail produk dari dekat"
+     },
+     {
+      "t": "Cara pakai / demo"
+     },
+     {
+      "t": "Ukuran, bahan, atau spesifikasi jelas"
+     },
+     {
+      "t": "Perbandingan dengan produk lain"
+     },
+     {
+      "t": "Harga dan promo"
+     },
+     {
+      "t": "Bukti hasil (before–after, testimoni)"
+     },
+     {
+      "t": "Ulasan jujur termasuk kekurangannya"
+     }
+    ],
+    "topic": "Isi konten & ajakan beli",
+    "max": 3,
+    "random": true,
+    "label": "Yang dibutuhkan dari isi"
+   },
+   {
+    "text": "Ajakan membeli seperti apa yang paling membuat Anda bertindak?",
+    "type": "single",
+    "options": [
+     {
+      "t": "“Cek keranjang kuning / link di bio”"
+     },
+     {
+      "t": "Kode promo khusus dari kreator"
+     },
+     {
+      "t": "“Stok terbatas / promo berakhir hari ini”"
+     },
+     {
+      "t": "Ajakan ikut live untuk harga spesial"
+     },
+     {
+      "t": "Tanpa ajakan, saya cari sendiri kalau tertarik"
+     }
+    ],
+    "topic": "Isi konten & ajakan beli",
+    "label": "Ajakan beli efektif"
+   },
+   {
+    "text": "Gaya bahasa caption atau teks di layar yang paling Anda sukai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Santai seperti ngobrol dengan teman"
+     },
+     {
+      "t": "Lucu / pakai bahasa gaul"
+     },
+     {
+      "t": "Singkat dan informatif"
+     },
+     {
+      "t": "Bercerita (storytelling)"
+     },
+     {
+      "t": "Formal dan rapi"
+     }
+    ],
+    "topic": "Isi konten & ajakan beli",
+    "label": "Gaya bahasa caption"
+   },
+   {
+    "text": "Siapa yang paling Anda percaya saat merekomendasikan produk di video?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Kreator besar / selebgram"
+     },
+     {
+      "t": "Kreator kecil yang sering saya tonton"
+     },
+     {
+      "t": "Orang biasa / pembeli asli"
+     },
+     {
+      "t": "Host live shopping"
+     },
+     {
+      "t": "Akun resmi brand"
+     },
+     {
+      "t": "Pemilik / founder brand"
+     }
+    ],
+    "topic": "Siapa yang membawakan",
+    "label": "Pembawa paling dipercaya"
+   },
+   {
+    "text": "Seberapa berpengaruh label “iklan / kerja sama berbayar” terhadap kepercayaan Anda pada konten?",
+    "type": "scale",
+    "topic": "Siapa yang membawakan",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Jadi tidak percaya sama sekali",
+     "maxLabel": "Tidak berpengaruh"
+    },
+    "label": "Pengaruh label iklan"
+   },
+   {
+    "text": "Seberapa setuju Anda: “Saya pernah membeli produk karena video yang awalnya hanya kebetulan lewat di beranda.”",
+    "type": "scale",
+    "topic": "Siapa yang membawakan",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Beli dari konten kebetulan"
+   },
+   {
+    "text": "Ceritakan satu video produk yang terakhir kali membuat Anda membeli. Apa yang membuatnya berhasil? (opsional)",
+    "type": "longtext",
+    "topic": "Siapa yang membawakan",
+    "required": false,
+    "label": "Cerita video yang berhasil"
+   }
+  ]
+ },
+ "gaya-penampilan": {
+  "judul": "Gaya Berpenampilan: identitas, inspirasi, dan cara belanja",
+  "ringkas": "Gaya sekarang vs yang dituju, warna, sumber inspirasi & panutan, kebiasaan memilih outfit, kesulitan berpakaian, anggaran, lokal vs internasional, dan pendorong yakin beli online.",
+  "name": "Survei Gaya Berpenampilan",
+  "intro": "Ceritakan gaya berpakaianmu: dari mana dapat inspirasi, apa yang sulit, dan bagaimana kamu belanja. Tidak ada jawaban benar atau salah.",
+  "estimasi": 7,
+  "kupon": 2,
+  "questions": [
+   {
+    "text": "Gaya berpakaian mana yang paling menggambarkan Anda sehari-hari?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Kasual & santai"
+     },
+     {
+      "t": "Minimalis (warna netral, potongan simpel)"
+     },
+     {
+      "t": "Klasik & elegan"
+     },
+     {
+      "t": "Trendy (ikut tren terbaru)"
+     },
+     {
+      "t": "Feminin (detail manis, bunga, renda)"
+     },
+     {
+      "t": "Streetwear"
+     },
+     {
+      "t": "Sporty / athleisure"
+     },
+     {
+      "t": "Modest / tertutup"
+     },
+     {
+      "t": "Vintage / retro"
+     },
+     {
+      "t": "Lainnya",
+      "other": true
+     }
+    ],
+    "topic": "Gaya & identitas",
+    "label": "Gaya utama"
+   },
+   {
+    "text": "Gaya apa yang ingin Anda COBA atau tuju dalam setahun ke depan?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Sama seperti sekarang"
+     },
+     {
+      "t": "Lebih rapi / profesional"
+     },
+     {
+      "t": "Lebih trendy"
+     },
+     {
+      "t": "Lebih minimalis"
+     },
+     {
+      "t": "Lebih feminin / maskulin"
+     },
+     {
+      "t": "Lebih modest"
+     },
+     {
+      "t": "Lebih berani / eksperimen"
+     }
+    ],
+    "topic": "Gaya & identitas",
+    "label": "Gaya yang dituju"
+   },
+   {
+    "text": "Warna pakaian yang paling sering Anda pakai?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Hitam"
+     },
+     {
+      "t": "Putih / krem"
+     },
+     {
+      "t": "Earth tone (cokelat, mocha, olive)"
+     },
+     {
+      "t": "Abu-abu"
+     },
+     {
+      "t": "Navy / biru tua"
+     },
+     {
+      "t": "Pastel"
+     },
+     {
+      "t": "Warna terang (merah, kuning, hijau terang)"
+     },
+     {
+      "t": "Motif / print"
+     }
+    ],
+    "topic": "Gaya & identitas",
+    "max": 3,
+    "label": "Warna favorit"
+   },
+   {
+    "text": "Seberapa penting penampilan bagi Anda dalam aktivitas sehari-hari?",
+    "type": "scale",
+    "topic": "Gaya & identitas",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Tidak penting",
+     "maxLabel": "Sangat penting"
+    },
+    "label": "Pentingnya penampilan"
+   },
+   {
+    "text": "Dari mana Anda paling sering mendapat inspirasi gaya berpakaian?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "TikTok"
+     },
+     {
+      "t": "Instagram"
+     },
+     {
+      "t": "Pinterest"
+     },
+     {
+      "t": "YouTube"
+     },
+     {
+      "t": "Teman / rekan kerja"
+     },
+     {
+      "t": "Selebriti / figur publik"
+     },
+     {
+      "t": "K-pop / drama Korea"
+     },
+     {
+      "t": "Toko / etalase mal"
+     },
+     {
+      "t": "Marketplace (foto produk)"
+     }
+    ],
+    "topic": "Inspirasi gaya",
+    "max": 3,
+    "random": true,
+    "label": "Sumber inspirasi"
+   },
+   {
+    "text": "Konten inspirasi gaya seperti apa yang paling Anda sukai?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "OOTD harian"
+     },
+     {
+      "t": "Mix & match 1 item jadi banyak gaya"
+     },
+     {
+      "t": "Try-on haul"
+     },
+     {
+      "t": "Capsule wardrobe"
+     },
+     {
+      "t": "Tips sesuai bentuk badan"
+     },
+     {
+      "t": "Outfit untuk acara tertentu"
+     },
+     {
+      "t": "Before–after styling"
+     }
+    ],
+    "topic": "Inspirasi gaya",
+    "max": 2,
+    "label": "Konten inspirasi favorit"
+   },
+   {
+    "text": "Apakah Anda punya akun/kreator panutan gaya yang rutin Anda ikuti?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Ya, beberapa"
+     },
+     {
+      "t": "Ya, satu atau dua"
+     },
+     {
+      "t": "Tidak ada"
+     }
+    ],
+    "topic": "Inspirasi gaya",
+    "label": "Punya panutan gaya"
+   },
+   {
+    "text": "Sebutkan 1–2 nama akun atau figur panutan gaya Anda. (opsional)",
+    "type": "text",
+    "topic": "Inspirasi gaya",
+    "required": false,
+    "showIf": {
+     "q": 7,
+     "op": "isnot",
+     "val": "Tidak ada"
+    },
+    "label": "Nama panutan gaya"
+   },
+   {
+    "text": "Biasanya kapan Anda menentukan pakaian yang akan dipakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Malam sebelumnya"
+     },
+     {
+      "t": "Pagi sebelum berangkat"
+     },
+     {
+      "t": "Seminggu sekali sudah direncanakan"
+     },
+     {
+      "t": "Spontan saja"
+     }
+    ],
+    "topic": "Kebiasaan memilih pakaian",
+    "label": "Waktu memilih outfit"
+   },
+   {
+    "text": "Apa kesulitan terbesar Anda soal berpakaian?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Bingung memadukan pakaian"
+     },
+     {
+      "t": "Merasa “tidak punya baju” padahal lemari penuh"
+     },
+     {
+      "t": "Sulit menemukan ukuran yang pas"
+     },
+     {
+      "t": "Pakaian cepat rusak / pudar"
+     },
+     {
+      "t": "Bingung gaya yang cocok dengan bentuk badan"
+     },
+     {
+      "t": "Budget terbatas"
+     },
+     {
+      "t": "Takut salah kostum di acara tertentu"
+     }
+    ],
+    "topic": "Kebiasaan memilih pakaian",
+    "max": 3,
+    "label": "Kesulitan berpakaian"
+   },
+   {
+    "text": "Seberapa setuju: “Saya lebih suka sedikit pakaian berkualitas daripada banyak pakaian murah.”",
+    "type": "scale",
+    "topic": "Kebiasaan memilih pakaian",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Kualitas > kuantitas"
+   },
+   {
+    "text": "Berapa anggaran Anda untuk pakaian dan aksesori per bulan?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Di bawah Rp100.000"
+     },
+     {
+      "t": "Rp100.000 – Rp300.000"
+     },
+     {
+      "t": "Rp300.001 – Rp600.000"
+     },
+     {
+      "t": "Rp600.001 – Rp1.000.000"
+     },
+     {
+      "t": "Di atas Rp1.000.000"
+     }
+    ],
+    "topic": "Belanja fashion",
+    "label": "Anggaran fashion"
+   },
+   {
+    "text": "Lebih sering membeli brand lokal atau internasional?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Hampir selalu brand lokal"
+     },
+     {
+      "t": "Lebih banyak lokal"
+     },
+     {
+      "t": "Seimbang"
+     },
+     {
+      "t": "Lebih banyak internasional"
+     },
+     {
+      "t": "Hampir selalu internasional"
+     },
+     {
+      "t": "Tidak memperhatikan merek"
+     }
+    ],
+    "topic": "Belanja fashion",
+    "label": "Lokal vs internasional"
+   },
+   {
+    "text": "Apa yang paling membuat Anda yakin membeli pakaian secara online?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Size chart detail"
+     },
+     {
+      "t": "Foto dipakai model dengan tinggi/berat tertulis"
+     },
+     {
+      "t": "Video try-on"
+     },
+     {
+      "t": "Ulasan foto pembeli"
+     },
+     {
+      "t": "Bisa retur / tukar ukuran"
+     },
+     {
+      "t": "Bahan dijelaskan jelas"
+     },
+     {
+      "t": "Pernah beli di toko yang sama"
+     }
+    ],
+    "topic": "Belanja fashion",
+    "max": 3,
+    "random": true,
+    "label": "Pendorong yakin beli online"
+   },
+   {
+    "text": "Selain pakaian, bagian penampilan mana yang paling Anda perhatikan?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Rambut"
+     },
+     {
+      "t": "Makeup"
+     },
+     {
+      "t": "Skincare / kulit"
+     },
+     {
+      "t": "Aksesori (tas, perhiasan, jam)"
+     },
+     {
+      "t": "Sepatu"
+     },
+     {
+      "t": "Parfum"
+     },
+     {
+      "t": "Kuku"
+     },
+     {
+      "t": "Tidak ada yang khusus",
+      "exclusive": true
+     }
+    ],
+    "topic": "Belanja fashion",
+    "max": 3,
+    "label": "Aspek penampilan lain"
+   }
+  ]
+ },
+ "live-shopping": {
+  "judul": "Live Shopping: masuk, bertahan, sampai membeli",
+  "ringkas": "Frekuensi & platform, jam menonton, pemicu masuk live, lama bertahan & alasan keluar, gaya host, interaksi favorit, pemicu dan hambatan membeli, serta kebiasaan setelah live.",
+  "name": "Survei Live Shopping",
+  "intro": "Kami ingin tahu pengalaman kamu menonton dan belanja lewat live shopping, dari yang bikin masuk sampai yang bikin checkout.",
+  "estimasi": 7,
+  "kupon": 2,
+  "questions": [
+   {
+    "text": "Dalam 3 bulan terakhir, seberapa sering Anda menonton live shopping?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Hampir setiap hari"
+     },
+     {
+      "t": "Beberapa kali seminggu"
+     },
+     {
+      "t": "Beberapa kali sebulan"
+     },
+     {
+      "t": "Sekali-sekali"
+     },
+     {
+      "t": "Tidak pernah menonton",
+      "screen": true
+     }
+    ],
+    "topic": "Kebiasaan menonton live",
+    "label": "Frekuensi nonton live"
+   },
+   {
+    "text": "Di platform mana Anda menonton live shopping?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "TikTok Live"
+     },
+     {
+      "t": "Shopee Live"
+     },
+     {
+      "t": "Tokopedia Play / Live"
+     },
+     {
+      "t": "Instagram Live"
+     },
+     {
+      "t": "Lazada Live"
+     }
+    ],
+    "topic": "Kebiasaan menonton live",
+    "label": "Platform live"
+   },
+   {
+    "text": "Jam berapa Anda paling sering menonton live shopping?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Pagi (06.00–10.00)"
+     },
+     {
+      "t": "Siang (10.00–14.00)"
+     },
+     {
+      "t": "Sore (14.00–18.00)"
+     },
+     {
+      "t": "Malam (18.00–21.00)"
+     },
+     {
+      "t": "Larut malam (21.00–24.00)"
+     },
+     {
+      "t": "Dini hari (setelah 24.00)"
+     }
+    ],
+    "topic": "Kebiasaan menonton live",
+    "max": 2,
+    "label": "Jam menonton"
+   },
+   {
+    "text": "Kategori produk apa yang paling sering Anda tonton di live?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Fashion"
+     },
+     {
+      "t": "Skincare / makeup"
+     },
+     {
+      "t": "Makanan & minuman"
+     },
+     {
+      "t": "Perlengkapan rumah"
+     },
+     {
+      "t": "Gadget & elektronik"
+     },
+     {
+      "t": "Produk bayi & anak"
+     },
+     {
+      "t": "Kesehatan / suplemen"
+     }
+    ],
+    "topic": "Kebiasaan menonton live",
+    "max": 3,
+    "label": "Kategori yang ditonton"
+   },
+   {
+    "text": "Apa yang paling sering membuat Anda MASUK ke sebuah live?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Lewat di beranda / FYP"
+     },
+     {
+      "t": "Judul atau thumbnail live menarik"
+     },
+     {
+      "t": "Notifikasi dari toko yang saya ikuti"
+     },
+     {
+      "t": "Banyak penonton (terlihat ramai)"
+     },
+     {
+      "t": "Info promo / jadwal live sebelumnya"
+     },
+     {
+      "t": "Host atau kreator yang saya kenal"
+     },
+     {
+      "t": "Sedang mencari produk tertentu"
+     }
+    ],
+    "topic": "Masuk & bertahan di live",
+    "max": 3,
+    "random": true,
+    "label": "Pemicu masuk live"
+   },
+   {
+    "text": "Biasanya berapa lama Anda bertahan di satu live?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Kurang dari 1 menit"
+     },
+     {
+      "t": "1–5 menit"
+     },
+     {
+      "t": "5–15 menit"
+     },
+     {
+      "t": "15–30 menit"
+     },
+     {
+      "t": "Lebih dari 30 menit"
+     }
+    ],
+    "topic": "Masuk & bertahan di live",
+    "label": "Lama bertahan"
+   },
+   {
+    "text": "Apa yang paling sering membuat Anda KELUAR dari live?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Produk yang dibahas tidak menarik"
+     },
+     {
+      "t": "Host terlalu lama bertele-tele"
+     },
+     {
+      "t": "Harga tidak lebih murah dari biasa"
+     },
+     {
+      "t": "Terlalu banyak teriakan / hard selling"
+     },
+     {
+      "t": "Kualitas video / suara buruk"
+     },
+     {
+      "t": "Produk yang ditunggu tidak kunjung dibahas"
+     },
+     {
+      "t": "Sudah selesai membeli"
+     }
+    ],
+    "topic": "Masuk & bertahan di live",
+    "max": 3,
+    "random": true,
+    "label": "Alasan keluar live"
+   },
+   {
+    "text": "Gaya host live seperti apa yang paling Anda sukai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Energik dan heboh"
+     },
+     {
+      "t": "Santai seperti ngobrol"
+     },
+     {
+      "t": "Detail dan informatif"
+     },
+     {
+      "t": "Lucu dan menghibur"
+     },
+     {
+      "t": "Jujur termasuk menyebut kekurangan produk"
+     }
+    ],
+    "topic": "Host & interaksi",
+    "label": "Gaya host favorit"
+   },
+   {
+    "text": "Interaksi apa yang paling Anda sukai saat live?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Host menjawab pertanyaan langsung"
+     },
+     {
+      "t": "Request warna/ukuran ditunjukkan"
+     },
+     {
+      "t": "Kuis atau giveaway"
+     },
+     {
+      "t": "Lelang / harga turun bertahap"
+     },
+     {
+      "t": "Flash sale dengan hitung mundur"
+     },
+     {
+      "t": "Voucher yang muncul tiba-tiba"
+     },
+     {
+      "t": "Try-on atau demo langsung"
+     }
+    ],
+    "topic": "Host & interaksi",
+    "max": 3,
+    "random": true,
+    "label": "Interaksi favorit"
+   },
+   {
+    "text": "Apakah Anda pernah membeli produk saat menonton live shopping?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Sering"
+     },
+     {
+      "t": "Beberapa kali"
+     },
+     {
+      "t": "Pernah sekali"
+     },
+     {
+      "t": "Belum pernah"
+     }
+    ],
+    "topic": "Keputusan membeli",
+    "label": "Pernah beli saat live"
+   },
+   {
+    "text": "Apa yang paling membuat Anda memutuskan membeli saat live?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harga khusus hanya saat live"
+     },
+     {
+      "t": "Stok terbatas / hitung mundur"
+     },
+     {
+      "t": "Voucher atau gratis ongkir saat live"
+     },
+     {
+      "t": "Produk diperagakan langsung"
+     },
+     {
+      "t": "Pertanyaan saya dijawab host"
+     },
+     {
+      "t": "Melihat banyak penonton lain membeli"
+     },
+     {
+      "t": "Bonus atau hadiah tambahan"
+     }
+    ],
+    "topic": "Keputusan membeli",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 10,
+     "op": "isnot",
+     "val": "Belum pernah"
+    },
+    "label": "Pemicu beli saat live"
+   },
+   {
+    "text": "Apa yang membuat Anda belum pernah membeli saat live?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Takut kualitas tidak sesuai"
+     },
+     {
+      "t": "Harganya tidak lebih murah"
+     },
+     {
+      "t": "Tidak sempat menonton sampai selesai"
+     },
+     {
+      "t": "Lebih suka bandingkan dulu di luar live"
+     },
+     {
+      "t": "Belum ada produk yang dibutuhkan"
+     },
+     {
+      "t": "Tidak percaya dengan host / toko"
+     }
+    ],
+    "topic": "Keputusan membeli",
+    "max": 3,
+    "showIf": {
+     "q": 10,
+     "op": "is",
+     "val": "Belum pernah"
+    },
+    "label": "Hambatan beli saat live"
+   },
+   {
+    "text": "Seberapa puas Anda dengan produk yang dibeli melalui live?",
+    "type": "scale",
+    "topic": "Setelah live",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak puas",
+     "maxLabel": "Sangat puas"
+    },
+    "showIf": {
+     "q": 10,
+     "op": "isnot",
+     "val": "Belum pernah"
+    },
+    "label": "Kepuasan produk live"
+   },
+   {
+    "text": "Setelah membeli lewat live, apakah Anda kembali menonton live toko yang sama?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Ya, rutin"
+     },
+     {
+      "t": "Kadang-kadang"
+     },
+     {
+      "t": "Tidak, hanya sekali"
+     }
+    ],
+    "topic": "Setelah live",
+    "showIf": {
+     "q": 10,
+     "op": "isnot",
+     "val": "Belum pernah"
+    },
+    "label": "Kembali ke live yang sama"
+   },
+   {
+    "text": "Seberapa setuju: “Saya pernah membeli barang di live yang sebenarnya tidak saya butuhkan.”",
+    "type": "scale",
+    "topic": "Setelah live",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Beli impulsif saat live"
+   },
+   {
+    "text": "Satu hal yang paling ingin Anda ubah dari live shopping saat ini? (opsional)",
+    "type": "longtext",
+    "topic": "Setelah live",
+    "required": false,
+    "label": "Masukan live shopping"
+   }
+  ]
+ },
+ "promosi": {
+  "judul": "Promosi: jenis promo, kepekaan harga, dan kepercayaan",
+  "ringkas": "Promo yang paling menarik, uji pilihan promo setara, gratis ongkir, diskon minimal untuk pindah merek, kebiasaan menunda, momen & sumber info promo, kode kreator, diskon palsu, dan program loyalitas.",
+  "name": "Survei Promosi & Diskon",
+  "intro": "Kami ingin tahu promo seperti apa yang benar-benar membuat kamu membeli dan kembali lagi.",
+  "estimasi": 6,
+  "kupon": 2,
+  "questions": [
+   {
+    "text": "Jenis promo apa yang paling menarik bagi Anda?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Diskon persen (mis. 50%)"
+     },
+     {
+      "t": "Potongan harga rupiah (mis. potong Rp50rb)"
+     },
+     {
+      "t": "Gratis ongkir"
+     },
+     {
+      "t": "Cashback / koin"
+     },
+     {
+      "t": "Beli 1 gratis 1"
+     },
+     {
+      "t": "Bundling / paket hemat"
+     },
+     {
+      "t": "Hadiah / bonus produk"
+     },
+     {
+      "t": "Flash sale"
+     },
+     {
+      "t": "Voucher toko"
+     },
+     {
+      "t": "Poin / member"
+     }
+    ],
+    "topic": "Promo yang disukai",
+    "max": 3,
+    "random": true,
+    "label": "Promo paling menarik"
+   },
+   {
+    "text": "Kalau harus memilih satu, mana yang lebih Anda sukai untuk produk seharga Rp200.000?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Diskon 25% (jadi Rp150.000)"
+     },
+     {
+      "t": "Potongan langsung Rp50.000"
+     },
+     {
+      "t": "Cashback Rp60.000 dalam bentuk koin"
+     },
+     {
+      "t": "Gratis 1 produk kecil senilai Rp70.000"
+     }
+    ],
+    "topic": "Promo yang disukai",
+    "random": true,
+    "label": "Pilihan promo setara"
+   },
+   {
+    "text": "Seberapa penting gratis ongkir dalam keputusan membeli Anda?",
+    "type": "scale",
+    "topic": "Promo yang disukai",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Tidak penting",
+     "maxLabel": "Sangat penting"
+    },
+    "label": "Pentingnya gratis ongkir"
+   },
+   {
+    "text": "Berapa minimal diskon yang membuat Anda mau mencoba merek baru?",
+    "type": "single",
+    "options": [
+     {
+      "t": "10%"
+     },
+     {
+      "t": "20%"
+     },
+     {
+      "t": "30%"
+     },
+     {
+      "t": "40%"
+     },
+     {
+      "t": "50% atau lebih"
+     },
+     {
+      "t": "Diskon tidak membuat saya pindah merek",
+      "exclusive": true
+     }
+    ],
+    "topic": "Kepekaan harga",
+    "label": "Diskon minimal coba merek baru"
+   },
+   {
+    "text": "Seberapa sering Anda menunda pembelian sampai ada promo?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Hampir selalu"
+     },
+     {
+      "t": "Sering"
+     },
+     {
+      "t": "Kadang-kadang"
+     },
+     {
+      "t": "Jarang"
+     },
+     {
+      "t": "Tidak pernah"
+     }
+    ],
+    "topic": "Kepekaan harga",
+    "label": "Menunda sampai promo"
+   },
+   {
+    "text": "Seberapa setuju: “Kalau sebuah produk tidak pernah diskon, saya merasa harganya terlalu mahal.”",
+    "type": "scale",
+    "topic": "Kepekaan harga",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Harga normal terasa mahal"
+   },
+   {
+    "text": "Momen promo apa yang paling Anda tunggu?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Tanggal kembar (10.10, 11.11, 12.12)"
+     },
+     {
+      "t": "Gajian / tanggal muda"
+     },
+     {
+      "t": "Harbolnas"
+     },
+     {
+      "t": "Ramadan & Lebaran"
+     },
+     {
+      "t": "Akhir tahun"
+     },
+     {
+      "t": "Ulang tahun platform / toko"
+     },
+     {
+      "t": "Payday sale"
+     },
+     {
+      "t": "Tidak menunggu momen khusus",
+      "exclusive": true
+     }
+    ],
+    "topic": "Momen & cara mencari promo",
+    "max": 3,
+    "label": "Momen promo ditunggu"
+   },
+   {
+    "text": "Dari mana Anda biasanya tahu ada promo?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Notifikasi aplikasi belanja"
+     },
+     {
+      "t": "Konten TikTok / Instagram"
+     },
+     {
+      "t": "Live shopping"
+     },
+     {
+      "t": "Grup WhatsApp / Telegram"
+     },
+     {
+      "t": "Email"
+     },
+     {
+      "t": "Teman / keluarga"
+     },
+     {
+      "t": "Kreator yang saya ikuti"
+     },
+     {
+      "t": "Banner di aplikasi"
+     }
+    ],
+    "topic": "Momen & cara mencari promo",
+    "max": 3,
+    "random": true,
+    "label": "Sumber info promo"
+   },
+   {
+    "text": "Apakah Anda pernah menggunakan kode promo dari kreator atau influencer?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Sering"
+     },
+     {
+      "t": "Beberapa kali"
+     },
+     {
+      "t": "Pernah sekali"
+     },
+     {
+      "t": "Belum pernah"
+     }
+    ],
+    "topic": "Momen & cara mencari promo",
+    "label": "Pakai kode promo kreator"
+   },
+   {
+    "text": "Apakah Anda pernah merasa sebuah diskon “palsu” (harga dinaikkan dulu baru didiskon)?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Sering"
+     },
+     {
+      "t": "Kadang-kadang"
+     },
+     {
+      "t": "Jarang"
+     },
+     {
+      "t": "Tidak pernah"
+     }
+    ],
+    "topic": "Kepercayaan pada promo",
+    "label": "Pernah merasa diskon palsu"
+   },
+   {
+    "text": "Bagaimana Anda memastikan sebuah promo benar-benar menguntungkan?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Membandingkan harga di beberapa toko"
+     },
+     {
+      "t": "Melihat riwayat harga"
+     },
+     {
+      "t": "Membaca ulasan terbaru"
+     },
+     {
+      "t": "Menghitung total setelah ongkir"
+     },
+     {
+      "t": "Tidak memeriksa, langsung beli"
+     }
+    ],
+    "topic": "Kepercayaan pada promo",
+    "max": 3,
+    "showIf": {
+     "q": 10,
+     "op": "isnot",
+     "val": "Tidak pernah"
+    },
+    "label": "Cara cek promo"
+   },
+   {
+    "text": "Seberapa setuju: “Terlalu sering promo membuat saya meragukan kualitas sebuah merek.”",
+    "type": "scale",
+    "topic": "Kepercayaan pada promo",
+    "scale": {
+     "min": 1,
+     "max": 5,
+     "minLabel": "Sangat tidak setuju",
+     "maxLabel": "Sangat setuju"
+    },
+    "label": "Promo berlebihan turunkan kepercayaan"
+   },
+   {
+    "text": "Program apa yang paling membuat Anda kembali ke toko yang sama?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Poin / member yang bisa ditukar"
+     },
+     {
+      "t": "Voucher khusus pelanggan lama"
+     },
+     {
+      "t": "Hadiah ulang tahun"
+     },
+     {
+      "t": "Akses lebih dulu ke promo / produk baru"
+     },
+     {
+      "t": "Tidak ada, saya pilih yang termurah saat itu"
+     }
+    ],
+    "topic": "Kepercayaan pada promo",
+    "label": "Program loyalitas efektif"
+   },
+   {
+    "text": "Ceritakan promo paling berkesan yang pernah membuat Anda membeli. (opsional)",
+    "type": "longtext",
+    "topic": "Kepercayaan pada promo",
+    "required": false,
+    "label": "Cerita promo berkesan"
+   }
+  ]
+ },
  "onycha-zara": {
   "judul": "Onycha vs Zara: persepsi brand lokal vs internasional",
   "ringkas": "Contoh survei kompleks untuk brand fashion: kebiasaan belanja, awareness & pembelian, rating atribut kedua brand, head-to-head, sikap terhadap brand lokal, dan uji konsep koleksi.",
@@ -2553,7 +4063,7 @@ function bAi(mode) {
 }
 
 // ---- simpan, publish, pratinjau ----
-function bCheck() {
+function bCheck(publish) {
   bRead();
   if (!B.name) { $('b-name').focus(); return 'Isi nama survei dulu.'; }
   if (!B.questions.length) return 'Survei belum punya pertanyaan.';
@@ -2561,6 +4071,7 @@ function bCheck() {
     var q = B.questions[i];
     if (!String(q.text).trim()) return 'Pertanyaan ' + (i + 1) + ' masih kosong.';
     if (HAS_OPT[q.type]) { q.options = q.options.filter(function (o) { return String(o.t).trim(); }); if (q.options.length < 2) return 'Pertanyaan ' + (i + 1) + ' perlu minimal 2 pilihan jawaban.'; }
+    if (q.type === 'media' && publish) { var bad = q.options.filter(function (o) { return !mediaInfo(o.media); })[0]; if (bad) return 'Pertanyaan ' + (i + 1) + ': link video/gambar untuk "' + bad.t + '" belum diisi atau belum dikenali.'; }
   }
   return '';
 }
@@ -2571,7 +4082,7 @@ function bPayload() {
   return o;
 }
 function bSave(publish, then, withImg) {
-  var e = bCheck(); if (e) { toast(e); return; }
+  var e = bCheck(publish); if (e) { toast(e); return; }
   toast('Menyimpan…');
   run('adminBuilderSave', bPayload(), !!publish).then(function (r) {
     B.id = r.id; BMETA = Object.assign(BMETA || { responses: 0 }, { id: r.id, status: r.status, link: r.link });
@@ -2582,7 +4093,7 @@ function bSave(publish, then, withImg) {
   });
 }
 function bPublish() {
-  var e = bCheck(); if (e) { toast(e); return; }
+  var e = bCheck(true); if (e) { toast(e); return; }
   if (B.brand && B.brand.mode === 'client' && !B.brand.name) { toast('Isi nama brand dulu (bagian Atas nama).'); $('b-br-name').focus(); return; }
   var live = BMETA && BMETA.status === 'Dibuka';
   $('pub-name').textContent = B.name;

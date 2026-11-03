@@ -213,6 +213,7 @@ nav.side button.sv-new span{width:20px;text-align:center;font-size:18px;line-hei
 .bq textarea.qt{font-weight:600;font-size:15px;min-height:52px}
 .bo{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
 .bo input[type=text]{flex:1;min-width:180px;padding:8px 12px;border-radius:10px}
+.bo input[type=url]{flex:3;min-width:220px;padding:8px 12px;border-radius:10px}
 .flag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);white-space:nowrap;cursor:pointer;border:1px solid var(--line);border-radius:20px;padding:4px 9px;user-select:none}
 .flag input{margin:0}
 .flag.on{background:var(--navy-l);color:var(--navy);border-color:var(--navy-m)}
@@ -1290,8 +1291,9 @@ loadHome();
 // ---------- BUAT SURVEI (builder) ----------
 // =====================================================================
 var B = null, BMETA = null, BDEF = null, bDirty = false;
-var BTYPES = [['single', 'Pilih satu'], ['multi', 'Pilih beberapa'], ['dropdown', 'Dropdown (daftar panjang)'], ['scale', 'Skala'], ['number', 'Angka'], ['text', 'Isian singkat'], ['longtext', 'Isian panjang']];
-var HAS_OPT = { single: 1, multi: 1, dropdown: 1 };
+var BTYPES = [['single', 'Pilih satu'], ['multi', 'Pilih beberapa'], ['media', 'Pilih video / gambar (A/B)'], ['dropdown', 'Dropdown (daftar panjang)'], ['scale', 'Skala'], ['number', 'Angka'], ['text', 'Isian singkat'], ['longtext', 'Isian panjang']];
+var HAS_OPT = { single: 1, multi: 1, dropdown: 1, media: 1 };
+__MEDIA_LIB__
 function bNew() { return { hadiah: defaultPrizes(), questions: [], target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all' }; }
 function markDirty(v) { bDirty = v !== false; $('b-dirty').textContent = bDirty ? '● Belum disimpan' : ''; }
 function openBuilder(id) {
@@ -1453,15 +1455,18 @@ function bRender() {
       '<textarea class="qt" data-f="text" rows="2" placeholder="Tulis pertanyaan…">' + esc(q.text) + '</textarea>';
     if (HAS_OPT[q.type]) {
       h += '<div style="margin-top:8px">' + (q.options || []).map(function (o, j) {
+        if (q.type === 'media') return '<div class="bo bm" data-j="' + j + '"><input type="text" data-o="t" value="' + esc(o.t) + '" placeholder="Nama, mis. Video ' + 'ABCD'.charAt(j) + '" style="max-width:160px">' +
+          '<input type="url" data-o="media" value="' + esc(o.media || '') + '" placeholder="Link video / gambar (YouTube Shorts, TikTok, Instagram Reels, Google Drive, .mp4, .jpg)">' +
+          '<button class="ib del" data-a="odel" title="Hapus pilihan">✕</button></div>' + (o.media && !mediaInfo(o.media) ? '<div class="tip" style="margin:2px 0 8px">Link ini belum dikenali. Pakai link YouTube/Shorts, TikTok, Instagram Reels, Google Drive (akses: siapa saja yang punya link), atau file .mp4/.jpg/.png.</div>' : '');
         return '<div class="bo" data-j="' + j + '"><input type="text" data-o="t" value="' + esc(o.t) + '" placeholder="Pilihan ' + (j + 1) + '">' +
           '<label class="flag' + (o.other ? ' on' : '') + '" title="Responden bisa menulis jawaban sendiri"><input type="checkbox" data-o="other"' + (o.other ? ' checked' : '') + '> Isian</label>' +
           (q.type === 'multi' ? '<label class="flag' + (o.exclusive ? ' on' : '') + '" title="Tidak bisa dipilih bersama pilihan lain"><input type="checkbox" data-o="exclusive"' + (o.exclusive ? ' checked' : '') + '> Eksklusif</label>' : '') +
           '<label class="flag scr' + (o.screen ? ' on' : '') + '" title="Responden yang memilih ini berhenti (tidak lolos)"><input type="checkbox" data-o="screen"' + (o.screen ? ' checked' : '') + '> Tidak lolos</label>' +
           '<button class="ib del" data-a="odel" title="Hapus pilihan">✕</button></div>';
-      }).join('') + '<button class="btn sec sm" data-a="oadd" style="margin-top:4px">+ Pilihan</button> <button class="btn sec sm" data-a="obulk">Tempel banyak pilihan</button></div>';
+      }).join('') + '<button class="btn sec sm" data-a="oadd" style="margin-top:4px">+ Pilihan</button>' + (q.type === 'media' ? ' <span class="muted" style="font-size:12px">Responden menonton tiap video lalu memilih satu yang paling disukai. Centang <b>Acak urutan</b> supaya posisi kiri/kanan tidak memengaruhi pilihan.</span>' : ' <button class="btn sec sm" data-a="obulk">Tempel banyak pilihan</button>') + '</div>';
     }
     h += '<div class="bopts"><label><input type="checkbox" data-f="required"' + (q.required !== false ? ' checked' : '') + '> Wajib diisi</label>';
-    if (q.type === 'single' || q.type === 'multi') h += '<label><input type="checkbox" data-f="random"' + (q.random ? ' checked' : '') + '> Acak urutan pilihan</label>';
+    if (q.type === 'single' || q.type === 'multi' || q.type === 'media') h += '<label><input type="checkbox" data-f="random"' + (q.random ? ' checked' : '') + '> Acak urutan pilihan</label>';
     if (q.type === 'multi') h += '<label>Maks. pilihan <input type="number" min="0" data-f="max" value="' + (q.max || '') + '" placeholder="bebas"></label>';
     if (q.type === 'scale') { var sc = q.scale || {}; h += '<label>Dari <input type="number" data-s="min" value="' + (sc.min == null ? 1 : sc.min) + '"></label><label>sampai <input type="number" data-s="max" value="' + (sc.max || 5) + '"></label><input type="text" data-s="minLabel" placeholder="Label nilai terendah" value="' + esc(sc.minLabel || '') + '"><input type="text" data-s="maxLabel" placeholder="Label nilai tertinggi" value="' + esc(sc.maxLabel || '') + '">'; }
     if (q.type === 'number') h += '<label>Min <input type="number" data-f="min" value="' + (q.min == null ? '' : q.min) + '"></label><label>Maks <input type="number" data-f="maxNum" value="' + (q.maxNum == null ? '' : q.maxNum) + '"></label>';
@@ -1498,6 +1503,7 @@ function bBind(card) {
     var j = +row.dataset.j, o = q.options[j];
     row.querySelector('[data-o="t"]').addEventListener('input', function (e) { o.t = e.target.value; markDirty(); });
     row.querySelector('[data-o="t"]').addEventListener('change', bRender);
+    var mu = row.querySelector('[data-o="media"]'); if (mu) { mu.addEventListener('input', function (e) { o.media = e.target.value.trim(); markDirty(); }); mu.addEventListener('change', bRender); }
     row.querySelector('[data-o="t"]').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); q.options.splice(j + 1, 0, { t: '' }); markDirty(); bRender(); var n = document.querySelector('#b-qs .bq[data-i="' + i + '"] .bo[data-j="' + (j + 1) + '"] input'); if (n) n.focus(); } });
     [].forEach.call(row.querySelectorAll('input[type=checkbox]'), function (c) { c.addEventListener('change', function () { o[c.dataset.o] = c.checked; markDirty(); bRender(); }); });
   });
@@ -1580,7 +1586,7 @@ function bTake(list, append, meta) {
   if (!append) B.questions = [];
   var idx = [];
   list.forEach(function (q) {
-    var n = { id: nextId(), text: q.text || '', type: q.type || 'single', options: (q.options || []).map(function (o) { return typeof o === 'string' ? optFrom(o) : { t: o.t || '', other: !!o.other, exclusive: !!o.exclusive, screen: !!o.screen }; }), required: q.required !== false, random: !!q.random, max: q.max || 0 };
+    var n = { id: nextId(), text: q.text || '', type: q.type || 'single', options: (q.options || []).map(function (o) { return typeof o === 'string' ? optFrom(o) : { t: o.t || '', other: !!o.other, exclusive: !!o.exclusive, screen: !!o.screen, media: o.media || undefined }; }), required: q.required !== false, random: !!q.random, max: q.max || 0 };
     if (q.scale) n.scale = q.scale;
     if (q.hint) n.hint = q.hint;
     if (q.topic) n.topic = q.topic;
@@ -1621,7 +1627,7 @@ function bAi(mode) {
 }
 
 // ---- simpan, publish, pratinjau ----
-function bCheck() {
+function bCheck(publish) {
   bRead();
   if (!B.name) { $('b-name').focus(); return 'Isi nama survei dulu.'; }
   if (!B.questions.length) return 'Survei belum punya pertanyaan.';
@@ -1629,6 +1635,7 @@ function bCheck() {
     var q = B.questions[i];
     if (!String(q.text).trim()) return 'Pertanyaan ' + (i + 1) + ' masih kosong.';
     if (HAS_OPT[q.type]) { q.options = q.options.filter(function (o) { return String(o.t).trim(); }); if (q.options.length < 2) return 'Pertanyaan ' + (i + 1) + ' perlu minimal 2 pilihan jawaban.'; }
+    if (q.type === 'media' && publish) { var bad = q.options.filter(function (o) { return !mediaInfo(o.media); })[0]; if (bad) return 'Pertanyaan ' + (i + 1) + ': link video/gambar untuk "' + bad.t + '" belum diisi atau belum dikenali.'; }
   }
   return '';
 }
@@ -1639,7 +1646,7 @@ function bPayload() {
   return o;
 }
 function bSave(publish, then, withImg) {
-  var e = bCheck(); if (e) { toast(e); return; }
+  var e = bCheck(publish); if (e) { toast(e); return; }
   toast('Menyimpan…');
   run('adminBuilderSave', bPayload(), !!publish).then(function (r) {
     B.id = r.id; BMETA = Object.assign(BMETA || { responses: 0 }, { id: r.id, status: r.status, link: r.link });
@@ -1650,7 +1657,7 @@ function bSave(publish, then, withImg) {
   });
 }
 function bPublish() {
-  var e = bCheck(); if (e) { toast(e); return; }
+  var e = bCheck(true); if (e) { toast(e); return; }
   if (B.brand && B.brand.mode === 'client' && !B.brand.name) { toast('Isi nama brand dulu (bagian Atas nama).'); $('b-br-name').focus(); return; }
   var live = BMETA && BMETA.status === 'Dibuka';
   $('pub-name').textContent = B.name;

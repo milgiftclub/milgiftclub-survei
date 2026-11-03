@@ -117,7 +117,7 @@ missing = [x for x in STD_IDS if x not in std]
 assert not missing, missing
 style = re.search(r'<style>.*?</style>', src, re.S).group(0)
 ver = re.search(r"var VERSION = '([^']*)';", src).group(1)
-tpl = open('survey_src/Custom.html.tpl').read()
+tpl = open('survey_src/Custom.html.tpl').read().replace('__MEDIA_LIB__', open('survey_src/media.js').read())
 html = tpl.replace('__SK_JSON__', json.dumps(open('survey_src/sk_body.html').read(), ensure_ascii=False)).replace('__STYLE__', style).replace('__STD__', json.dumps(std, ensure_ascii=False)).replace('__CITIES__', open('cities.json').read()).replace('__VERSION__', ver + ' · survei baru')
 os.makedirs(os.path.join(OUT, 's'), exist_ok=True)
 open(os.path.join(OUT, 's', 'index.html'), 'w').write(html)

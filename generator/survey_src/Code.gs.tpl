@@ -2071,7 +2071,7 @@ function adminBuilderSave(sch, publish) {
       if (!q.id || seen[q.id] || /^(O1|Z1|Z2|Z3|PV|QC1|S1|S2|S3|A[0-9]+)$/.test(q.id)) q.id = 'Q' + (i + 1);
       while (seen[q.id]) q.id = q.id + 'x';
       seen[q.id] = 1;
-      if (/^(single|multi|dropdown)$/.test(q.type) && !(q.options || []).filter(function (o) { return String(o.t || '').trim(); }).length) throw new Error('Pertanyaan nomor ' + (i + 1) + ' belum punya pilihan jawaban');
+      if (/^(single|multi|dropdown|media)$/.test(q.type) && !(q.options || []).filter(function (o) { return String(o.t || '').trim(); }).length) throw new Error('Pertanyaan nomor ' + (i + 1) + ' belum punya pilihan jawaban');
     });
     var c = sch.id ? customById_(sch.id) : null, now = new Date();
     var rec;
