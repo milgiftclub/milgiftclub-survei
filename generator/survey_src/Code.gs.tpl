@@ -1211,7 +1211,7 @@ function summaryData_(per) {
   return out;
 }
 function adminSummary(per) {
-  requireAdmin_(); ensureSnapTrigger_();
+  requireAdmin_(); ensureSnapTrigger_(); try { tugasJadwal_(); } catch (e) {}
   var sn = snapRead_(), act = activePeriode_(null);
   if (sn && sn.meta.active === act && (per == null || per === act)) {
     var d = snapGet_('summary'), now = surveyList_().map(function (x) { return x.v + x.status; }).join(',');
@@ -2060,7 +2060,10 @@ function adminBuilderDefaults() {
 /** Simpan rancangan. publish=true -> status Dibuka & tab jawaban dibuat. */
 function adminBuilderSave(sch, publish) {
   var who = requireAdmin_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
-  try {
+  try { return builderSave_(sch, publish, who); } finally { lock.releaseLock(); }
+}
+function builderSave_(sch, publish, who) {
+  {
     CUSTOM_MEMO_ = null;
     sch = sch || {};
     var name = String(sch.name || '').trim(); if (!name) throw new Error('Nama survei wajib diisi');
@@ -2087,15 +2090,16 @@ function adminBuilderSave(sch, publish) {
     var saved = customById_(rec.id);
     if (rec.status === 'Dibuka') ensureCustomTab_(saved);
     return { id: rec.id, status: rec.status, link: customLink_(rec.id) };
-  } finally { lock.releaseLock(); }
+  }
 }
 function adminBuilderStatus(id, status) {
   requireAdmin_();
   if (['Dibuka', 'Ditutup', 'Draf', 'Diarsipkan'].indexOf(status) < 0) throw new Error('Status tidak dikenal');
   setCustomStatus_(id, status); return { ok: true };
 }
-function adminBuilderDelete(id) {
-  requireAdmin_(); CUSTOM_MEMO_ = null;
+function adminBuilderDelete(id) { requireAdmin_(); return builderDelete_(id); }
+function builderDelete_(id) {
+  CUSTOM_MEMO_ = null;
   var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
   var s = c.tab ? sheet_(c.tab) : null;
   if (s && s.getLastRow() > 1) { setCustomStatus_(id, 'Diarsipkan'); return { ok: true, archived: true }; }
@@ -2635,8 +2639,12 @@ function simFinish_(info) {
 }
 /** Hapus SEMUA data simulasi (jawaban, panel, blokir, pemenang, survei contoh). Data asli tidak tersentuh. */
 function adminSimulasiHapus() {
-  requireAdmin_(); var info = simInfo_(), lock = LockService.getScriptLock(); lock.waitLock(30000);
-  try {
+  requireAdmin_(); var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try { return simHapus_(); } finally { lock.releaseLock(); }
+}
+function simHapus_() {
+  var info = simInfo_();
+  {
     var res = { jawaban: 0, panel: 0, blokir: 0, pemenang: 0 };
     var strip = function (s, test) {
       if (!s || s.getLastRow() < 2) return 0;
@@ -2653,11 +2661,12 @@ function adminSimulasiHapus() {
     var back = {}; tukarRows_().forEach(function (r) { if (String(r.instagram).indexOf('@sim_uji_') === 0 && r.status !== 'Ditolak') back[r.hadiah_id] = (back[r.hadiah_id] || 0) + 1; });
     res.penukaran = strip(sheet_('Penukaran Hadiah'), function (r, h) { return String(r[h.indexOf('instagram')]).indexOf('@sim_uji_') === 0; });
     katalog_().forEach(function (x) { if (back[x.id]) katSheet_().getRange(x.row, 5).setValue(x.stok + back[x.id]); });
-    if (info && info.customId && customById_(info.customId)) { try { adminBuilderDelete(info.customId); } catch (e) {} }
-    if (info && info.onyId && customById_(info.onyId)) { try { adminBuilderDelete(info.onyId); } catch (e) {} }
+    if (info && info.customId && customById_(info.customId)) { try { builderDelete_(info.customId); } catch (e) {} }
+    if (info && info.onyId && customById_(info.onyId)) { try { builderDelete_(info.onyId); } catch (e) {} }
+    CUSTOM_MEMO_ = null; customSurveys_().forEach(function (c) { if (/\(Simulasi\)\s*$/.test(c.name)) { try { builderDelete_(c.id); } catch (e) {} } });
     PropertiesService.getScriptProperties().deleteProperty('SIM_INFO'); CUSTOM_MEMO_ = null;
     return res;
-  } finally { lock.releaseLock(); }
+  }
 }
 
 // ====== SNAPSHOT: data Dashboard yang dihitung di belakang layar ======
@@ -2766,12 +2775,57 @@ function snapLanjut() { try { ScriptApp.getProjectTriggers().forEach(function (t
 function snapJadwalLanjut_() { try { ScriptApp.newTrigger('snapLanjut').timeBased().after(60 * 1000).create(); } catch (e) {} }
 /** Trigger tiap 10 menit (dipasang otomatis saat Dashboard dibuka). */
 function autoSnapshot() {
+  try { tugasSekali_(); } catch (e) {}
   var lock = LockService.getScriptLock(); if (!lock.tryLock(1000)) return;
   try {
     if (!snapJob_()) { var o = snapRead_(); if (o && o.idx.panel && (Date.now() - new Date(o.meta.at).getTime() < 10 * 60e3 || o.meta.sig === snapSig_())) return; }   // snapshot versi lama (tanpa data Panel) -> bangun ulang   // tidak ada data baru -> lewati (hemat kuota)
     var r = snapStep_(); if (!r.done) snapJadwalLanjut_();
   } finally { lock.releaseLock(); }
 }
+// ====== TUGAS SEKALI JALAN (dijalankan otomatis oleh trigger, sekali saja per tugas) ======
+// Dipakai untuk pekerjaan pemeliharaan yang diminta admin tanpa harus klik di Dashboard.
+var TUGAS_SEKALI = [
+  { id: '2026-11-03-bersihkan-simulasi', run: function () {
+    var r = simHapus_();   // jawaban, panel, blokir, pemenang, penukaran & survei contoh yang ditandai simulasi
+    CUSTOM_MEMO_ = null;
+    customSurveys_().forEach(function (c) { if (/^Survei Fashion: Brand Lokal vs Internasional$/i.test(c.name)) { try { builderDelete_(c.id); r.surveiContoh = (r.surveiContoh || 0) + 1; } catch (e) {} } });
+    return r;
+  } },
+  { id: '2026-11-03-survei-baru', run: function () {
+    var made = [];
+    [['gaya-penampilan', true], ['live-shopping', true], ['promosi', true], ['konten-hook', false]].forEach(function (x) {
+      var t = SURVEY_TEMPLATES[x[0]]; CUSTOM_MEMO_ = null;
+      if (customSurveys_().some(function (c) { return c.name.toLowerCase() === t.name.toLowerCase(); })) return;   // sudah dibuat manual -> lewati
+      var qs = JSON.parse(JSON.stringify(t.questions)); qs.forEach(function (q, i) { q.id = 'Q' + (i + 1); if (q.showIf) q.showIf.q = 'Q' + q.showIf.q; if (q.required == null) q.required = true; });
+      var sch = { name: t.name, intro: t.intro, estimasi: t.estimasi, kupon: t.kupon, target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all', questions: qs };
+      try { sch.hadiah = (CONFIG.HADIAH_UTAMA ? [{ nama: CONFIG.HADIAH_UTAMA, nilai: '' }] : []).concat((CONFIG.HADIAH || []).map(function (t) { t = String(t || ''); var m = t.match(/Rp\s?([\d.]+)/i); return { nama: t.replace(/\s*Rp\s?[\d.]+\s*/i, ' ').replace(/\s{2,}/g, ' ').trim(), nilai: m ? Number(m[1].replace(/\./g, '')) : '' }; })); } catch (e) {}
+      var r = builderSave_(sch, x[1], 'otomatis');   // konten-hook = draf (video contoh perlu diganti materi asli)
+      made.push(t.name + ' (' + r.status + ')');
+    });
+    return made;
+  } }
+];
+function tugasPending_() { var done = {}; try { done = JSON.parse(PropertiesService.getScriptProperties().getProperty('TUGAS_SELESAI') || '{}'); } catch (e) {} return TUGAS_SEKALI.some(function (t) { return !done[t.id]; }); }
+/** Dashboard dibuka & ada tugas tertunda -> jadwalkan trigger 1 menit lagi (sekali per 10 menit). */
+function tugasJadwal_() {
+  if (!tugasPending_()) return; var pr = PropertiesService.getScriptProperties(), last = Number(pr.getProperty('TUGAS_JADWAL') || 0);
+  if (Date.now() - last < 10 * 60e3) return; pr.setProperty('TUGAS_JADWAL', String(Date.now())); snapJadwalLanjut_();
+}
+function tugasSekali_() {
+  var pr = PropertiesService.getScriptProperties(), done = {}; try { done = JSON.parse(pr.getProperty('TUGAS_SELESAI') || '{}'); } catch (e) {}
+  var todo = TUGAS_SEKALI.filter(function (t) { return !done[t.id]; }); if (!todo.length) return;
+  var lock = LockService.getScriptLock(); if (!lock.tryLock(1000)) return;
+  try {
+    CUSTOM_NOCACHE_ = true;
+    todo.forEach(function (t) {
+      var res; try { res = t.run(); done[t.id] = { at: new Date().toISOString(), ok: true, hasil: res }; } catch (e) { done[t.id] = { at: new Date().toISOString(), ok: false, error: String(e && e.message || e) }; }
+      pr.setProperty('TUGAS_SELESAI', JSON.stringify(done));
+    });
+    cacheDel_('custom:list'); cacheDel_('set:all'); MEMO_ = null; SNAP_MEMO_ = null;
+  } finally { lock.releaseLock(); }
+}
+/** Status tugas pemeliharaan (untuk dicek admin). */
+function adminTugasStatus() { requireAdmin_(); try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('TUGAS_SELESAI') || '{}'); } catch (e) { return {}; } }
 function ensureSnapTrigger_() {
   var pr = PropertiesService.getScriptProperties(), last = Number(pr.getProperty('SNAP_TRIG_CEK') || 0);
   if (Date.now() - last < 3600e3) return;
