@@ -54,6 +54,7 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .chip{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:10px 18px;font-weight:600;font-size:14px;margin-right:10px}
 .chip.glass{background:rgba(255,255,255,.14);color:#fff}
 .chip.white{background:#fff;color:var(--navy)}
+.kt-c{display:flex;flex-direction:column;gap:6px}.kt-st{display:flex;flex-direction:column;gap:4px;min-width:200px}.kt-n{font-size:13px}.kt-n b{font-size:18px}.kt-n.tipis b{color:#B7791F}.kt-n.habis b{color:#B42323}.kt-adj{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.kt-adj input{width:56px;padding:5px 6px;text-align:center}.kt-adj .ib{font-size:16px;font-weight:800}
 .tk-sum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.tk-sum span{background:var(--bg,#f5f6fa);border-radius:10px;padding:6px 12px;font-size:13px}.tk-sum b{font-size:15px;margin-right:4px}.tk-sum .red{background:#FDECEC;color:#9B1C1C}
 .tk-p{font-size:12.5px;line-height:1.45;max-width:250px;min-width:200px;white-space:normal}.tk-tag{white-space:normal;min-width:170px}.tk-kr{display:flex;flex-direction:column;gap:4px;margin-top:6px;min-width:150px}.tk-kr select,.tk-kr input{width:150px;padding:5px 8px;font-size:12.5px}.kr-b{display:inline-block;color:#fff;font-weight:800;font-size:11.5px;border-radius:7px;padding:3px 8px;align-self:flex-start;letter-spacing:.2px}.kr-logo{height:22px;align-self:flex-start}.tk-p small{color:var(--muted)}.tk-late{color:#B42323;font-weight:800}.tk-tag a{word-break:break-all}.tk-tag .btn{margin:4px 4px 0 0}
 .chip.chip-mini{padding:6px 11px;font-size:12px;cursor:pointer;border:0;font-family:inherit;font-weight:600;gap:5px}
@@ -1180,16 +1181,42 @@ var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TAR
 var KT = null;
 function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); krLoad(); }
 function ktDraw() {
-  var h = '<thead><tr><th>Aktif</th><th>Hadiah</th><th>Brand</th><th>Kupon</th><th>Stok</th><th>Gambar (URL)</th><th>Deskripsi</th><th></th></tr></thead><tbody>';
+  var used = {}; (KT.tukar || []).forEach(function (r) { if (r.status !== 'Ditolak') used[r.hadiah_id] = (used[r.hadiah_id] || 0) + 1; });
+  var h = '<thead><tr><th>Aktif</th><th>Hadiah & brand</th><th>Kupon</th><th>Stok</th><th>Gambar (URL) & deskripsi</th><th></th></tr></thead><tbody>';
   KT.katalog.forEach(function (x, i) {
-    var inp = function (f, w, t) { return '<input data-i="' + i + '" data-f="' + f + '"' + (t ? ' type="' + t + '"' : '') + ' value="' + esc(x[f] == null ? '' : x[f]) + '" style="width:' + w + 'px">'; };
-    h += '<tr><td><input type="checkbox" data-i="' + i + '" data-f="aktif"' + (x.aktif ? ' checked' : '') + '></td><td>' + inp('nama', 190) + '</td><td>' + inp('brand', 110) + '</td><td>' + inp('kupon', 64, 'number') + '</td><td>' + inp('stok', 64, 'number') + '</td><td>' + inp('gambar', 150) + '</td><td>' + inp('deskripsi', 200) +
-      '</td><td><button class="trash" title="Hapus" onclick="KT.katalog.splice(' + i + ',1);ktDraw()">' + TRASH + '</button></td></tr>';
+    var inp = function (f, w, ph, t) { return '<input data-i="' + i + '" data-f="' + f + '"' + (t ? ' type="' + t + '"' : '') + ' value="' + esc(x[f] == null ? '' : x[f]) + '" placeholder="' + (ph || '') + '" style="width:' + w + 'px">'; };
+    var st = Number(x.stok) || 0, baru = !x.id;
+    h += '<tr><td><input type="checkbox" data-i="' + i + '" data-f="aktif"' + (x.aktif ? ' checked' : '') + '></td>' +
+      '<td><div class="kt-c">' + inp('nama', 210, 'Nama hadiah') + inp('brand', 210, 'Brand (opsional)') + '</div></td><td>' + inp('kupon', 70, '', 'number') + '</td>' +
+      '<td><div class="kt-st"><div class="kt-n' + (st <= 0 ? ' habis' : st <= 5 ? ' tipis' : '') + '"><b>' + fmt(st) + '</b> sisa' + (st <= 0 ? ' · habis' : st <= 5 ? ' · menipis' : '') + '</div>' +
+        '<div class="muted" style="font-size:12px">' + fmt(used[x.id] || 0) + ' sudah ditukar</div>' +
+        (baru ? '<div class="muted" style="font-size:12px">Stok awal: ' + inp('stok', 70, '', 'number') + '</div>' :
+        '<div class="kt-adj"><button class="ib" data-adj="' + i + '" data-d="-1" title="Kurangi 1">−</button><input type="number" min="1" value="1" data-qty="' + i + '"><button class="ib" data-adj="' + i + '" data-d="1" title="Tambah">+</button><button class="btn sec sm" data-upd="' + i + '" title="Tambah stok sejumlah angka di tengah">Update stok</button></div>') + '</div></td>' +
+      '<td><div class="kt-c">' + inp('gambar', 240, 'https://… (link gambar)') + inp('deskripsi', 240, 'Deskripsi singkat') + '</div></td>' +
+      '<td><button class="trash" title="Hapus hadiah" data-del="' + i + '">' + TRASH + '</button></td></tr>';
   });
   $('kt-t').innerHTML = h + '</tbody>';
-  [].forEach.call($('kt-t').querySelectorAll('input[data-f]'), function (e) { e.onchange = function () { var x = KT.katalog[+e.dataset.i]; x[e.dataset.f] = e.type === 'checkbox' ? e.checked : e.type === 'number' ? +e.value : e.value; }; });
+  [].forEach.call($('kt-t').querySelectorAll('input[data-f]'), function (e) { e.onchange = function () { var x = KT.katalog[+e.dataset.i]; x[e.dataset.f] = e.type === 'checkbox' ? e.checked : e.type === 'number' ? +e.value : e.value; $('kt-msg').textContent = 'Ada perubahan belum disimpan'; }; });
+  var adj = function (i, d) {
+    var x = KT.katalog[i]; if (!d) return;
+    if (d < 0 && (Number(x.stok) || 0) + d < 0) return toast('Stok tidak bisa kurang dari 0');
+    $('kt-msg').textContent = 'Memperbarui stok…';
+    run('adminKatalogStok', x.id, d).then(function (dd) { var keep = KT.katalog.filter(function (k) { return !k.id; }); KT = dd; KT.katalog = KT.katalog.concat(keep); ktDraw(); $('kt-msg').textContent = ''; toast('Stok ' + x.nama + ': ' + (d > 0 ? '+' : '') + d); });
+  };
+  [].forEach.call($('kt-t').querySelectorAll('[data-adj]'), function (b) { b.onclick = function () { var i = +b.dataset.adj, q = Math.max(1, +$('kt-t').querySelector('[data-qty="' + i + '"]').value || 1); adj(i, +b.dataset.d * q); }; });
+  [].forEach.call($('kt-t').querySelectorAll('[data-upd]'), function (b) { b.onclick = function () {
+    var i = +b.dataset.upd, x = KT.katalog[i], v = prompt('Update stok "' + x.nama + '" (sekarang ' + x.stok + ').\nTulis angka stok baru, atau +10 / -3 untuk menambah / mengurangi:', '+' + ($('kt-t').querySelector('[data-qty="' + i + '"]').value || 1));
+    if (v == null || !String(v).trim()) return; v = String(v).trim();
+    var d = /^[+-]/.test(v) ? parseInt(v, 10) : parseInt(v, 10) - (Number(x.stok) || 0); if (isNaN(d)) return toast('Isi angka yang benar'); adj(i, d);
+  }; });
+  [].forEach.call($('kt-t').querySelectorAll('[data-del]'), function (b) { b.onclick = function () {
+    var i = +b.dataset.del, x = KT.katalog[i];
+    if (!x.id) { KT.katalog.splice(i, 1); return ktDraw(); }
+    if (!confirm('Hapus hadiah "' + x.nama + '" dari katalog? Riwayat penukaran hadiah ini tetap tersimpan.' + (used[x.id] ? '\n\nTips: kalau hanya ingin menyembunyikan sementara, hilangkan centang Aktif saja.' : ''))) return;
+    KT.katalog.splice(i, 1); ktSave();
+  }; });
 }
-function ktAdd() { KT.katalog.push({ id: '', nama: '', brand: '', kupon: 10, stok: 10, gambar: '', deskripsi: '', aktif: true }); ktDraw(); }
+function ktAdd() { KT.katalog.push({ id: '', nama: '', brand: '', kupon: 10, stok: 10, gambar: '', deskripsi: '', aktif: true }); ktDraw(); $('kt-msg').textContent = 'Isi hadiah baru lalu klik Simpan katalog'; }
 function ktSave() { $('kt-msg').textContent = 'Menyimpan…'; run('adminKatalogSave', KT.katalog).then(function (d) { KT = d; ktDraw(); tkDraw(); $('kt-msg').textContent = ''; toast('Katalog tersimpan'); }); }
 function tkMatch(r) {
   var f = $('tk-f').value, q = ($('tk-q').value || '').toLowerCase().trim();

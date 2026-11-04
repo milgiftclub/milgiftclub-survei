@@ -3059,12 +3059,23 @@ function adminKatalog() {
   });
 }
 function adminKatalogSave(items) {
-  requireAdmin_(); var s = katSheet_(), last = s.getLastRow();
+  requireAdmin_(); var s = katSheet_(), last = s.getLastRow(), cur = {}; katalog_().forEach(function (x) { cur[x.id] = x.stok; });   // stok hadiah lama tetap dari Sheet (diubah lewat tombol stok), supaya tidak tertimpa penukaran yang baru masuk
   var rows = (items || []).filter(function (x) { return String(x.nama || '').trim(); }).map(function (x, i) {
-    return [x.id || ('H' + Date.now().toString(36).toUpperCase() + i), String(x.nama).trim(), String(x.brand || '').trim(), Math.max(1, Number(x.kupon) || 1), Math.max(0, Number(x.stok) || 0), String(x.gambar || '').trim(), String(x.deskripsi || '').trim(), x.aktif !== false]; });
+    return [x.id || ('H' + Date.now().toString(36).toUpperCase() + i), String(x.nama).trim(), String(x.brand || '').trim(), Math.max(1, Number(x.kupon) || 1), Math.max(0, x.id && x.id in cur ? cur[x.id] : Number(x.stok) || 0), String(x.gambar || '').trim(), String(x.deskripsi || '').trim(), x.aktif !== false]; });
   if (last > 1) s.getRange(2, 1, last - 1, KAT_COLS.length).clearContent();
   if (rows.length) s.getRange(2, 1, rows.length, KAT_COLS.length).setValues(rows);
   cacheDel_('katalog:pub');
+  return adminKatalog();
+}
+/** Tambah / kurangi stok satu hadiah langsung (aman dipakai bersamaan dengan penukaran). */
+function adminKatalogStok(id, delta) {
+  requireAdmin_(); var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    if (MEMO_) delete MEMO_.katalog;
+    var it = katalog_().filter(function (x) { return x.id === id; })[0]; if (!it) throw new Error('Hadiah tidak ditemukan. Simpan katalog dulu.');
+    var baru = Math.max(0, (Number(it.stok) || 0) + (Number(delta) || 0)); katSheet_().getRange(it.row, 5).setValue(baru);
+    cacheDel_('katalog:pub'); if (MEMO_) delete MEMO_.katalog;
+  } finally { lock.releaseLock(); }
   return adminKatalog();
 }
 function adminTukarStatus(row, status, catatan, resi) {
