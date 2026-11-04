@@ -16,7 +16,7 @@ const k6 = h.katalog.find(k => k.kupon > 6); r = ctx.tukarKupon('@ani', '0001', 
 ctx.adminSaveSettings({ KUPON_V1: 3 }); ctx.SET_MEMO_ = null;
 const k = ctx.adminKatalog().katalog; ctx.adminKatalogSave(k.map(x => Object.assign({}, x, x.id === k[2].id ? { kupon: 5 } : {})));
 const it = ctx.adminKatalog().katalog.find(x => x.kupon === 5); const st0 = it.stok;
-r = ctx.tukarKupon('ani', '0001', it.id); console.log('tukar:', JSON.stringify(r)); assert.strictEqual(r.ok, true); assert.strictEqual(r.sisa, 1);
+r = ctx.tukarKupon('ani', '0001', it.id, { nama: 'Ani Lestari', hp: '081211110001', alamat: 'Jl. Merdeka No. 10, RT 01/RW 02, Babakan', kota: 'Kota Bandung', kodepos: '40115' }); console.log('tukar:', JSON.stringify(r)); assert.strictEqual(r.ok, true); assert.strictEqual(r.sisa, 1);
 assert.strictEqual(ctx.adminKatalog().katalog.find(x => x.id === it.id).stok, st0 - 1);
 h = ctx.hubList('@ani'); assert.strictEqual(h.saldo.sisa, 1); assert.strictEqual(h.kupon, 6, 'undian tidak berkurang'); console.log('riwayat', JSON.stringify(h.tukar));
 const t = ctx.adminKatalog().tukar[0]; ctx.adminTukarStatus(t._row, 'Ditolak', 'uji');

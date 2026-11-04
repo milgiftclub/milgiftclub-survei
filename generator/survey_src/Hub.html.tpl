@@ -21,6 +21,13 @@ __STYLE__
   .kt button.go{border:0;font:inherit;cursor:pointer} .kt button.go:disabled{background:#D9D3CB;color:#7d756d;cursor:not-allowed} .kt.kurang{opacity:.85}
   .ck{background:var(--white);border:2px solid var(--line);border-radius:18px;padding:14px 16px;margin-top:14px} .tk-r{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px} .tk-r small{color:var(--brown2)}
   .verdict{border-radius:18px;padding:14px 16px;margin:0 0 12px;font-weight:700;line-height:1.5} .verdict.ok{background:#E7F5EC;color:#22663F;border:2px solid #9fd6b3} .verdict.no{background:#FDECEC;color:#7A2323;border:2px solid #F3B9B9}
+  .tk-x{font-size:12.5px;color:var(--brown2);margin-top:2px;line-height:1.5} .tk-b{display:inline-block;border-radius:10px;padding:2px 9px;font-size:12px;font-weight:800;background:#EEE8E0;color:var(--brown)} .tk-b.ok{background:#E7F5EC;color:#22663F} .tk-b.no{background:#FDECEC;color:#7A2323}
+  .tk-it{border-top:1px dashed var(--line);padding:9px 0} .tk-it:first-of-type{border-top:0} .tk-tag{margin-top:6px;border:0;border-radius:12px;background:var(--coral);color:#fff;font:inherit;font-weight:800;font-size:13px;padding:7px 12px;cursor:pointer}
+  .rd{background:var(--white);border:2px solid var(--line);border-radius:18px;padding:16px;margin-top:12px} .rd label.f{display:block;font-weight:800;font-size:14px;margin:12px 0 5px} .rd textarea{width:100%;min-height:84px;font:inherit;padding:12px 14px;border:2px solid var(--line);border-radius:14px;box-sizing:border-box}
+  .rd .row2{display:grid;grid-template-columns:1.4fr 1fr;gap:10px} .rd .chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.5} .rd .chk input{margin-top:4px;width:18px;height:18px;flex:none}
+  .rd-i{background:var(--yellow-l);border:2px solid var(--yellow);border-radius:16px;padding:12px 14px;margin-top:12px;font-size:14px;line-height:1.55} .rd-i b{color:var(--brown)}
+  .rd-btn{display:block;width:100%;margin-top:14px;border:0;border-radius:16px;background:var(--coral);color:#fff;font:inherit;font-weight:800;font-size:16px;padding:14px;cursor:pointer} .rd-btn.sec{background:transparent;color:var(--brown);border:2px solid var(--brown)}
+  .rd-btn:disabled{opacity:.6;cursor:wait} .rd-err{color:#B42323;font-weight:700;font-size:14px;margin-top:10px}
   .pr-r{display:flex;justify-content:space-between;gap:12px;border-top:1px dashed var(--line);padding:6px 0}
 </style>
 </head>
@@ -86,7 +93,8 @@ var SK_HTML = __SK_JSON__;
     var show = function (d, checking) {
       var todo = d.list.filter(function (x) { return !x.done; }).length;
       var h = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1>' +
-        '<div class="kup"><div class="kn">🎟️ ' + (checking ? '…' : d.saldo ? d.saldo.sisa : d.kupon) + '</div><div><b>Kupon kamu</b><p>' + (checking ? 'Memeriksa survei yang sudah kamu isi…' : 'Bisa ditukar hadiah di bawah, dan ' + d.kupon + ' kupon ikut undian ' + esc(d.periode || 'periode ini') + '. ' + (todo ? 'Isi <b>' + todo + ' survei lagi</b> untuk menambah kupon.' : 'Semua survei yang dibuka sudah kamu isi. Terima kasih!')) + '</p></div></div>';
+        '<div class="kup"><div class="kn">🎟️ ' + (checking ? '…' : d.saldo ? d.saldo.sisa : d.kupon) + '</div><div><b>Kupon kamu</b><p>' + (checking ? 'Memeriksa survei yang sudah kamu isi…' : 'Bisa ditukar hadiah di bawah, dan ' + d.kupon + ' kupon ikut undian ' + esc(d.periode || 'periode ini') + '. ' + (todo ? 'Isi <b>' + todo + ' survei lagi</b> untuk menambah kupon.' : 'Semua survei yang dibuka sudah kamu isi. Terima kasih!') +
+          (d.saldo && d.saldo.segera ? '<br>⏳ <b>' + d.saldo.segera.n + ' kupon</b> hangus pada ' + esc(d.saldo.segera.tgl) + ' (kupon berlaku ' + d.saldo.berlaku + ' bulan).' : '') + (d.saldo && d.saldo.hangus ? '<br><span style="opacity:.8">' + d.saldo.hangus + ' kupon sudah hangus.</span>' : '')) + '</p></div></div>';
       h += d.list.map(function (x) {
         var u = x.link + (x.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '&ok=1&src=' + encodeURIComponent(SRC);
         return '<a class="sv' + (x.done ? ' done' : '') + '" href="' + esc(u) + '"><div class="t"><b>' + (x.done ? '✓ ' : '') + esc(x.name) + '</b><small>' + esc(x.desc) + '</small>' +
@@ -99,11 +107,20 @@ var SK_HTML = __SK_JSON__;
           return '<div class="sv kt' + (bisa ? '' : ' kurang') + '">' + (k.gambar ? '<img src="' + esc(k.gambar) + '" alt="" class="kt-img">' : '<div class="kt-img kt-ph">🎁</div>') + '<div class="t"><b>' + esc(k.nama) + '</b><small>' + esc((k.brand ? k.brand + ' · ' : '') + (k.deskripsi || '')) + '</small>' +
             '<div class="m">' + (k.stok > 0 ? 'Sisa ' + k.stok : 'Stok habis') + (bisa || k.stok <= 0 ? '' : ' · kurang ' + (k.kupon - sisa) + ' kupon') + '</div></div><button class="go" type="button" data-id="' + esc(k.id) + '"' + (bisa ? '' : ' disabled') + '>🎟️ ' + k.kupon + '</button></div>';
         }).join('');
-        if (d.tukar && d.tukar.length) h += '<div class="ck"><b>Riwayat penukaran</b>' + d.tukar.map(function (t) { return '<div class="tk-r"><span>' + esc(t.hadiah) + ' <small>(' + t.kupon + ' kupon · ' + esc(t.waktu) + ')</small></span><b>' + esc(t.status) + '</b></div>'; }).join('') + '</div>';
+        if (d.tukar && d.tukar.length) h += '<div class="ck"><b>Riwayat penukaran</b>' + d.tukar.map(function (t) {
+          var x = [], sent = t.status === 'Dikirim' || t.status === 'Diterima';
+          if ((t.status === 'Menunggu' || t.status === 'Diproses') && t.batas) x.push('📦 Dikirim paling lambat ' + esc(t.batas));
+          if (t.resi) x.push('Resi: <b>' + esc(t.resi) + '</b>');
+          var tag = t.tagStatus === 'Terverifikasi' ? '<span class="tk-b ok">✓ Konten terverifikasi · +' + (t.bonus || 1) + ' kupon</span>' : t.tagStatus === 'Menunggu cek' ? '<span class="tk-b">⏳ Link konten sedang dicek</span>' : t.tagStatus === 'Tidak sesuai' ? '<span class="tk-b no">Konten belum sesuai, kirim ulang link</span>' : '';
+          var btn = sent && t.tagStatus !== 'Terverifikasi' && t.tagStatus !== 'Menunggu cek' ? '<br><button class="tk-tag" type="button" data-tid="' + esc(t.id) + '">📸 Sudah posting & tag ' + esc(IGH()) + '? Kirim link (+1 kupon)</button>' : '';
+          return '<div class="tk-it"><div class="tk-r" style="border:0;padding:0"><span>' + esc(t.hadiah) + ' <small>(' + t.kupon + ' kupon · ' + esc(t.waktu) + ')</small></span><b>' + esc(t.status) + '</b></div>' + (x.length ? '<div class="tk-x">' + x.join(' · ') + '</div>' : '') + (tag ? '<div class="tk-x">' + tag + '</div>' : '') + btn + '</div>';
+        }).join('') + '</div>';
       }
       h += '<p class="small">Bukan akun kamu? Klik "Ganti akun" di bawah. · <a href="cek/?ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '">🔎 Cek status giveaway</a></p>';
       app.innerHTML = h;
       [].forEach.call(app.querySelectorAll('.kt button[data-id]'), function (b) { b.onclick = function () { tukar(d.katalog.filter(function (k) { return k.id === b.dataset.id; })[0]); }; });
+      [].forEach.call(app.querySelectorAll('.tk-tag'), function (b) { b.onclick = function () { tagLink(b.dataset.tid); }; });
+      if (!checking && PENDING) { var pm = PENDING; PENDING = null; alertBox(pm[0], pm[1]); }
     };
     if (PRE) show(PRE, true);
     else { app.innerHTML = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1><div class="wait on"><i></i><span>Memuat daftar survei…</span></div>'; preload() && PREP.then(function (d) { if (d && my === list.n && !list.got) show(d, true); }); }
@@ -114,15 +131,67 @@ var SK_HTML = __SK_JSON__;
       show(d, false);
     }, function () { app.innerHTML = '<div class="err">Koneksi bermasalah. <a href="#" onclick="location.reload();return false">Coba lagi</a></div>'; });
   }
+  // ---- penukaran kupon: verifikasi -> data penerima (tersimpan untuk berikutnya) -> konfirmasi ----
+  var RD = null, L4 = '', PENDING = null;
+  function rdView(inner) { $('nav').style.display = 'none'; app.innerHTML = '<div class="section">Tukar kupon</div>' + inner; window.scrollTo(0, 0); }
+  function rdBack() { $('nav').style.display = ''; bb.style.visibility = 'visible'; list(); }
+  function rdItem(k) { return '<div class="sv kt" style="pointer-events:none">' + (k.gambar ? '<img src="' + esc(k.gambar) + '" alt="" class="kt-img">' : '<div class="kt-img kt-ph">🎁</div>') + '<div class="t"><b>' + esc(k.nama) + '</b><small>' + esc((k.brand ? k.brand + ' · ' : '') + (k.deskripsi || '')) + '</small></div><span class="go">🎟️ ' + k.kupon + '</span></div>'; }
   function tukar(k) {
-    var l4 = prompt('Tukar ' + k.kupon + ' kupon dengan "' + k.nama + '"?\n\nUntuk keamanan, ketik 4 digit terakhir nomor WhatsApp yang kamu isi di survei:');
-    if (l4 === null) return;
-    var box = document.createElement('div'); box.className = 'wait on'; box.innerHTML = '<i></i><span>Memproses penukaran…</span>'; app.insertBefore(box, app.firstChild); window.scrollTo(0, 0);
-    api('tukarKupon', [ST.ig, l4, k.id]).then(function (r) {
-      box.remove();
-      if (!r.ok) { alertBox('❌ ' + r.msg, 'no'); return; }
-      list(); setTimeout(function () { alertBox('🎉 Penukaran tercatat: <b>' + esc(r.hadiah) + '</b>. Tim kami akan menghubungi kamu lewat WhatsApp untuk pengiriman. Sisa kupon: ' + r.sisa + '.', 'ok'); }, 50);
-    }, function () { box.remove(); alertBox('Koneksi bermasalah, coba lagi.', 'no'); });
+    RD = { k: k };
+    rdView('<h1>Tukar ' + k.kupon + ' kupon</h1>' + rdItem(k) + '<div class="rd"><label class="f" for="rd-l4">Verifikasi: 4 digit terakhir nomor WhatsApp yang kamu isi di survei</label><input type="text" id="rd-l4" inputmode="numeric" maxlength="4" placeholder="mis. 1234" value="' + esc(L4) + '"><div class="rd-err" id="rd-err"></div>' +
+      '<button class="rd-btn" id="rd-go" type="button">Lanjut</button><button class="rd-btn sec" type="button" id="rd-x">Batal</button></div>');
+    $('rd-x').onclick = rdBack; $('rd-l4').focus();
+    $('rd-go').onclick = function () {
+      var v = $('rd-l4').value.replace(/\D/g, ''); if (v.length !== 4) { $('rd-err').textContent = 'Isi 4 angka terakhir nomor WhatsApp.'; return; }
+      this.disabled = true; this.textContent = 'Memeriksa…'; var btn = this;
+      api('penerimaInfo', [ST.ig, v]).then(function (r) { if (!r.ok) { btn.disabled = false; btn.textContent = 'Lanjut'; $('rd-err').textContent = r.msg; return; } L4 = v; RD.info = r; rdForm(); },
+        function () { btn.disabled = false; btn.textContent = 'Lanjut'; $('rd-err').textContent = 'Koneksi bermasalah, coba lagi.'; });
+    };
+  }
+  function rdForm() {
+    var k = RD.k, inf = RD.info, sv = inf.tersimpan, useSaved = sv && RD.mode !== 'baru';
+    var f = function (id, lab, ph, extra) { return '<label class="f" for="' + id + '">' + lab + '</label><input type="text" id="' + id + '" placeholder="' + ph + '"' + (extra || '') + '>'; };
+    var h = '<h1>Data penerima hadiah</h1>' + rdItem(k) + '<div class="rd">';
+    if (sv) h += '<div class="opts">' +
+      '<label class="opt' + (useSaved ? ' on' : '') + '" data-m="simpan"><input type="radio" name="rdm"' + (useSaved ? ' checked' : '') + '><span>Kirim ke data tersimpan<br><small style="font-weight:600;opacity:.8">' + esc(sv.nama) + ' · ' + esc(sv.hp) + '<br>' + esc(sv.alamat) + ', ' + esc(sv.kota) + ' ' + esc(sv.kodepos) + '</small></span></label>' +
+      '<label class="opt' + (useSaved ? '' : ' on') + '" data-m="baru"><input type="radio" name="rdm"' + (useSaved ? '' : ' checked') + '><span>Pakai data penerima baru</span></label></div>';
+    if (!useSaved) h += (sv ? '' : '<p class="hint" style="margin-top:0">Isi sekali saja. Data ini disimpan untuk penukaran berikutnya.</p>') +
+      f('rd-nama', 'Nama lengkap penerima', 'Sesuai nama di paket', ' autocomplete="name"') + f('rd-hp', 'Nomor HP / WhatsApp penerima', '081234567890', ' inputmode="tel" autocomplete="tel"') +
+      '<label class="f" for="rd-al">Alamat lengkap</label><textarea id="rd-al" placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, patokan" autocomplete="street-address"></textarea>' +
+      '<div class="row2"><div>' + f('rd-kota', 'Kota / kabupaten', 'mis. Kota Bandung') + '</div><div>' + f('rd-kp', 'Kode pos', '40115', ' inputmode="numeric" maxlength="5"') + '</div></div>' +
+      '<label class="chk"><input type="checkbox" id="rd-simpan" checked><span>Simpan data ini untuk penukaran berikutnya</span></label>';
+    h += '<div class="rd-i">📦 Hadiah dikirim <b>paling lambat ' + inf.hariKerja + ' hari kerja</b> setelah penukaran.<br>📸 Saat hadiah diterima, kamu <b>wajib membuat konten</b> (foto/video di feed, story, reels, atau TikTok) dan <b>tag ' + esc(IGH()) + '</b>. Kirim link kontennya lewat riwayat penukaran untuk mendapat <b>+' + inf.bonusTag + ' kupon</b> tambahan.</div>' +
+      '<label class="chk"><input type="checkbox" id="rd-ok"><span>Saya bersedia membuat konten dan men-tag ' + esc(IGH()) + ' saat hadiah diterima.</span></label>' +
+      '<div class="rd-err" id="rd-err"></div><button class="rd-btn" id="rd-go" type="button">Tukar ' + k.kupon + ' kupon</button><button class="rd-btn sec" type="button" id="rd-x">Batal</button></div>' +
+      '<p class="small">Sisa kupon setelah penukaran: <b>' + Math.max(0, inf.saldo.sisa - k.kupon) + '</b>.</p>';
+    rdView(h);
+    [].forEach.call(app.querySelectorAll('label.opt[data-m]'), function (l) { l.onclick = function (e) { e.preventDefault(); RD.mode = l.dataset.m; rdForm(); }; });
+    $('rd-x').onclick = rdBack;
+    $('rd-go').onclick = function () {
+      if (!$('rd-ok').checked) { $('rd-err').textContent = 'Centang persetujuan membuat konten & tag dulu ya.'; return; }
+      var p = 'tersimpan';
+      if (!useSaved) { p = { nama: $('rd-nama').value, hp: $('rd-hp').value, alamat: $('rd-al').value, kota: $('rd-kota').value, kodepos: $('rd-kp').value, simpan: $('rd-simpan').checked };
+        if (!p.nama.trim() || !p.hp.trim() || !p.alamat.trim() || !p.kota.trim() || !p.kodepos.trim()) { $('rd-err').textContent = 'Lengkapi semua data penerima.'; return; } }
+      var btn = this; btn.disabled = true; btn.textContent = 'Memproses penukaran…';
+      api('tukarKupon', [ST.ig, L4, k.id, p]).then(function (r) {
+        if (!r.ok) { btn.disabled = false; btn.textContent = 'Tukar ' + k.kupon + ' kupon'; $('rd-err').textContent = r.msg; return; }
+        PRE = null; PREP = null;
+        rdView('<h1>🎉 Penukaran tercatat!</h1>' + rdItem(k) + '<div class="rd-i">Nomor penukaran: <b>' + esc(r.id) + '</b><br>📦 Hadiah dikirim <b>paling lambat ' + esc(r.batas) + '</b> (' + r.hariKerja + ' hari kerja).<br>📸 Setelah diterima, buat konten dan tag <b>' + esc(IGH()) + '</b>, lalu kirim link-nya di riwayat penukaran untuk <b>+' + r.bonusTag + ' kupon</b>.<br>Sisa kupon kamu: <b>' + r.sisa + '</b></div><button class="rd-btn" type="button" id="rd-x">Kembali ke daftar survei</button>');
+        $('rd-x').onclick = rdBack;
+      }, function () { btn.disabled = false; btn.textContent = 'Tukar ' + k.kupon + ' kupon'; $('rd-err').textContent = 'Koneksi bermasalah, coba lagi.'; });
+    };
+  }
+  function tagLink(tid) {
+    rdView('<h1>Kirim link konten kamu</h1><div class="rd"><p class="hint" style="margin-top:0">Tempel link postingan Instagram (feed/reels) atau TikTok yang men-tag <b>' + esc(IGH()) + '</b>. Untuk Instagram Story, kirim tangkapan layar ke DM ' + esc(IGH()) + ' lalu tempel link profil kamu di sini.</p>' +
+      '<label class="f" for="tg-l">Link konten</label><input type="text" id="tg-l" placeholder="https://www.instagram.com/p/…">' +
+      '<label class="f" for="tg-4">4 digit terakhir nomor WhatsApp</label><input type="text" id="tg-4" inputmode="numeric" maxlength="4" value="' + esc(L4) + '">' +
+      '<div class="rd-err" id="rd-err"></div><button class="rd-btn" id="rd-go" type="button">Kirim link</button><button class="rd-btn sec" type="button" id="rd-x">Batal</button></div>');
+    $('rd-x').onclick = rdBack;
+    $('rd-go').onclick = function () {
+      var btn = this, l4 = $('tg-4').value.replace(/\D/g, ''); btn.disabled = true;
+      api('kirimTagLink', [ST.ig, l4, tid, $('tg-l').value]).then(function (r) { if (!r.ok) { btn.disabled = false; $('rd-err').textContent = r.msg; return; } L4 = l4; PRE = null; PREP = null; PENDING = ['✅ Link terkirim. Tim kami akan mengecek kontenmu; kupon bonus masuk setelah terverifikasi.', 'ok']; rdBack(); },
+        function () { btn.disabled = false; $('rd-err').textContent = 'Koneksi bermasalah, coba lagi.'; });
+    };
   }
   function alertBox(html, cls) { var b = document.createElement('div'); b.className = 'verdict ' + cls; b.innerHTML = html; app.insertBefore(b, app.firstChild); window.scrollTo(0, 0); }
   function next() {

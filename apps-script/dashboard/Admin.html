@@ -54,6 +54,8 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .chip{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:10px 18px;font-weight:600;font-size:14px;margin-right:10px}
 .chip.glass{background:rgba(255,255,255,.14);color:#fff}
 .chip.white{background:#fff;color:var(--navy)}
+.tk-sum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.tk-sum span{background:var(--bg,#f5f6fa);border-radius:10px;padding:6px 12px;font-size:13px}.tk-sum b{font-size:15px;margin-right:4px}.tk-sum .red{background:#FDECEC;color:#9B1C1C}
+.tk-p{font-size:12.5px;line-height:1.45;max-width:250px;min-width:200px;white-space:normal}.tk-tag{white-space:normal;min-width:170px}.tk-p small{color:var(--muted)}.tk-late{color:#B42323;font-weight:800}.tk-tag a{word-break:break-all}.tk-tag .btn{margin:4px 4px 0 0}
 .chip.chip-mini{padding:6px 11px;font-size:12px;cursor:pointer;border:0;font-family:inherit;font-weight:600;gap:5px}
 .chip.glass:hover{background:rgba(255,255,255,.24)}
 .kpi .lab{font-size:13px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -555,12 +557,16 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 
 <!-- UNDIAN -->
 <section class="page" id="p-tukar">
-  <div class="top"><div><div class="eyebrow">Operasional</div><h1>Tukar Hadiah</h1><p class="desc">Responden mengumpulkan kupon dari survei (nilai kupon diatur per survei: 1 pendek, 2 panjang, 3 sangat panjang) lalu menukarnya dengan hadiah di katalog ini lewat halaman depan survei. Penukaran tidak mengurangi peluang undian.</p></div></div>
+  <div class="top"><div><div class="eyebrow">Operasional</div><h1>Tukar Hadiah</h1><p class="desc">Responden mengumpulkan kupon dari survei (1 pendek, 2 panjang, 3 sangat panjang) lalu menukarnya dengan hadiah lewat halaman depan survei. Kupon berlaku 6 bulan, hadiah dikirim maks. 10 hari kerja, dan penerima wajib membuat konten + tag akun IG (bonus 1 kupon). Angka-angka ini bisa diubah di Survei &amp; Pengaturan. Penukaran tidak mengurangi peluang undian.</p></div></div>
   <div class="card"><div class="pn-top"><h2 style="margin:0">Katalog hadiah</h2><span style="flex:1"></span><span class="muted" id="kt-msg"></span><button class="btn sec sm" onclick="ktAdd()">+ Tambah hadiah</button><button class="btn sm" onclick="ktSave()">Simpan katalog</button></div>
     <div class="tw" style="margin-top:10px"><table id="kt-t"></table></div></div>
-  <div class="card"><div class="pn-top"><h2 style="margin:0">Permintaan penukaran</h2><span style="flex:1"></span><select id="tk-f" onchange="tkDraw()" style="width:auto"><option value="">Semua status</option><option>Menunggu</option><option>Diproses</option><option>Dikirim</option><option>Ditolak</option></select></div>
-    <p class="muted" style="font-size:12.5px">Hubungi responden lewat WhatsApp untuk alamat pengiriman. "Ditolak" otomatis mengembalikan kupon & stok.</p>
-    <div class="tw" style="max-height:60vh"><table id="tk-t"></table></div></div>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">Permintaan penukaran</h2><span style="flex:1"></span><input id="tk-q" placeholder="Cari IG / nama / ID…" oninput="tkDraw()" style="width:200px"><select id="tk-f" onchange="tkDraw()" style="width:auto"><option value="">Semua status</option><option value="perlu">Perlu dikirim</option><option value="telat">Terlambat kirim</option><option value="tag">Perlu cek konten</option><option>Menunggu</option><option>Diproses</option><option>Dikirim</option><option>Diterima</option><option>Ditolak</option></select><button class="btn sec sm" onclick="tkCsv()">Unduh CSV</button></div>
+    <div id="tk-sum" class="tk-sum"></div>
+    <p class="muted" style="font-size:12.5px" id="tk-help">Data penerima diisi responden saat menukar (tersimpan untuk penukaran berikutnya). "Ditolak" otomatis mengembalikan kupon & stok. Setelah hadiah diterima, responden wajib membuat konten & tag akun IG; klik <b>✓ Sudah tag</b> untuk memberi kupon bonus.</p>
+    <div class="tw" style="max-height:64vh"><table id="tk-t"></table></div></div>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">Saldo kupon responden</h2><span style="flex:1"></span><input id="kr-q" placeholder="Cari @instagram…" oninput="krDraw()" style="width:200px"><button class="btn sec sm" onclick="krLoad()">Hitung ulang</button><button class="btn sec sm" onclick="krCsv()">Unduh CSV</button></div>
+    <p class="muted" style="font-size:12.5px" id="kr-help">Kupon didapat dari tiap survei valid (per ronde) + bonus konten. Kupon tertua dipakai lebih dulu dan hangus setelah masa berlaku. Rekap ini juga disimpan ke tab <b>Saldo Kupon</b> di Google Sheet.</p>
+    <div class="tw" style="max-height:56vh"><table id="kr-t"><tr><td class="loading">Klik menu ini untuk memuat…</td></tr></table></div></div>
 </section>
 
 <section class="page" id="p-draw">
@@ -1172,7 +1178,7 @@ var SET;
 var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
 // ---------- tukar hadiah ----------
 var KT = null;
-function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); }
+function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); krLoad(); }
 function ktDraw() {
   var h = '<thead><tr><th>Aktif</th><th>Hadiah</th><th>Brand</th><th>Kupon</th><th>Stok</th><th>Gambar (URL)</th><th>Deskripsi</th><th></th></tr></thead><tbody>';
   KT.katalog.forEach(function (x, i) {
@@ -1185,20 +1191,64 @@ function ktDraw() {
 }
 function ktAdd() { KT.katalog.push({ id: '', nama: '', brand: '', kupon: 10, stok: 10, gambar: '', deskripsi: '', aktif: true }); ktDraw(); }
 function ktSave() { $('kt-msg').textContent = 'Menyimpan…'; run('adminKatalogSave', KT.katalog).then(function (d) { KT = d; ktDraw(); tkDraw(); $('kt-msg').textContent = ''; toast('Katalog tersimpan'); }); }
+function tkMatch(r) {
+  var f = $('tk-f').value, q = ($('tk-q').value || '').toLowerCase().trim();
+  if (q && [r.instagram, r.nama_penerima, r.id_penukaran, r.hadiah, r.nomor_wa].join(' ').toLowerCase().indexOf(q) < 0) return false;
+  if (!f) return true;
+  if (f === 'perlu') return r.status === 'Menunggu' || r.status === 'Diproses';
+  if (f === 'telat') return r.telat;
+  if (f === 'tag') return r.tag_status === 'Menunggu cek' || ((r.status === 'Dikirim' || r.status === 'Diterima') && !r.tag_status);
+  return r.status === f;
+}
 function tkDraw() {
-  var f = $('tk-f').value, rows = KT.tukar.filter(function (r) { return !f || r.status === f; });
-  var h = '<thead><tr><th>Waktu</th><th>ID</th><th>Instagram</th><th>WhatsApp</th><th>Hadiah</th><th>Kupon</th><th>Status</th><th>Catatan</th></tr></thead><tbody>';
+  var all = KT.tukar, rows = all.filter(tkMatch), IGH = KT.ig || '@milgiftclub';
+  var cnt = function (fn) { return all.filter(fn).length; };
+  $('tk-sum').innerHTML = '<span><b>' + cnt(function (r) { return r.status === 'Menunggu' || r.status === 'Diproses'; }) + '</b>perlu dikirim</span>' +
+    '<span class="' + (cnt(function (r) { return r.telat; }) ? 'red' : '') + '"><b>' + cnt(function (r) { return r.telat; }) + '</b>lewat batas ' + (KT.hariKerja || 10) + ' hari kerja</span>' +
+    '<span><b>' + cnt(function (r) { return r.tag_status === 'Menunggu cek'; }) + '</b>link konten perlu dicek</span><span><b>' + cnt(function (r) { return r.tag_status === 'Terverifikasi'; }) + '</b>konten terverifikasi</span>';
+  var h = '<thead><tr><th>Waktu / ID</th><th>Penerima</th><th>Hadiah</th><th>Status</th><th>Pengiriman</th><th>Konten tag ' + esc(IGH) + '</th></tr></thead><tbody>';
   h += rows.map(function (r) {
-    return '<tr><td>' + esc(String(r.waktu).slice(0, 16)) + '</td><td>' + esc(r.id_penukaran) + '</td><td>' + esc(r.instagram) + '</td><td><a href="https://wa.me/62' + esc(String(r.nomor_wa).replace(/^0/, '')) + '" target="_blank" rel="noopener">' + esc(r.nomor_wa) + '</a></td><td>' + esc(r.hadiah) + '</td><td>' + esc(r.kupon) + '</td>' +
-      '<td><select data-row="' + r._row + '" style="width:auto">' + ['Menunggu', 'Diproses', 'Dikirim', 'Ditolak'].map(function (s) { return '<option' + (s === r.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></td><td>' + esc(r.catatan || '') + '</td></tr>';
-  }).join('') + (rows.length ? '' : '<tr><td colspan="8" class="loading">Belum ada permintaan penukaran.</td></tr>');
+    var wa = String(r.hp_penerima || r.nomor_wa || ''), waLink = 'https://wa.me/62' + wa.replace(/^(\+?62|0)/, '');
+    var addr = [r.alamat, r.kota, r.kode_pos].filter(Boolean).join(', ');
+    var pen = '<div class="tk-p"><b>' + esc(r.instagram) + '</b>' + (r.nama_penerima ? ' · ' + esc(r.nama_penerima) : '') + '<br><a href="' + waLink + '" target="_blank" rel="noopener">' + esc(wa) + '</a>' +
+      (addr ? '<br><small>' + esc(addr) + '</small> <button class="ib" title="Salin nama, HP & alamat" data-copy="' + esc([r.nama_penerima, wa, addr].join('\n')) + '">⧉</button>' : '<br><small>Alamat belum diisi (penukaran lama) — hubungi via WA</small>') + '</div>';
+    var tag = r.tag_status === 'Terverifikasi' ? '<span class="badge b-open">✓ +' + (r.bonus_kupon || KT.bonusTag) + ' kupon</span>' : r.tag_status === 'Menunggu cek' ? '<span class="badge b-y">Perlu dicek</span>' : r.tag_status === 'Tidak sesuai' ? '<span class="badge b-closed">Tidak sesuai</span>' : '';
+    if (r.tag_link) tag += '<br><a href="' + esc(r.tag_link) + '" target="_blank" rel="noopener">Buka konten ↗</a>';
+    if (r.status !== 'Ditolak' && r.tag_status !== 'Terverifikasi' && (r.status === 'Dikirim' || r.status === 'Diterima' || r.tag_status === 'Menunggu cek')) tag += '<br><button class="btn sm" data-tag="' + r._row + '">✓ Sudah tag (+' + KT.bonusTag + ')</button>' + (r.tag_status === 'Menunggu cek' ? '<button class="btn sec sm" data-untag="' + r._row + '">✕ Tidak sesuai</button>' : '');
+    return '<tr><td>' + esc(String(r.waktu).slice(0, 16)) + '<br><small class="muted">' + esc(r.id_penukaran) + '</small></td><td>' + pen + '</td><td>' + esc(r.hadiah) + '<br><small class="muted">' + esc(r.kupon) + ' kupon</small></td>' +
+      '<td><select data-row="' + r._row + '" style="width:auto">' + ['Menunggu', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak'].map(function (s) { return '<option' + (s === r.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' + (r.catatan ? '<br><small class="muted">' + esc(r.catatan) + '</small>' : '') + '</td>' +
+      '<td style="white-space:nowrap">' + (r.batas ? '<small class="muted">batas</small> <span class="' + (r.telat ? 'tk-late' : '') + '">' + esc(r.batas) + (r.telat ? '<br>Terlambat' : '') + '</span>' : '—') + (r.tgl_kirim ? '<br><small class="muted">dikirim ' + esc(String(r.tgl_kirim).slice(0, 10)) + '</small>' : '') +
+      '<br><input data-resi="' + r._row + '" value="' + esc(r.no_resi || '') + '" placeholder="no. resi" style="width:120px;margin-top:4px;padding:5px 8px;font-size:12.5px"></td><td class="tk-tag">' + (tag || '—') + '</td></tr>';
+  }).join('') + (rows.length ? '' : '<tr><td colspan="6" class="loading">Tidak ada penukaran di filter ini.</td></tr>');
   $('tk-t').innerHTML = h + '</tbody>';
+  var redraw = function (d, m) { KT = d; ktDraw(); tkDraw(); toast(m); };
   [].forEach.call($('tk-t').querySelectorAll('select[data-row]'), function (e) { e.onchange = function () {
     var c = e.value === 'Ditolak' ? prompt('Alasan penolakan (kupon & stok dikembalikan):', '') : '';
     if (c === null) { tkDraw(); return; }
-    run('adminTukarStatus', +e.dataset.row, e.value, c).then(function (d) { KT = d; ktDraw(); tkDraw(); toast('Status: ' + e.value); });
+    var resi = e.value === 'Dikirim' ? (e.closest('tr').querySelector('[data-resi]').value || prompt('Nomor resi pengiriman (boleh dikosongkan):', '') || '') : null;
+    run('adminTukarStatus', +e.dataset.row, e.value, c, resi).then(function (d) { redraw(d, 'Status: ' + e.value); });
   }; });
+  [].forEach.call($('tk-t').querySelectorAll('input[data-resi]'), function (e) { e.onchange = function () { run('adminTukarResi', +e.dataset.resi, e.value.trim()).then(function (d) { redraw(d, 'No. resi tersimpan'); }); }; });
+  [].forEach.call($('tk-t').querySelectorAll('[data-tag]'), function (b) { b.onclick = function () {
+    var r = KT.tukar.filter(function (x) { return x._row === +b.dataset.tag; })[0], link = r && r.tag_link ? '' : prompt('Link konten (opsional, untuk arsip):', '');
+    if (link === null) return; run('adminTukarTag', +b.dataset.tag, true, link || '').then(function (d) { redraw(d, 'Konten terverifikasi · +' + KT.bonusTag + ' kupon'); });
+  }; });
+  [].forEach.call($('tk-t').querySelectorAll('[data-untag]'), function (b) { b.onclick = function () { run('adminTukarTag', +b.dataset.untag, false, '').then(function (d) { redraw(d, 'Ditandai tidak sesuai'); }); }; });
+  [].forEach.call($('tk-t').querySelectorAll('[data-copy]'), function (b) { b.onclick = function () { try { navigator.clipboard.writeText(b.dataset.copy); } catch (e) {} toast('Data penerima disalin'); }; });
 }
+function tkCsv() { var cols = ['waktu', 'id_penukaran', 'instagram', 'nama_penerima', 'hp_penerima', 'alamat', 'kota', 'kode_pos', 'hadiah', 'kupon', 'status', 'batas', 'tgl_kirim', 'no_resi', 'tag_status', 'tag_link', 'bonus_kupon', 'catatan'];
+  csv('penukaran-hadiah', cols, KT.tukar.filter(tkMatch).map(function (r) { return cols.map(function (c) { return r[c] == null ? '' : r[c]; }); })); }
+var KR = null;
+function krLoad() { $('kr-t').innerHTML = '<tr><td class="loading">Menghitung saldo kupon…</td></tr>'; run('adminKuponRekap').then(function (d) { KR = d; $('kr-help').innerHTML = 'Kupon didapat dari tiap survei valid (per ronde) + bonus konten. Kupon tertua dipakai lebih dulu dan <b>hangus setelah ' + d.berlaku + ' bulan</b>. Rekap ini juga disimpan ke tab <b>Saldo Kupon</b> di Google Sheet.'; krDraw(); }); }
+function krDraw() {
+  if (!KR) return; var q = ($('kr-q').value || '').toLowerCase().replace(/^@/, ''), rows = KR.rows.filter(function (r) { return !q || r.ig.toLowerCase().indexOf(q) >= 0; });
+  var tot = function (k) { return rows.reduce(function (t, r) { return t + (r[k] || 0); }, 0); };
+  $('kr-t').innerHTML = '<thead><tr><th>Instagram</th><th>Survei valid</th><th>Didapat</th><th>Bonus konten</th><th>Ditukar</th><th>Hangus</th><th>Sisa</th><th>Hangus terdekat</th><th>Hadiah ditukar</th></tr></thead><tbody>' +
+    '<tr style="font-weight:800;background:#f5f6fa"><td>Total (' + fmt(rows.length) + ' akun)</td><td>' + fmt(tot('survei')) + '</td><td>' + fmt(tot('dapat')) + '</td><td>' + fmt(tot('bonus')) + '</td><td>' + fmt(tot('pakai')) + '</td><td>' + fmt(tot('hangus')) + '</td><td>' + fmt(tot('sisa')) + '</td><td></td><td></td></tr>' +
+    rows.slice(0, 500).map(function (r) { return '<tr><td>' + esc(r.ig) + '</td><td>' + r.survei + '</td><td>' + r.dapat + '</td><td>' + (r.bonus || '') + '</td><td>' + (r.pakai || '') + '</td><td>' + (r.hangus || '') + '</td><td><b>' + r.sisa + '</b></td><td>' + esc(r.segera) + '</td><td>' + esc(r.ditukar) + '</td></tr>'; }).join('') +
+    (rows.length > 500 ? '<tr><td colspan="9" class="muted">Menampilkan 500 dari ' + fmt(rows.length) + ' akun. Unduh CSV untuk semua.</td></tr>' : '') + '</tbody>';
+}
+function krCsv() { if (!KR) return; var cols = ['ig', 'survei', 'dapat', 'bonus', 'pakai', 'hangus', 'sisa', 'segera', 'ditukar']; csv('saldo-kupon', ['instagram', 'survei_valid', 'kupon_didapat', 'kupon_bonus', 'kupon_ditukar', 'kupon_hangus', 'kupon_sisa', 'hangus_terdekat', 'hadiah_ditukar'], KR.rows.map(function (r) { return cols.map(function (c) { return r[c]; }); })); }
 // ---------- data simulasi ----------
 function simDraw(st) {
   $('sim-go').style.display = st.ada && st.selesai && !st.hanyaOny ? 'none' : ''; $('sim-del').style.display = st.ada ? '' : 'none';
