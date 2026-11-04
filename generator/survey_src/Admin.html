@@ -54,6 +54,8 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .chip{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:10px 18px;font-weight:600;font-size:14px;margin-right:10px}
 .chip.glass{background:rgba(255,255,255,.14);color:#fff}
 .chip.white{background:#fff;color:var(--navy)}
+.chip.chip-mini{padding:6px 11px;font-size:12px;cursor:pointer;border:0;font-family:inherit;font-weight:600;gap:5px}
+.chip.glass:hover{background:rgba(255,255,255,.24)}
 .kpi .lab{font-size:13px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kpi .val{font-size:40px;font-weight:800;letter-spacing:-.02em;margin:10px 0 2px}
 .kpi .val small{font-size:18px;color:var(--muted);font-weight:600}
@@ -323,7 +325,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <!-- RINGKASAN -->
 <section class="page on" id="p-home">
   <div class="hero"><div class="d" id="h-date"></div><h1 id="h-greet">Halo!</h1><p>Ini yang terjadi di survei MIL Gift Club hari ini.</p>
-    <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span><button class="chip glass" style="cursor:pointer;border:0;font:inherit" onclick="hubCopy()" title="Satu link untuk semua survei: responden setuju, isi username IG, lalu memilih survei">🔗 Salin link utama survei</button></div>
+    <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span><a class="chip glass" href="https://milgiftclub.github.io/milgiftclub-survei/" target="_blank" rel="noopener" style="text-decoration:none" title="Buka halaman depan survei (satu link untuk semua survei) di tab baru">↗ Buka survei</a><button class="chip glass chip-mini" onclick="hubCopy()" title="Salin link utama survei">🔗 Salin</button></div>
     <div class="ppl" id="h-ppl" style="margin:12px 0 14px;font-size:14px"></div>
   <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted"><span id="h-upd">Memuat…</span> · Periode <select id="h-per" onchange="homePer()" style="width:auto;padding:4px 8px;font-size:12.5px"></select></div></div>
     <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="snapRebuild(this)" title="Hitung ulang Ringkasan, Laporan & Cross Tab dari data terbaru">Perbarui data sekarang</button></div></div>
