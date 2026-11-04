@@ -1606,6 +1606,8 @@ function bTake(list, append, meta) {
     if (q.showIf && q.showIf.q) n._if = q.showIf;
     B.questions.push(n); idx.push(n.id);
   });
+  // teks yang menyebut jawaban sebelumnya: {#5} = jawaban pertanyaan ke-5 dari daftar ini
+  B.questions.forEach(function (n) { n.text = String(n.text).replace(/\{#(\d+)\}/g, function (m, k) { return idx[k - 1] ? '{' + idx[k - 1] + '}' : m; }); });
   // showIf dari AI memakai nomor urut (1 = pertanyaan pertama hasil AI)
   B.questions.forEach(function (n) {
     if (!n._if) return;
@@ -1995,12 +1997,12 @@ var B_TPL = {
   ]
  },
  "gaya-penampilan": {
-  "judul": "Gaya Berpenampilan: identitas, inspirasi, dan cara belanja",
-  "ringkas": "Gaya sekarang vs yang dituju, warna, sumber inspirasi & panutan, kebiasaan memilih outfit, kesulitan berpakaian, anggaran, lokal vs internasional, dan pendorong yakin beli online.",
+  "judul": "Gaya Berpenampilan & Merek: merek apa untuk kebutuhan apa, dan kenapa",
+  "ringkas": "Gaya & warna, merek yang dipakai per kebutuhan (sehari-hari, hangout, kantor, tidur, olahraga, formal, modest) + alasannya, merek favorit, unbranded, merek lokal yang dikenal & dibeli, kelebihan & keraguan merek lokal, inspirasi, dan anggaran.",
   "name": "Survei Gaya Berpenampilan",
-  "intro": "Ceritakan gaya berpakaianmu: dari mana dapat inspirasi, apa yang sulit, dan bagaimana kamu belanja. Tidak ada jawaban benar atau salah.",
-  "estimasi": 7,
-  "kupon": 2,
+  "intro": "Ceritakan gaya berpakaianmu dan merek yang kamu pakai untuk tiap kebutuhan, dari kerja sampai tidur. Tidak ada jawaban benar atau salah.",
+  "estimasi": 12,
+  "kupon": 3,
   "questions": [
    {
     "text": "Gaya berpakaian mana yang paling menggambarkan Anda sehari-hari?",
@@ -2034,7 +2036,7 @@ var B_TPL = {
       "t": "Vintage / retro"
      },
      {
-      "t": "Lainnya",
+      "t": "Lainnya, sebutkan",
       "other": true
      }
     ],
@@ -2104,16 +2106,1126 @@ var B_TPL = {
     "label": "Warna favorit"
    },
    {
-    "text": "Seberapa penting penampilan bagi Anda dalam aktivitas sehari-hari?",
-    "type": "scale",
-    "topic": "Gaya & identitas",
-    "scale": {
-     "min": 1,
-     "max": 5,
-     "minLabel": "Tidak penting",
-     "maxLabel": "Sangat penting"
+    "text": "Untuk kebutuhan apa saja Anda membeli pakaian dalam 6 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Sehari-hari / santai di luar rumah"
+     },
+     {
+      "t": "Keluar / hangout / jalan-jalan"
+     },
+     {
+      "t": "Kerja / kantor"
+     },
+     {
+      "t": "Tidur / di rumah"
+     },
+     {
+      "t": "Olahraga"
+     },
+     {
+      "t": "Acara formal / kondangan"
+     },
+     {
+      "t": "Ibadah / busana modest"
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "label": "Kebutuhan pakaian 6 bln",
+    "hint": "Pilih semua yang sesuai. Pertanyaan berikutnya menanyakan merek untuk tiap kebutuhan."
+   },
+   {
+    "text": "Untuk sehari-hari / santai, merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Cotton On"
+     },
+     {
+      "t": "Pull&Bear"
+     },
+     {
+      "t": "Bershka"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "3Second"
+     },
+     {
+      "t": "Roughneck 1991"
+     },
+     {
+      "t": "Thanksinsomnia"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Cartiera"
+     },
+     {
+      "t": "Kale"
+     },
+     {
+      "t": "Matahari (Nevada, Connexion, dll.)"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Sehari-hari / santai di luar rumah"
     },
-    "label": "Pentingnya penampilan"
+    "label": "Merek: sehari-hari / santai",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#5} untuk sehari-hari / santai?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Simpel, mudah dipadukan"
+     },
+     {
+      "t": "Adem untuk cuaca panas"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Sehari-hari / santai di luar rumah"
+    },
+    "label": "Alasan merek: sehari-hari / santai"
+   },
+   {
+    "text": "Untuk keluar / hangout, merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Pull&Bear"
+     },
+     {
+      "t": "Bershka"
+     },
+     {
+      "t": "Stradivarius"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "Cotton On"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "Thanksinsomnia"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Cartiera"
+     },
+     {
+      "t": "Kale"
+     },
+     {
+      "t": "Shopatvelvet"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Keluar / hangout / jalan-jalan"
+    },
+    "label": "Merek: keluar / hangout",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#7} untuk keluar / hangout?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Terlihat stylish / kekinian"
+     },
+     {
+      "t": "Bagus difoto"
+     },
+     {
+      "t": "Beda dari yang dipakai orang lain"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Keluar / hangout / jalan-jalan"
+    },
+    "label": "Alasan merek: keluar / hangout"
+   },
+   {
+    "text": "Untuk kerja / kantor (office look), merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Marks & Spencer"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Kale"
+     },
+     {
+      "t": "Cartiera"
+     },
+     {
+      "t": "Alisan"
+     },
+     {
+      "t": "The Executive"
+     },
+     {
+      "t": "Matahari (Nevada, Connexion, dll.)"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Kerja / kantor"
+    },
+    "label": "Merek: kerja / kantor (office look)",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#9} untuk kerja / kantor (office look)?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Terlihat profesional / rapi"
+     },
+     {
+      "t": "Tidak mudah kusut"
+     },
+     {
+      "t": "Potongannya tailored / jatuh di badan"
+     },
+     {
+      "t": "Bisa dipakai kerja sekaligus hangout"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Kerja / kantor"
+    },
+    "label": "Alasan merek: kerja / kantor (office look)"
+   },
+   {
+    "text": "Untuk tidur / di rumah, merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Cotton On"
+     },
+     {
+      "t": "Matahari (Nevada, Connexion, dll.)"
+     },
+     {
+      "t": "Kaos merchandise / kaos event"
+     },
+     {
+      "t": "Piyama dari marketplace"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Tidur / di rumah"
+    },
+    "label": "Merek: tidur / di rumah",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#11} untuk tidur / di rumah?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Adem / menyerap keringat"
+     },
+     {
+      "t": "Longgar, tidak membatasi gerak"
+     },
+     {
+      "t": "Bahannya lembut di kulit"
+     },
+     {
+      "t": "Bisa dipakai keluar sebentar"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Tidur / di rumah"
+    },
+    "label": "Alasan merek: tidur / di rumah"
+   },
+   {
+    "text": "Untuk olahraga, merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Nike"
+     },
+     {
+      "t": "Adidas"
+     },
+     {
+      "t": "Puma"
+     },
+     {
+      "t": "Under Armour"
+     },
+     {
+      "t": "Uniqlo"
+     },
+     {
+      "t": "Decathlon"
+     },
+     {
+      "t": "Specs"
+     },
+     {
+      "t": "Ortuseight"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "H&M"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Olahraga"
+    },
+    "label": "Merek: olahraga",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#13} untuk olahraga?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Cepat kering"
+     },
+     {
+      "t": "Fleksibel / tidak kaku"
+     },
+     {
+      "t": "Mendukung performa"
+     },
+     {
+      "t": "Terlihat sporty / keren"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Olahraga"
+    },
+    "label": "Alasan merek: olahraga"
+   },
+   {
+    "text": "Untuk acara formal / kondangan, merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Zara"
+     },
+     {
+      "t": "Mango"
+     },
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Kale"
+     },
+     {
+      "t": "Cartiera"
+     },
+     {
+      "t": "Ria Miranda"
+     },
+     {
+      "t": "Matahari (Nevada, Connexion, dll.)"
+     },
+     {
+      "t": "Batik Keris"
+     },
+     {
+      "t": "Danar Hadi"
+     },
+     {
+      "t": "Jahit sendiri / penjahit"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Acara formal / kondangan"
+    },
+    "label": "Merek: acara formal / kondangan",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#15} untuk acara formal / kondangan?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Terlihat elegan / mewah"
+     },
+     {
+      "t": "Sesuai dress code acara"
+     },
+     {
+      "t": "Bisa dipakai berkali-kali di acara berbeda"
+     },
+     {
+      "t": "Detail atau motifnya unik"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Acara formal / kondangan"
+    },
+    "label": "Alasan merek: acara formal / kondangan"
+   },
+   {
+    "text": "Untuk busana modest / ibadah, merek apa yang PALING sering Anda pakai?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Heaven Lights"
+     },
+     {
+      "t": "Wearing Klamby"
+     },
+     {
+      "t": "Zoya"
+     },
+     {
+      "t": "Rabbani"
+     },
+     {
+      "t": "Elzatta"
+     },
+     {
+      "t": "Ria Miranda"
+     },
+     {
+      "t": "Hijup"
+     },
+     {
+      "t": "Kami"
+     },
+     {
+      "t": "Vanilla Hijab"
+     },
+     {
+      "t": "Shopatvelvet"
+     },
+     {
+      "t": "Tidak bermerek / unbranded"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Ibadah / busana modest"
+    },
+    "label": "Merek: busana modest / ibadah",
+    "hint": "Pilih satu. Kalau tidak ada di daftar, pilih Lainnya dan tulis mereknya."
+   },
+   {
+    "text": "Apa alasan utama Anda memilih {#17} untuk busana modest / ibadah?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Tidak menerawang"
+     },
+     {
+      "t": "Menutup aurat dengan nyaman"
+     },
+     {
+      "t": "Modelnya modis tapi sopan"
+     },
+     {
+      "t": "Mudah dipakai (instan)"
+     },
+     {
+      "t": "Nyaman dipakai"
+     },
+     {
+      "t": "Bahan berkualitas"
+     },
+     {
+      "t": "Modelnya sesuai gaya saya"
+     },
+     {
+      "t": "Harga terjangkau"
+     },
+     {
+      "t": "Tahan lama / awet"
+     },
+     {
+      "t": "Ukurannya pas di badan"
+     },
+     {
+      "t": "Merek terkenal / terpercaya"
+     },
+     {
+      "t": "Mudah dibeli (toko / online)"
+     },
+     {
+      "t": "Sering ada promo"
+     },
+     {
+      "t": "Ingin mendukung brand lokal"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek per kebutuhan",
+    "max": 3,
+    "random": true,
+    "showIf": {
+     "q": 4,
+     "op": "is",
+     "val": "Ibadah / busana modest"
+    },
+    "label": "Alasan merek: busana modest / ibadah"
+   },
+   {
+    "text": "Dari semua merek pakaian, mana SATU yang paling Anda sukai saat ini?",
+    "type": "text",
+    "topic": "Merek favorit & merek lokal",
+    "label": "Merek paling favorit",
+    "hint": "Tulis nama mereknya, misalnya Uniqlo, Onycha, Erigo."
+   },
+   {
+    "text": "Apa yang paling membuat Anda menyukai merek tersebut?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Kualitas bahan"
+     },
+     {
+      "t": "Potongan / fitting"
+     },
+     {
+      "t": "Desain dan modelnya"
+     },
+     {
+      "t": "Harga sebanding"
+     },
+     {
+      "t": "Cerita / nilai mereknya"
+     },
+     {
+      "t": "Pelayanan & pengalaman belanja"
+     },
+     {
+      "t": "Komunitas / penggemarnya"
+     },
+     {
+      "t": "Sering kolaborasi menarik"
+     },
+     {
+      "t": "Ramah lingkungan / bahan alami"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "max": 3,
+    "random": true,
+    "label": "Alasan merek favorit"
+   },
+   {
+    "text": "Seberapa sering Anda membeli pakaian tidak bermerek (unbranded)?",
+    "type": "single",
+    "options": [
+     {
+      "t": "Hampir semua pakaian saya unbranded"
+     },
+     {
+      "t": "Lebih dari separuh"
+     },
+     {
+      "t": "Sekitar separuh"
+     },
+     {
+      "t": "Sesekali"
+     },
+     {
+      "t": "Hampir tidak pernah"
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "label": "Porsi unbranded"
+   },
+   {
+    "text": "Apa alasan Anda membeli pakaian tidak bermerek?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harganya jauh lebih murah"
+     },
+     {
+      "t": "Modelnya sama dengan merek terkenal"
+     },
+     {
+      "t": "Untuk pakaian rumah / tidur saja"
+     },
+     {
+      "t": "Kualitasnya ternyata cukup bagus"
+     },
+     {
+      "t": "Merek tidak penting buat saya"
+     },
+     {
+      "t": "Gampang dicari di marketplace"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "max": 3,
+    "showIf": {
+     "q": 21,
+     "op": "isnot",
+     "val": "Hampir tidak pernah"
+    },
+    "label": "Alasan unbranded"
+   },
+   {
+    "text": "Merek fashion LOKAL mana saja yang Anda kenal?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Cartiera"
+     },
+     {
+      "t": "Kale"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "Thanksinsomnia"
+     },
+     {
+      "t": "Roughneck 1991"
+     },
+     {
+      "t": "3Second"
+     },
+     {
+      "t": "Shopatvelvet"
+     },
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Heaven Lights"
+     },
+     {
+      "t": "Wearing Klamby"
+     },
+     {
+      "t": "Tidak ada yang saya kenal",
+      "exclusive": true
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "random": true,
+    "label": "Merek lokal dikenal"
+   },
+   {
+    "text": "Merek lokal mana yang pernah Anda BELI dalam 12 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Onycha"
+     },
+     {
+      "t": "Cotton Ink"
+     },
+     {
+      "t": "This Is April"
+     },
+     {
+      "t": "Cartiera"
+     },
+     {
+      "t": "Kale"
+     },
+     {
+      "t": "Erigo"
+     },
+     {
+      "t": "Thanksinsomnia"
+     },
+     {
+      "t": "Roughneck 1991"
+     },
+     {
+      "t": "3Second"
+     },
+     {
+      "t": "Shopatvelvet"
+     },
+     {
+      "t": "Buttonscarves"
+     },
+     {
+      "t": "Heaven Lights"
+     },
+     {
+      "t": "Wearing Klamby"
+     },
+     {
+      "t": "Belum pernah membeli merek lokal",
+      "exclusive": true
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "random": true,
+    "showIf": {
+     "q": 23,
+     "op": "isnot",
+     "val": "Tidak ada yang saya kenal"
+    },
+    "label": "Merek lokal dibeli"
+   },
+   {
+    "text": "Dibanding merek internasional, apa kelebihan merek lokal menurut Anda?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Harga lebih terjangkau"
+     },
+     {
+      "t": "Ukuran lebih pas untuk badan orang Indonesia"
+     },
+     {
+      "t": "Desain lebih unik"
+     },
+     {
+      "t": "Bahan cocok untuk iklim tropis"
+     },
+     {
+      "t": "Bangga mendukung produk lokal"
+     },
+     {
+      "t": "Lebih eksklusif / tidak pasaran"
+     },
+     {
+      "t": "Tidak ada kelebihan khusus"
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "max": 3,
+    "label": "Kelebihan merek lokal"
+   },
+   {
+    "text": "Apa yang masih membuat Anda ragu membeli merek lokal?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Kualitas belum konsisten"
+     },
+     {
+      "t": "Harga sudah setara merek internasional"
+     },
+     {
+      "t": "Sulit mencoba langsung (toko fisik sedikit)"
+     },
+     {
+      "t": "Ukuran tidak standar"
+     },
+     {
+      "t": "Kurang dikenal / gengsi"
+     },
+     {
+      "t": "Stok cepat habis"
+     },
+     {
+      "t": "Tidak ada keraguan"
+     },
+     {
+      "t": "Lainnya, sebutkan",
+      "other": true
+     }
+    ],
+    "topic": "Merek favorit & merek lokal",
+    "max": 3,
+    "label": "Keraguan merek lokal"
    },
    {
     "text": "Dari mana Anda paling sering mendapat inspirasi gaya berpakaian?",
@@ -2183,53 +3295,11 @@ var B_TPL = {
     "label": "Konten inspirasi favorit"
    },
    {
-    "text": "Apakah Anda punya akun/kreator panutan gaya yang rutin Anda ikuti?",
-    "type": "single",
-    "options": [
-     {
-      "t": "Ya, beberapa"
-     },
-     {
-      "t": "Ya, satu atau dua"
-     },
-     {
-      "t": "Tidak ada"
-     }
-    ],
-    "topic": "Inspirasi gaya",
-    "label": "Punya panutan gaya"
-   },
-   {
-    "text": "Sebutkan 1–2 nama akun atau figur panutan gaya Anda. (opsional)",
+    "text": "Sebutkan 1–2 akun atau figur panutan gaya Anda. (opsional)",
     "type": "text",
     "topic": "Inspirasi gaya",
     "required": false,
-    "showIf": {
-     "q": 7,
-     "op": "isnot",
-     "val": "Tidak ada"
-    },
-    "label": "Nama panutan gaya"
-   },
-   {
-    "text": "Biasanya kapan Anda menentukan pakaian yang akan dipakai?",
-    "type": "single",
-    "options": [
-     {
-      "t": "Malam sebelumnya"
-     },
-     {
-      "t": "Pagi sebelum berangkat"
-     },
-     {
-      "t": "Seminggu sekali sudah direncanakan"
-     },
-     {
-      "t": "Spontan saja"
-     }
-    ],
-    "topic": "Kebiasaan memilih pakaian",
-    "label": "Waktu memilih outfit"
+    "label": "Panutan gaya"
    },
    {
     "text": "Apa kesulitan terbesar Anda soal berpakaian?",
@@ -2257,14 +3327,14 @@ var B_TPL = {
       "t": "Takut salah kostum di acara tertentu"
      }
     ],
-    "topic": "Kebiasaan memilih pakaian",
+    "topic": "Kebiasaan & belanja",
     "max": 3,
     "label": "Kesulitan berpakaian"
    },
    {
     "text": "Seberapa setuju: “Saya lebih suka sedikit pakaian berkualitas daripada banyak pakaian murah.”",
     "type": "scale",
-    "topic": "Kebiasaan memilih pakaian",
+    "topic": "Kebiasaan & belanja",
     "scale": {
      "min": 1,
      "max": 5,
@@ -2293,34 +3363,31 @@ var B_TPL = {
       "t": "Di atas Rp1.000.000"
      }
     ],
-    "topic": "Belanja fashion",
+    "topic": "Kebiasaan & belanja",
     "label": "Anggaran fashion"
    },
    {
-    "text": "Lebih sering membeli brand lokal atau internasional?",
+    "text": "Berapa harga yang wajar menurut Anda untuk satu atasan / kemeja kerja?",
     "type": "single",
     "options": [
      {
-      "t": "Hampir selalu brand lokal"
+      "t": "Di bawah Rp100.000"
      },
      {
-      "t": "Lebih banyak lokal"
+      "t": "Rp100.000 – Rp200.000"
      },
      {
-      "t": "Seimbang"
+      "t": "Rp200.001 – Rp350.000"
      },
      {
-      "t": "Lebih banyak internasional"
+      "t": "Rp350.001 – Rp500.000"
      },
      {
-      "t": "Hampir selalu internasional"
-     },
-     {
-      "t": "Tidak memperhatikan merek"
+      "t": "Di atas Rp500.000"
      }
     ],
-    "topic": "Belanja fashion",
-    "label": "Lokal vs internasional"
+    "topic": "Kebiasaan & belanja",
+    "label": "Harga wajar atasan kerja"
    },
    {
     "text": "Apa yang paling membuat Anda yakin membeli pakaian secara online?",
@@ -2348,44 +3415,10 @@ var B_TPL = {
       "t": "Pernah beli di toko yang sama"
      }
     ],
-    "topic": "Belanja fashion",
+    "topic": "Kebiasaan & belanja",
     "max": 3,
     "random": true,
     "label": "Pendorong yakin beli online"
-   },
-   {
-    "text": "Selain pakaian, bagian penampilan mana yang paling Anda perhatikan?",
-    "type": "multi",
-    "options": [
-     {
-      "t": "Rambut"
-     },
-     {
-      "t": "Makeup"
-     },
-     {
-      "t": "Skincare / kulit"
-     },
-     {
-      "t": "Aksesori (tas, perhiasan, jam)"
-     },
-     {
-      "t": "Sepatu"
-     },
-     {
-      "t": "Parfum"
-     },
-     {
-      "t": "Kuku"
-     },
-     {
-      "t": "Tidak ada yang khusus",
-      "exclusive": true
-     }
-    ],
-    "topic": "Belanja fashion",
-    "max": 3,
-    "label": "Aspek penampilan lain"
    }
   ]
  },

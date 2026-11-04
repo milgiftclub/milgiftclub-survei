@@ -1594,6 +1594,8 @@ function bTake(list, append, meta) {
     if (q.showIf && q.showIf.q) n._if = q.showIf;
     B.questions.push(n); idx.push(n.id);
   });
+  // teks yang menyebut jawaban sebelumnya: {#5} = jawaban pertanyaan ke-5 dari daftar ini
+  B.questions.forEach(function (n) { n.text = String(n.text).replace(/\{#(\d+)\}/g, function (m, k) { return idx[k - 1] ? '{' + idx[k - 1] + '}' : m; }); });
   // showIf dari AI memakai nomor urut (1 = pertanyaan pertama hasil AI)
   B.questions.forEach(function (n) {
     if (!n._if) return;

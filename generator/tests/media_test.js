@@ -53,7 +53,7 @@ const SP = process.env.SHOTS || require('os').tmpdir() + '/', ROOT = path.join(_
     const end = await r.$eval('#app', e => e.innerText.replace(/\s+/g, ' ').slice(0, 200)); await r.close(); return { seen: process.env.ALL ? seen : seen.filter(x => /^Q/.test(x)), end };
   }
   const a = await respond('r1', {}, ['MEDIA']);
-  const c = await respond('r2', ({ 0: { Q6: 'B', Q8: 'B' }, 1: { Q7: 'Tidak ada' }, 2: { Q10: 'Belum pernah' }, 3: { Q10: 'Tidak pernah' } })[process.env.TPL || 0] || {}, []);
+  const c = await respond('r2', ({ 0: { Q6: 'B', Q8: 'B' }, 1: { Q4: ['Kerja / kantor', 'Tidur / di rumah'], Q9: 'Onycha', Q11: 'Tidak bermerek / unbranded', Q21: 'Hampir tidak pernah' }, 2: { Q10: 'Belum pernah' }, 3: { Q10: 'Tidak pernah' } })[process.env.TPL || 0] || {}, ['Q9', 'Q10', 'Q12']);
   console.log('r1', a.seen.length, a.seen.join(' '), '\n  END', a.end);
   console.log('r2', c.seen.length, c.seen.join(' '), '\n  END', c.end);
   console.log('JS errors:', errs); await b.close();

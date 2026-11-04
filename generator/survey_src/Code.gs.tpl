@@ -2796,15 +2796,29 @@ var TUGAS_SEKALI = [
     [['gaya-penampilan', true], ['live-shopping', true], ['promosi', true], ['konten-hook', false]].forEach(function (x) {
       var t = SURVEY_TEMPLATES[x[0]]; CUSTOM_MEMO_ = null;
       if (customSurveys_().some(function (c) { return c.name.toLowerCase() === t.name.toLowerCase(); })) return;   // sudah dibuat manual -> lewati
-      var qs = JSON.parse(JSON.stringify(t.questions)); qs.forEach(function (q, i) { q.id = 'Q' + (i + 1); if (q.showIf) q.showIf.q = 'Q' + q.showIf.q; if (q.required == null) q.required = true; });
+      var qs = templateQs_(t, 'Q');
       var sch = { name: t.name, intro: t.intro, estimasi: t.estimasi, kupon: t.kupon, target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all', questions: qs };
       try { sch.hadiah = (CONFIG.HADIAH_UTAMA ? [{ nama: CONFIG.HADIAH_UTAMA, nilai: '' }] : []).concat((CONFIG.HADIAH || []).map(function (t) { t = String(t || ''); var m = t.match(/Rp\s?([\d.]+)/i); return { nama: t.replace(/\s*Rp\s?[\d.]+\s*/i, ' ').replace(/\s{2,}/g, ' ').trim(), nilai: m ? Number(m[1].replace(/\./g, '')) : '' }; })); } catch (e) {}
       var r = builderSave_(sch, x[1], 'otomatis');   // konten-hook = draf (video contoh perlu diganti materi asli)
       made.push(t.name + ' (' + r.status + ')');
     });
     return made;
+  } },
+  { id: '2026-11-04-gaya-penampilan-merek', run: function () {
+    // survei Gaya Berpenampilan diperluas (merek per kebutuhan + alasannya). Jawaban lama tetap aman: kalau sudah ada jawaban, pertanyaan baru memakai id G1.. (kolom baru)
+    var t = SURVEY_TEMPLATES['gaya-penampilan']; CUSTOM_MEMO_ = null;
+    var c = customSurveys_().filter(function (x) { return x.name.toLowerCase() === t.name.toLowerCase(); })[0]; if (!c) return 'survei belum ada (akan dibuat dari template baru)';
+    var sh = c.tab ? sheet_(c.tab) : null, n = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
+    var sch = JSON.parse(JSON.stringify(c.schema)); sch.id = c.id; sch.questions = templateQs_(t, n ? 'G' : 'Q'); sch.intro = t.intro; sch.estimasi = t.estimasi; sch.kupon = t.kupon;
+    var r = builderSave_(sch, false, 'otomatis'); return { id: c.id, status: r.status, jawabanLama: n, pertanyaan: sch.questions.length };
   } }
 ];
+/** Pertanyaan template -> pertanyaan survei: id berurutan (prefix + nomor), showIf & {#n} di teks memakai id tsb. */
+function templateQs_(t, prefix) {
+  var qs = JSON.parse(JSON.stringify(t.questions)), id = function (n) { return prefix + n; };
+  qs.forEach(function (q, i) { q.id = id(i + 1); if (q.showIf) q.showIf.q = id(q.showIf.q); if (q.required == null) q.required = true; q.text = String(q.text).replace(/\{#(\d+)\}/g, function (m, k) { return '{' + id(k) + '}'; }); });
+  return qs;
+}
 function tugasPending_() { var done = {}; try { done = JSON.parse(PropertiesService.getScriptProperties().getProperty('TUGAS_SELESAI') || '{}'); } catch (e) {} return TUGAS_SEKALI.some(function (t) { return !done[t.id]; }); }
 /** Dashboard dibuka & ada tugas tertunda -> jadwalkan trigger 1 menit lagi (sekali per 10 menit). */
 function tugasJadwal_() {
