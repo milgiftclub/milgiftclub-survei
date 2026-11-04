@@ -7,7 +7,7 @@ ctx.submitResponse({ sid: 'n1', variant: 'v1', answers: Object.assign({}, base, 
 const kk = ctx.adminKatalog().katalog; ctx.adminKatalogSave(kk.map((x, i) => Object.assign({}, x, i === 0 ? { kupon: 2 } : {})));
 const P = { nama: 'Nadia Putri', hp: '081233330001', alamat: 'Jl. Riau No. 21, RT 03/RW 05, Citarum, Bandung Wetan', kota: 'Kota Bandung', kodepos: '40115' };
 console.log(JSON.stringify(ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, P)).slice(0, 80));
-const r2 = ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, 'tersimpan'); const row2 = ctx.adminKatalog().tukar.find(x => x.id_penukaran === r2.id); ctx.adminTukarStatus(row2._row, 'Dikirim', '', 'SICEPAT01'); ctx.kirimTagLink('@nadia', '0001', r2.id, 'https://www.instagram.com/p/NADIA1/');
+const r2 = ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, 'tersimpan'); const row2 = ctx.adminKatalog().tukar.find(x => x.id_penukaran === r2.id); ctx.adminTukarStatus(row2._row, 'Dikirim', '', null); ctx.kirimTagLink('@nadia', '0001', r2.id, 'https://www.instagram.com/p/NADIA1/');
 const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
@@ -24,6 +24,8 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.locator('#tk-t').scrollIntoViewIfNeeded(); await p.locator('#tk-f').selectOption('tag'); await p.waitForTimeout(300);
   console.log('ringkasan:', (await p.textContent('#tk-sum')).replace(/\s+/g, ' '), '| filter cek konten:', await p.locator('#tk-t tbody tr').count());
   await p.locator('#tk-f').selectOption(''); await p.fill('#tk-q', 'nadia'); await p.waitForTimeout(200);
+  await p.locator('.tk-kr select').first().selectOption('sicepat'); await p.waitForTimeout(600); await p.locator('.tk-kr [data-k="resi"]').first().fill('SCP0099887766'); await p.locator('.tk-kr [data-k="resi"]').first().dispatchEvent('change'); await p.waitForTimeout(800);
+  console.log('tersimpan:', JSON.stringify(ctx.adminKatalog().tukar.filter(x => x.instagram === '@nadia').map(x => [x.kurir, x.no_resi])));
   await (await p.$('#tk-t')).evaluate(e => e.closest('.card').scrollIntoView()); await p.waitForTimeout(200); await p.screenshot({ path: SP + 'adm_tukar2.png' });
   await p.locator('[data-tag]').first().click(); await p.waitForTimeout(800); console.log('setelah centang:', (await p.textContent('#tk-t')).replace(/\s+/g, ' ').slice(0, 300));
   await p.waitForFunction(() => !/Klik menu|Menghitung/.test(document.getElementById('kr-t').textContent), null, { timeout: 60000 }); await p.fill('#kr-q', 'nadia'); await p.waitForTimeout(200);

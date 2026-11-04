@@ -55,7 +55,7 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .chip.glass{background:rgba(255,255,255,.14);color:#fff}
 .chip.white{background:#fff;color:var(--navy)}
 .tk-sum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.tk-sum span{background:var(--bg,#f5f6fa);border-radius:10px;padding:6px 12px;font-size:13px}.tk-sum b{font-size:15px;margin-right:4px}.tk-sum .red{background:#FDECEC;color:#9B1C1C}
-.tk-p{font-size:12.5px;line-height:1.45;max-width:250px;min-width:200px;white-space:normal}.tk-tag{white-space:normal;min-width:170px}.tk-p small{color:var(--muted)}.tk-late{color:#B42323;font-weight:800}.tk-tag a{word-break:break-all}.tk-tag .btn{margin:4px 4px 0 0}
+.tk-p{font-size:12.5px;line-height:1.45;max-width:250px;min-width:200px;white-space:normal}.tk-tag{white-space:normal;min-width:170px}.tk-kr{display:flex;flex-direction:column;gap:4px;margin-top:6px;min-width:150px}.tk-kr select,.tk-kr input{width:150px;padding:5px 8px;font-size:12.5px}.kr-b{display:inline-block;color:#fff;font-weight:800;font-size:11.5px;border-radius:7px;padding:3px 8px;align-self:flex-start;letter-spacing:.2px}.kr-logo{height:22px;align-self:flex-start}.tk-p small{color:var(--muted)}.tk-late{color:#B42323;font-weight:800}.tk-tag a{word-break:break-all}.tk-tag .btn{margin:4px 4px 0 0}
 .chip.chip-mini{padding:6px 11px;font-size:12px;cursor:pointer;border:0;font-family:inherit;font-weight:600;gap:5px}
 .chip.glass:hover{background:rgba(255,255,255,.24)}
 .kpi .lab{font-size:13px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1206,7 +1206,7 @@ function tkDraw() {
   $('tk-sum').innerHTML = '<span><b>' + cnt(function (r) { return r.status === 'Menunggu' || r.status === 'Diproses'; }) + '</b>perlu dikirim</span>' +
     '<span class="' + (cnt(function (r) { return r.telat; }) ? 'red' : '') + '"><b>' + cnt(function (r) { return r.telat; }) + '</b>lewat batas ' + (KT.hariKerja || 10) + ' hari kerja</span>' +
     '<span><b>' + cnt(function (r) { return r.tag_status === 'Menunggu cek'; }) + '</b>link konten perlu dicek</span><span><b>' + cnt(function (r) { return r.tag_status === 'Terverifikasi'; }) + '</b>konten terverifikasi</span>';
-  var h = '<thead><tr><th>Waktu / ID</th><th>Penerima</th><th>Hadiah</th><th>Status</th><th>Pengiriman</th><th>Konten tag ' + esc(IGH) + '</th></tr></thead><tbody>';
+  var h = '<thead><tr><th>Waktu / ID</th><th>Penerima</th><th>Hadiah</th><th>Status</th><th>Pengiriman (jasa kirim & resi)</th><th>Konten tag ' + esc(IGH) + '</th></tr></thead><tbody>';
   h += rows.map(function (r) {
     var wa = String(r.hp_penerima || r.nomor_wa || ''), waLink = 'https://wa.me/62' + wa.replace(/^(\+?62|0)/, '');
     var addr = [r.alamat, r.kota, r.kode_pos].filter(Boolean).join(', ');
@@ -1218,17 +1218,23 @@ function tkDraw() {
     return '<tr><td>' + esc(String(r.waktu).slice(0, 16)) + '<br><small class="muted">' + esc(r.id_penukaran) + '</small></td><td>' + pen + '</td><td>' + esc(r.hadiah) + '<br><small class="muted">' + esc(r.kupon) + ' kupon</small></td>' +
       '<td><select data-row="' + r._row + '" style="width:auto">' + ['Menunggu', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak'].map(function (s) { return '<option' + (s === r.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' + (r.catatan ? '<br><small class="muted">' + esc(r.catatan) + '</small>' : '') + '</td>' +
       '<td style="white-space:nowrap">' + (r.batas ? '<small class="muted">batas</small> <span class="' + (r.telat ? 'tk-late' : '') + '">' + esc(r.batas) + (r.telat ? '<br>Terlambat' : '') + '</span>' : '—') + (r.tgl_kirim ? '<br><small class="muted">dikirim ' + esc(String(r.tgl_kirim).slice(0, 10)) + '</small>' : '') +
-      '<br><input data-resi="' + r._row + '" value="' + esc(r.no_resi || '') + '" placeholder="no. resi" style="width:120px;margin-top:4px;padding:5px 8px;font-size:12.5px"></td><td class="tk-tag">' + (tag || '—') + '</td></tr>';
+      '<div class="tk-kr" data-kr="' + r._row + '"><select data-k="kurir"><option value="">— jasa kirim —</option>' + (KT.kurir || []).map(function (k) { return '<option value="' + esc(k.kode) + '"' + (k.kode === r.kurir ? ' selected' : '') + '>' + esc(k.nama) + '</option>'; }).join('') + '</select>' +
+      '<input data-k="resi" value="' + esc(r.no_resi || '') + '" placeholder="no. resi">' + '<input data-k="link" value="' + esc(r.link_lacak || '') + '" placeholder="link lacak (opsional, mis. GoSend)"' + (r.link_lacak || /^(gosend|grab|lain)$/.test(r.kurir || '') ? '' : ' style="display:none"') + '>' + kurirBadge(r.kurir) + '</div></td><td class="tk-tag">' + (tag || '—') + '</td></tr>';
   }).join('') + (rows.length ? '' : '<tr><td colspan="6" class="loading">Tidak ada penukaran di filter ini.</td></tr>');
   $('tk-t').innerHTML = h + '</tbody>';
   var redraw = function (d, m) { KT = d; ktDraw(); tkDraw(); toast(m); };
   [].forEach.call($('tk-t').querySelectorAll('select[data-row]'), function (e) { e.onchange = function () {
     var c = e.value === 'Ditolak' ? prompt('Alasan penolakan (kupon & stok dikembalikan):', '') : '';
     if (c === null) { tkDraw(); return; }
-    var resi = e.value === 'Dikirim' ? (e.closest('tr').querySelector('[data-resi]').value || prompt('Nomor resi pengiriman (boleh dikosongkan):', '') || '') : null;
+    var resi = null;
     run('adminTukarStatus', +e.dataset.row, e.value, c, resi).then(function (d) { redraw(d, 'Status: ' + e.value); });
   }; });
-  [].forEach.call($('tk-t').querySelectorAll('input[data-resi]'), function (e) { e.onchange = function () { run('adminTukarResi', +e.dataset.resi, e.value.trim()).then(function (d) { redraw(d, 'No. resi tersimpan'); }); }; });
+  [].forEach.call($('tk-t').querySelectorAll('.tk-kr'), function (w) {
+    var g = function (k) { return w.querySelector('[data-k="' + k + '"]'); };
+    var save = function () { run('adminTukarResi', +w.dataset.kr, g('resi').value.trim(), g('kurir').value, g('link').value.trim()).then(function (d) { redraw(d, 'Info pengiriman tersimpan'); }); };
+    g('kurir').onchange = function () { if (/^(gosend|grab|lain)$/.test(g('kurir').value)) g('link').style.display = ''; save(); };
+    g('resi').onchange = save; g('link').onchange = save;
+  });
   [].forEach.call($('tk-t').querySelectorAll('[data-tag]'), function (b) { b.onclick = function () {
     var r = KT.tukar.filter(function (x) { return x._row === +b.dataset.tag; })[0], link = r && r.tag_link ? '' : prompt('Link konten (opsional, untuk arsip):', '');
     if (link === null) return; run('adminTukarTag', +b.dataset.tag, true, link || '').then(function (d) { redraw(d, 'Konten terverifikasi · +' + KT.bonusTag + ' kupon'); });
@@ -1236,7 +1242,11 @@ function tkDraw() {
   [].forEach.call($('tk-t').querySelectorAll('[data-untag]'), function (b) { b.onclick = function () { run('adminTukarTag', +b.dataset.untag, false, '').then(function (d) { redraw(d, 'Ditandai tidak sesuai'); }); }; });
   [].forEach.call($('tk-t').querySelectorAll('[data-copy]'), function (b) { b.onclick = function () { try { navigator.clipboard.writeText(b.dataset.copy); } catch (e) {} toast('Data penerima disalin'); }; });
 }
-function tkCsv() { var cols = ['waktu', 'id_penukaran', 'instagram', 'nama_penerima', 'hp_penerima', 'alamat', 'kota', 'kode_pos', 'hadiah', 'kupon', 'status', 'batas', 'tgl_kirim', 'no_resi', 'tag_status', 'tag_link', 'bonus_kupon', 'catatan'];
+function kurirBadge(kode) {
+  var k = (KT.kurir || []).filter(function (x) { return x.kode === kode; })[0]; if (!k) return '';
+  return k.logo ? '<img src="' + esc(k.logo) + '" alt="' + esc(k.nama) + '" class="kr-logo">' : '<span class="kr-b" style="background:' + esc(k.warna || '#6B7280') + '">' + esc(k.nama) + '</span>';
+}
+function tkCsv() { var cols = ['waktu', 'id_penukaran', 'instagram', 'nama_penerima', 'hp_penerima', 'alamat', 'kota', 'kode_pos', 'hadiah', 'kupon', 'status', 'batas', 'tgl_kirim', 'no_resi', 'kurir', 'link_lacak', 'tag_status', 'tag_link', 'bonus_kupon', 'catatan'];
   csv('penukaran-hadiah', cols, KT.tukar.filter(tkMatch).map(function (r) { return cols.map(function (c) { return r[c] == null ? '' : r[c]; }); })); }
 var KR = null;
 function krLoad() { $('kr-t').innerHTML = '<tr><td class="loading">Menghitung saldo kupon…</td></tr>'; run('adminKuponRekap').then(function (d) { KR = d; $('kr-help').innerHTML = 'Kupon didapat dari tiap survei valid (per ronde) + bonus konten. Kupon tertua dipakai lebih dulu dan <b>hangus setelah ' + d.berlaku + ' bulan</b>. Rekap ini juga disimpan ke tab <b>Saldo Kupon</b> di Google Sheet.'; krDraw(); }); }

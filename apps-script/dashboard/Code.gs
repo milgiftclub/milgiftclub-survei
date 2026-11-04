@@ -110,6 +110,7 @@ var SET_DEFAULTS = [
   ['SYARAT_KOMENTAR_WAJIB', false, 'TRUE = hanya yang sudah komentar + tag teman yang ikut diundi (aktifkan setelah Instagram tersambung)'],
   ['KUPON_HANGUS_BULAN', 6, 'Masa berlaku kupon (bulan sejak kupon didapat). Kupon yang belum ditukar setelah itu hangus'],
   ['KIRIM_HARI_KERJA', 10, 'Batas maksimal pengiriman hadiah setelah penukaran (hari kerja, Senin–Jumat)'],
+  ['KURIR_LIST', '[{"kode": "jne", "nama": "JNE", "warna": "#0D3C8C", "lacak": "https://www.jne.co.id/tracking-package", "logo": ""}, {"kode": "jnt", "nama": "J&T Express", "warna": "#D0021B", "lacak": "https://jet.co.id/track", "logo": ""}, {"kode": "sicepat", "nama": "SiCepat", "warna": "#C8102E", "lacak": "https://www.sicepat.com/checkAwb", "logo": ""}, {"kode": "anteraja", "nama": "AnterAja", "warna": "#5E2B97", "lacak": "https://anteraja.id/tracking", "logo": ""}, {"kode": "pos", "nama": "Pos Indonesia", "warna": "#F37021", "lacak": "https://www.posindonesia.co.id/id/tracking", "logo": ""}, {"kode": "ninja", "nama": "Ninja Xpress", "warna": "#C8102E", "lacak": "https://www.ninjaxpress.co/id-id/tracking", "logo": ""}, {"kode": "tiki", "nama": "TIKI", "warna": "#1F5AA6", "lacak": "https://www.tiki.id/id/tracking", "logo": ""}, {"kode": "lion", "nama": "Lion Parcel", "warna": "#E4002B", "lacak": "https://lionparcel.com/track/stt", "logo": ""}, {"kode": "idexpress", "nama": "ID Express", "warna": "#D71920", "lacak": "https://idexpress.com/lacak-paket/", "logo": ""}, {"kode": "spx", "nama": "SPX Express", "warna": "#EE4D2D", "lacak": "https://spx.co.id/track", "logo": ""}, {"kode": "gosend", "nama": "GoSend", "warna": "#00AA13", "lacak": "", "logo": ""}, {"kode": "grab", "nama": "GrabExpress", "warna": "#00B14F", "lacak": "", "logo": ""}, {"kode": "lain", "nama": "Lainnya", "warna": "#6B7280", "lacak": "", "logo": ""}]', 'Daftar jasa kirim untuk penukaran hadiah (JSON): kode, nama, warna, lacak (halaman pelacakan resmi), logo (URL gambar logo, opsional)'],
   ['BONUS_KUPON_TAG', 1, 'Kupon tambahan bila penerima hadiah membuat konten & men-tag akun Instagram MIL Gift Club'],
   ['GARIS_KEMISKINAN', 669235, 'Garis kemiskinan nasional BPS (Rp/kapita/bulan) untuk menghitung kelas ekonomi & SES. Maret 2026 = 669235; perbarui tiap rilis BPS']
 ];
@@ -6612,7 +6613,9 @@ function kuponOf_(v) {
 }
 var KAT_COLS = ['id', 'nama', 'brand', 'kupon', 'stok', 'gambar', 'deskripsi', 'aktif'];
 var TUKAR_COLS = ['waktu', 'id_penukaran', 'instagram', 'nomor_wa', 'hadiah_id', 'hadiah', 'kupon', 'status', 'catatan', 'diproses_oleh', 'diperbarui',
-  'nama_penerima', 'hp_penerima', 'alamat', 'kota', 'kode_pos', 'batas_kirim', 'tgl_kirim', 'no_resi', 'tag_status', 'tag_link', 'tag_dicek', 'bonus_kupon'];
+  'nama_penerima', 'hp_penerima', 'alamat', 'kota', 'kode_pos', 'batas_kirim', 'tgl_kirim', 'no_resi', 'tag_status', 'tag_link', 'tag_dicek', 'bonus_kupon', 'kurir', 'link_lacak'];
+function kurirList_() { try { var l = JSON.parse(String(set_('KURIR_LIST') || '[]')); if (l.length) return l; } catch (e) {} return [{ kode: 'lain', nama: 'Lainnya', warna: '#6B7280', lacak: '', logo: '' }]; }
+function kurirOf_(k) { k = String(k || ''); return kurirList_().filter(function (x) { return x.kode === k || x.nama === k; })[0] || (k ? { kode: k, nama: k, warna: '#6B7280', lacak: '', logo: '' } : null); }
 var PENERIMA_COLS = ['instagram', 'nomor_wa', 'nama', 'no_hp', 'alamat', 'kota', 'kode_pos', 'dibuat', 'diperbarui'];
 var TAG_OK = 'Terverifikasi';
 var KAT_CONTOH = [['Sandal Crabus', 'Crabus', 30, 20, 'Sandal nyaman untuk sehari-hari.'], ['Piring Opus One', 'Opus One', 40, 15, 'Piring keramik untuk meja makan.'],
@@ -6687,7 +6690,8 @@ function tukarRows_() {
 function tukarPub_(r) {
   var ts = r.waktu instanceof Date ? r.waktu.getTime() : new Date(r.waktu).getTime() || 0;
   return { id: r.id_penukaran, hadiah: r.hadiah, kupon: Number(r.kupon) || 0, status: r.status, waktu: fmt_(r.waktu), ts: ts, batas: r.batas_kirim ? tglId_(r.batas_kirim) : '', resi: String(r.no_resi || ''),
-    tagStatus: String(r.tag_status || ''), bonus: Number(r.bonus_kupon) || 0, tagTs: r.tag_dicek ? new Date(r.tag_dicek).getTime() : 0 };
+    tagStatus: String(r.tag_status || ''), bonus: Number(r.bonus_kupon) || 0, tagTs: r.tag_dicek ? new Date(r.tag_dicek).getTime() : 0,
+    kurir: (function () { var k = kurirOf_(r.kurir); return k ? { nama: k.nama, warna: k.warna, logo: k.logo || '', lacak: String(r.link_lacak || '') || k.lacak || '' } : null; })() };
 }
 function tukarMine_(n) {
   var k = 'tukar2:' + n, c = cacheGet_(k); if (c) return c;
@@ -6768,7 +6772,7 @@ function adminKatalog() {
     var now = Date.now();
     return { katalog: katalog_(), tukar: tukarRows_().map(function (r) { var o = {}; TUKAR_COLS.forEach(function (k) { o[k] = iso_(r[k]); }); o._row = r._row; ['nomor_wa', 'hp_penerima', 'kode_pos'].forEach(function (k) { o[k] = String(o[k] == null ? '' : o[k]).replace(/^'/, ''); });
         o.batas = r.batas_kirim ? tglId_(r.batas_kirim) : ''; o.telat = !!(r.batas_kirim && ['Menunggu', 'Diproses'].indexOf(String(r.status)) >= 0 && new Date(r.batas_kirim).getTime() < now); return o; }).reverse(),
-      bonusTag: num_('BONUS_KUPON_TAG') || 1, hariKerja: num_('KIRIM_HARI_KERJA') || 10, ig: CONFIG.IG_HANDLE,
+      bonusTag: num_('BONUS_KUPON_TAG') || 1, hariKerja: num_('KIRIM_HARI_KERJA') || 10, ig: CONFIG.IG_HANDLE, kurir: kurirList_(),
       kupon: { v1: kuponOf_('v1'), v2: kuponOf_('v2') } };
   });
 }
@@ -6792,9 +6796,12 @@ function adminTukarStatus(row, status, catatan, resi) {
   MEMO_ = MEMO_ ? {} : MEMO_;
   return adminKatalog();
 }
-function adminTukarResi(row, resi) {
+function adminTukarResi(row, resi, kurir, link) {
   var who = requireAdmin_(), s = tukarSheet_(), c = function (k) { return TUKAR_COLS.indexOf(k) + 1; };
-  s.getRange(row, c('no_resi')).setValue(String(resi || '')); s.getRange(row, c('diproses_oleh')).setValue(who); s.getRange(row, c('diperbarui')).setValue(new Date());
+  if (resi != null) s.getRange(row, c('no_resi')).setValue(String(resi || '').trim());
+  if (kurir != null) s.getRange(row, c('kurir')).setValue(String(kurir || ''));
+  if (link != null) s.getRange(row, c('link_lacak')).setValue(String(link || '').trim());
+  s.getRange(row, c('diproses_oleh')).setValue(who); s.getRange(row, c('diperbarui')).setValue(new Date());
   cacheDel_('tukar2:' + String(s.getRange(row, c('instagram')).getValue()).replace(/^@/, '')); MEMO_ = MEMO_ ? {} : MEMO_;
   return adminKatalog();
 }
