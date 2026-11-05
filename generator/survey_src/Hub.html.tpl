@@ -24,6 +24,9 @@ __STYLE__
   .tk-x{font-size:12.5px;color:var(--brown2);margin-top:2px;line-height:1.5} .tk-b{display:inline-block;border-radius:10px;padding:2px 9px;font-size:12px;font-weight:800;background:#EEE8E0;color:var(--brown)} .tk-b.ok{background:#E7F5EC;color:#22663F} .tk-b.no{background:#FDECEC;color:#7A2323}
   .tk-kr{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px} .kr-b{color:#fff;font-weight:800;font-size:12px;border-radius:8px;padding:4px 9px;letter-spacing:.2px} .kr-logo{height:24px;border-radius:4px;background:#fff}
   .kr-r{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:13px;background:var(--cream);border-radius:8px;padding:3px 8px} .kr-btn{border:2px solid var(--line);background:var(--white);color:var(--brown);border-radius:10px;font:inherit;font-weight:800;font-size:12.5px;padding:4px 10px;cursor:pointer;text-decoration:none} .kr-btn.go{background:var(--brown);border-color:var(--brown);color:#fff}
+  .vr{background:#EEF3FF;border:2px solid #9DB4F0;border-radius:16px;padding:14px;margin-top:12px;font-size:14px;line-height:1.55;color:var(--brown)} .vr-k{display:flex;align-items:center;gap:8px;margin:8px 0}
+  .vr-k b{font-family:ui-monospace,Menlo,monospace;font-size:22px;letter-spacing:1px;background:#fff;border:2px dashed #7C9BE8;border-radius:12px;padding:6px 12px}
+  .vr-dm{display:inline-block;background:linear-gradient(90deg,#F58529,#DD2A7B,#8134AF);color:#fff;text-decoration:none;font-weight:800;border-radius:12px;padding:9px 14px;font-size:14px}
   .tk-it{border-top:1px dashed var(--line);padding:9px 0} .tk-it:first-of-type{border-top:0} .tk-tag{margin-top:6px;border:0;border-radius:12px;background:var(--coral);color:#fff;font:inherit;font-weight:800;font-size:13px;padding:7px 12px;cursor:pointer}
   .rd{background:var(--white);border:2px solid var(--line);border-radius:18px;padding:16px;margin-top:12px} .rd label.f{display:block;font-weight:800;font-size:14px;margin:12px 0 5px} .rd textarea{width:100%;min-height:84px;font:inherit;padding:12px 14px;border:2px solid var(--line);border-radius:14px;box-sizing:border-box}
   .rd .row2{display:grid;grid-template-columns:1.4fr 1fr;gap:10px} .rd .chk{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.5} .rd .chk input{margin-top:4px;width:18px;height:18px;flex:none}
@@ -112,6 +115,7 @@ var SK_HTML = __SK_JSON__;
         if (d.tukar && d.tukar.length) h += '<div class="ck"><b>Riwayat penukaran</b>' + d.tukar.map(function (t) {
           var x = [], sent = t.status === 'Dikirim' || t.status === 'Diterima';
           if ((t.status === 'Menunggu' || t.status === 'Diproses') && t.batas) x.push('📦 Dikirim paling lambat ' + esc(t.batas));
+          var vr = t.verKode ? vrBox(t.verKode, t.verDm, true) : '';
           var kr = t.kurir, krH = '';
           var R = RESI[t.id]; if (R) { t.resi = R.resi; kr = R.kurir; }
           if (t.adaResi && !R) krH = '<div class="tk-kr">' + (kr ? '<span class="kr-b" style="background:' + esc(kr.warna || '#6B7280') + '">' + esc(kr.nama) + '</span>' : '') + '<button type="button" class="kr-btn go" data-resi="1">🔒 Lihat resi & lacak</button></div>';
@@ -120,7 +124,7 @@ var SK_HTML = __SK_JSON__;
             (kr && kr.lacak ? '<a class="kr-btn go" href="' + esc(kr.lacak) + '" target="_blank" rel="noopener" data-copy="' + esc(t.resi || '') + '">Lacak paket ↗</a>' : '') + '</div>';
           var tag = t.tagStatus === 'Terverifikasi' ? '<span class="tk-b ok">✓ Konten terverifikasi · +' + (t.bonus || 1) + ' kupon</span>' : t.tagStatus === 'Menunggu cek' ? '<span class="tk-b">⏳ Link konten sedang dicek</span>' : t.tagStatus === 'Tidak sesuai' ? '<span class="tk-b no">Konten belum sesuai, kirim ulang link</span>' : '';
           var btn = sent && t.tagStatus !== 'Terverifikasi' && t.tagStatus !== 'Menunggu cek' ? '<br><button class="tk-tag" type="button" data-tid="' + esc(t.id) + '">📸 Sudah posting & tag ' + esc(IGH()) + '? Kirim link (+1 kupon)</button>' : '';
-          return '<div class="tk-it"><div class="tk-r" style="border:0;padding:0"><span>' + esc(t.hadiah) + ' <small>(' + t.kupon + ' kupon · ' + esc(t.waktu) + ')</small></span><b>' + esc(t.status) + '</b></div>' + (x.length ? '<div class="tk-x">' + x.join(' · ') + '</div>' : '') + krH + (tag ? '<div class="tk-x">' + tag + '</div>' : '') + btn + '</div>';
+          return '<div class="tk-it"><div class="tk-r" style="border:0;padding:0"><span>' + esc(t.hadiah) + ' <small>(' + t.kupon + ' kupon · ' + esc(t.waktu) + ')</small></span><b>' + esc(t.status) + '</b></div>' + (x.length ? '<div class="tk-x">' + x.join(' · ') + '</div>' : '') + vr + krH + (tag ? '<div class="tk-x">' + tag + '</div>' : '') + btn + '</div>';
         }).join('') + '</div>';
       }
       h += '<p class="small">Bukan akun kamu? Klik "Ganti akun" di bawah. · <a href="cek/?ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '">🔎 Cek status giveaway</a></p>';
@@ -128,6 +132,7 @@ var SK_HTML = __SK_JSON__;
       [].forEach.call(app.querySelectorAll('.kt button[data-id]'), function (b) { b.onclick = function () { tukar(d.katalog.filter(function (k) { return k.id === b.dataset.id; })[0]); }; });
       [].forEach.call(app.querySelectorAll('.tk-tag'), function (b) { b.onclick = function () { tagLink(b.dataset.tid); }; });
       [].forEach.call(app.querySelectorAll('.kr-btn[data-copy]'), function (b) { b.addEventListener('click', function (e) { var v = b.dataset.copy; if (!v) return; try { navigator.clipboard.writeText(v); } catch (er) {} if (b.tagName === 'BUTTON') { b.textContent = '✓ Disalin'; setTimeout(function () { b.textContent = 'Salin'; }, 1500); } }); });
+      rdCopy();
       [].forEach.call(app.querySelectorAll('[data-resi]'), function (b) { b.onclick = function () {
         var v = L4 || prompt('Untuk keamanan, ketik 4 digit terakhir nomor WhatsApp yang kamu isi di survei:'); if (!v) return;
         b.disabled = true; b.textContent = 'Memeriksa…';
@@ -147,6 +152,12 @@ var SK_HTML = __SK_JSON__;
   }
   // ---- penukaran kupon: verifikasi -> data penerima (tersimpan untuk berikutnya) -> konfirmasi ----
   var RD = null, L4 = '', PENDING = null, RESI = {};
+  function vrBox(kode, dm, small) {
+    return '<div class="vr">' + (small ? '' : '<b>🔐 Satu langkah lagi: verifikasi akun Instagram kamu</b><br>') + 'Kirim kode ini lewat <b>DM Instagram dari akun ' + esc(ST.ig) + '</b> ke <b>' + esc(IGH()) + '</b>:' +
+      '<div class="vr-k"><b>' + esc(kode) + '</b><button type="button" class="kr-btn" data-copy="' + esc(kode) + '">Salin</button></div>' +
+      '<a class="vr-dm" href="' + esc(dm) + '" target="_blank" rel="noopener">Buka DM ' + esc(IGH()) + ' ↗</a>' +
+      (small ? '' : '<br><small>Cukup sekali untuk akun ini. Hadiah diproses setelah tim kami mencocokkan kode dengan akun pengirim DM.</small>') + '</div>';
+  }
   function rdView(inner) { $('nav').style.display = 'none'; app.innerHTML = '<div class="section">Tukar kupon</div>' + inner; window.scrollTo(0, 0); }
   function rdBack() { $('nav').style.display = ''; bb.style.visibility = 'visible'; list(); }
   function rdItem(k) { return '<div class="sv kt" style="pointer-events:none">' + (k.gambar ? '<img src="' + esc(k.gambar) + '" alt="" class="kt-img">' : '<div class="kt-img kt-ph">🎁</div>') + '<div class="t"><b>' + esc(k.nama) + '</b><small>' + esc((k.brand ? k.brand + ' · ' : '') + (k.deskripsi || '')) + '</small></div><span class="go">🎟️ ' + k.kupon + '</span></div>'; }
@@ -174,7 +185,8 @@ var SK_HTML = __SK_JSON__;
       '<label class="f" for="rd-al">Alamat lengkap</label><textarea id="rd-al" placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, patokan" autocomplete="street-address"></textarea>' +
       '<div class="row2"><div>' + f('rd-kota', 'Kota / kabupaten', 'mis. Kota Bandung') + '</div><div>' + f('rd-kp', 'Kode pos', '40115', ' inputmode="numeric" maxlength="5"') + '</div></div>' +
       '<label class="chk"><input type="checkbox" id="rd-simpan" checked><span>Simpan data ini untuk penukaran berikutnya</span></label>';
-    h += '<div class="rd-i">📦 Hadiah dikirim <b>paling lambat ' + inf.hariKerja + ' hari kerja</b> setelah penukaran.<br>📸 Saat hadiah diterima, kamu <b>wajib membuat konten</b> (foto/video di feed, story, reels, atau TikTok) dan <b>tag ' + esc(IGH()) + '</b>. Kirim link kontennya lewat riwayat penukaran untuk mendapat <b>+' + inf.bonusTag + ' kupon</b> tambahan.</div>' +
+    h += (inf.perluVerifikasi ? '<div class="vr" style="margin-top:12px">🔐 <b>Penukaran pertama:</b> setelah ini kamu akan mendapat kode untuk dikirim lewat <b>DM Instagram</b> ke ' + esc(IGH()) + '. Ini untuk memastikan akun ' + esc(ST.ig) + ' benar milikmu (cukup sekali).</div>' : '') +
+      '<div class="rd-i">📦 Hadiah dikirim <b>paling lambat ' + inf.hariKerja + ' hari kerja</b> setelah penukaran' + (inf.perluVerifikasi ? ' terverifikasi' : '') + '.<br>📸 Saat hadiah diterima, kamu <b>wajib membuat konten</b> (foto/video di feed, story, reels, atau TikTok) dan <b>tag ' + esc(IGH()) + '</b>. Kirim link kontennya lewat riwayat penukaran untuk mendapat <b>+' + inf.bonusTag + ' kupon</b> tambahan.</div>' +
       '<label class="chk"><input type="checkbox" id="rd-ok"><span>Saya bersedia membuat konten dan men-tag ' + esc(IGH()) + ' saat hadiah diterima.</span></label>' +
       '<div class="rd-err" id="rd-err"></div><button class="rd-btn" id="rd-go" type="button">Tukar ' + k.kupon + ' kupon</button><button class="rd-btn sec" type="button" id="rd-x">Batal</button></div>' +
       '<p class="small">Sisa kupon setelah penukaran: <b>' + Math.max(0, inf.saldo.sisa - k.kupon) + '</b>.</p>';
@@ -190,11 +202,12 @@ var SK_HTML = __SK_JSON__;
       api('tukarKupon', [ST.ig, L4, k.id, p]).then(function (r) {
         if (!r.ok) { btn.disabled = false; btn.textContent = 'Tukar ' + k.kupon + ' kupon'; $('rd-err').textContent = r.msg; return; }
         PRE = null; PREP = null;
-        rdView('<h1>🎉 Penukaran tercatat!</h1>' + rdItem(k) + '<div class="rd-i">Nomor penukaran: <b>' + esc(r.id) + '</b><br>📦 Hadiah dikirim <b>paling lambat ' + esc(r.batas) + '</b> (' + r.hariKerja + ' hari kerja).<br>📸 Setelah diterima, buat konten dan tag <b>' + esc(IGH()) + '</b>, lalu kirim link-nya di riwayat penukaran untuk <b>+' + r.bonusTag + ' kupon</b>.<br>Sisa kupon kamu: <b>' + r.sisa + '</b></div><button class="rd-btn" type="button" id="rd-x">Kembali ke daftar survei</button>');
-        $('rd-x').onclick = rdBack;
+        rdView('<h1>🎉 Penukaran tercatat!</h1>' + rdItem(k) + (r.verifikasi ? vrBox(r.verifikasi.kode, r.verifikasi.dm) : '') + '<div class="rd-i">Nomor penukaran: <b>' + esc(r.id) + '</b><br>📦 Hadiah dikirim <b>paling lambat ' + (r.verifikasi ? r.hariKerja + ' hari kerja setelah akun terverifikasi' : esc(r.batas) + '</b> (' + r.hariKerja + ' hari kerja)') + (r.verifikasi ? '</b>' : '') + '.<br>📸 Setelah diterima, buat konten dan tag <b>' + esc(IGH()) + '</b>, lalu kirim link-nya di riwayat penukaran untuk <b>+' + r.bonusTag + ' kupon</b>.<br>Sisa kupon kamu: <b>' + r.sisa + '</b></div><button class="rd-btn" type="button" id="rd-x">Kembali ke daftar survei</button>');
+        $('rd-x').onclick = rdBack; rdCopy();
       }, function () { btn.disabled = false; btn.textContent = 'Tukar ' + k.kupon + ' kupon'; $('rd-err').textContent = 'Koneksi bermasalah, coba lagi.'; });
     };
   }
+  function rdCopy() { [].forEach.call(app.querySelectorAll('.vr [data-copy]'), function (b) { b.onclick = function () { try { navigator.clipboard.writeText(b.dataset.copy); } catch (e) {} b.textContent = '✓ Disalin'; }; }); }
   function tagLink(tid) {
     rdView('<h1>Kirim link konten kamu</h1><div class="rd"><p class="hint" style="margin-top:0">Tempel link postingan Instagram (feed/reels) atau TikTok yang men-tag <b>' + esc(IGH()) + '</b>. Untuk Instagram Story, kirim tangkapan layar ke DM ' + esc(IGH()) + ' lalu tempel link profil kamu di sini.</p>' +
       '<label class="f" for="tg-l">Link konten</label><input type="text" id="tg-l" placeholder="https://www.instagram.com/p/…">' +

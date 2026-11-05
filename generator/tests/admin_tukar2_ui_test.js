@@ -30,6 +30,7 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   console.log('stok:', s0, '->', ctx.adminKatalog().katalog.find(x => x.id === id0).stok, '(harus +7)');
   const n0 = ctx.adminKatalog().katalog.length; await p.locator('[data-del="9"]').click(); await p.waitForTimeout(800); console.log('hapus:', n0, '->', ctx.adminKatalog().katalog.length);
   await p.screenshot({ path: SP + 'kt1.png' });
+  await (await p.$('#vr-card')).screenshot({ path: SP + 'vr_card.png' }); console.log('verifikasi card:', (await p.textContent('#vr-t')).replace(/\s+/g, ' ').slice(0, 200));
   await p.locator('#tk-t').scrollIntoViewIfNeeded(); await p.locator('#tk-f').selectOption('tag'); await p.waitForTimeout(300);
   console.log('ringkasan:', (await p.textContent('#tk-sum')).replace(/\s+/g, ' '), '| filter cek konten:', await p.locator('#tk-t tbody tr').count());
   await p.locator('#tk-f').selectOption(''); await p.fill('#tk-q', 'nadia'); await p.waitForTimeout(200);

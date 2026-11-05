@@ -111,6 +111,7 @@ var SET_DEFAULTS = [
   ['KUPON_HANGUS_BULAN', 6, 'Masa berlaku kupon (bulan sejak kupon didapat). Kupon yang belum ditukar setelah itu hangus'],
   ['KIRIM_HARI_KERJA', 10, 'Batas maksimal pengiriman hadiah setelah penukaran (hari kerja, Senin–Jumat)'],
   ['KURIR_LIST', '[{"kode": "jne", "nama": "JNE", "warna": "#0D3C8C", "lacak": "https://www.jne.co.id/tracking-package", "logo": ""}, {"kode": "jnt", "nama": "J&T Express", "warna": "#D0021B", "lacak": "https://jet.co.id/track", "logo": ""}, {"kode": "sicepat", "nama": "SiCepat", "warna": "#C8102E", "lacak": "https://www.sicepat.com/checkAwb", "logo": ""}, {"kode": "anteraja", "nama": "AnterAja", "warna": "#5E2B97", "lacak": "https://anteraja.id/tracking", "logo": ""}, {"kode": "pos", "nama": "Pos Indonesia", "warna": "#F37021", "lacak": "https://www.posindonesia.co.id/id/tracking", "logo": ""}, {"kode": "ninja", "nama": "Ninja Xpress", "warna": "#C8102E", "lacak": "https://www.ninjaxpress.co/id-id/tracking", "logo": ""}, {"kode": "tiki", "nama": "TIKI", "warna": "#1F5AA6", "lacak": "https://www.tiki.id/id/tracking", "logo": ""}, {"kode": "lion", "nama": "Lion Parcel", "warna": "#E4002B", "lacak": "https://lionparcel.com/track/stt", "logo": ""}, {"kode": "idexpress", "nama": "ID Express", "warna": "#D71920", "lacak": "https://idexpress.com/lacak-paket/", "logo": ""}, {"kode": "spx", "nama": "SPX Express", "warna": "#EE4D2D", "lacak": "https://spx.co.id/track", "logo": ""}, {"kode": "gosend", "nama": "GoSend", "warna": "#00AA13", "lacak": "", "logo": ""}, {"kode": "grab", "nama": "GrabExpress", "warna": "#00B14F", "lacak": "", "logo": ""}, {"kode": "lain", "nama": "Lainnya", "warna": "#6B7280", "lacak": "", "logo": ""}]', 'Daftar jasa kirim untuk penukaran hadiah (JSON): kode, nama, warna, lacak (halaman pelacakan resmi), logo (URL gambar logo, opsional)'],
+  ['VERIFIKASI_DM', true, 'TRUE = penukaran kupon pertama tiap akun wajib verifikasi lewat DM Instagram (kirim kode ke akun IG MIL Gift Club, admin mencocokkan di Dashboard)'],
   ['BONUS_KUPON_TAG', 1, 'Kupon tambahan bila penerima hadiah membuat konten & men-tag akun Instagram MIL Gift Club'],
   ['GARIS_KEMISKINAN', 669235, 'Garis kemiskinan nasional BPS (Rp/kapita/bulan) untuk menghitung kelas ekonomi & SES. Maret 2026 = 669235; perbarui tiap rilis BPS']
 ];
@@ -6667,6 +6668,23 @@ function penerimaSave_(n, wa, d) {
   var row = ['@' + n, "'" + wa, safeLen_(d.nama, 120), "'" + d.hp, safeLen_(d.alamat, 500), safeLen_(d.kota, 120), "'" + d.kodepos, cur ? cur.dibuat : now, now];
   if (cur) s.getRange(cur._row, 1, 1, row.length).setValues([row]); else s.appendRow(row);
 }
+// ---- verifikasi akun lewat DM Instagram (sekali per akun, saat pertama kali menukar kupon) ----
+var VER_COLS = ['instagram', 'kode', 'dibuat', 'status', 'diverifikasi_oleh', 'diverifikasi_pada', 'catatan'];
+var VER_WAIT = 'Menunggu verifikasi';
+function verSheet_() { var s = sheet_('Verifikasi Akun'); if (!s) { s = ss_().insertSheet('Verifikasi Akun'); s.getRange(1, 1, 1, VER_COLS.length).setValues([VER_COLS]).setFontWeight('bold'); } return s; }
+function verRows_() { return memo_('ver', function () { var s = verSheet_(); if (s.getLastRow() < 2) return []; return s.getRange(2, 1, s.getLastRow() - 1, VER_COLS.length).getValues().map(function (r, i) { var o = { _row: i + 2 }; VER_COLS.forEach(function (k, j) { o[k] = r[j]; }); return o; }); }); }
+function verOf_(n) { var l = verRows_().filter(function (r) { return String(r.instagram).replace(/^@/, '') === n; }); return l.length ? l[l.length - 1] : null; }
+function verWajib_() { return bool_(set_('VERIFIKASI_DM')); }
+/** Status verifikasi akun: {ok:true} atau {kode} yang harus dikirim lewat DM. Membuat kode baru bila belum ada. */
+function verPastikan_(n) {
+  if (!verWajib_()) return { ok: true };
+  var v = verOf_(n); if (v && v.status === 'Terverifikasi') return { ok: true };
+  if (v && v.status === 'Menunggu') return { kode: String(v.kode) };
+  var kode = 'MGC-' + String(Math.floor(1000 + Math.random() * 9000));
+  verSheet_().appendRow(['@' + n, kode, new Date(), 'Menunggu', '', '', v && v.status === 'Ditolak' ? 'Percobaan ulang' : '']); if (MEMO_) delete MEMO_.ver;
+  return { kode: kode };
+}
+function igDmLink_() { return 'https://ig.me/m/' + String(CONFIG.IG_HANDLE || '@milgiftclub').replace(/^@/, ''); }
 /** Tambah n hari kerja (Senin–Jumat, WIB). */
 function addWorkdays_(d, n) { var x = new Date(d.getTime()); while (n > 0) { x = new Date(x.getTime() + 864e5); var wd = Number(Utilities.formatDate(x, 'Asia/Jakarta', 'u')); if (wd < 6) n--; } return x; }
 var ID_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -6711,8 +6729,9 @@ function tukarRows_() {
 }
 function tukarPub_(r, full) {
   var ts = r.waktu instanceof Date ? r.waktu.getTime() : new Date(r.waktu).getTime() || 0;
-  var resi = String(r.no_resi || '');
-  return { id: r.id_penukaran, hadiah: r.hadiah, kupon: Number(r.kupon) || 0, status: r.status, waktu: fmt_(r.waktu), ts: ts, batas: r.batas_kirim ? tglId_(r.batas_kirim) : '', resi: resi, adaResi: !!resi,
+  var resi = String(r.no_resi || ''), vk = '';
+  if (r.status === VER_WAIT) { var vv = verOf_(String(r.instagram).replace(/^@/, '')); vk = vv && vv.status === 'Menunggu' ? String(vv.kode) : ''; }
+  return { id: r.id_penukaran, hadiah: r.hadiah, kupon: Number(r.kupon) || 0, status: r.status, waktu: fmt_(r.waktu), ts: ts, batas: r.batas_kirim ? tglId_(r.batas_kirim) : '', resi: resi, adaResi: !!resi, verKode: vk, verDm: vk ? igDmLink_() : '',
     tagStatus: String(r.tag_status || ''), bonus: Number(r.bonus_kupon) || 0, tagTs: r.tag_dicek ? new Date(r.tag_dicek).getTime() : 0,
     kurir: (function () { var k = kurirOf_(r.kurir); return k ? { nama: k.nama, warna: k.warna, logo: k.logo || '', lacak: String(r.link_lacak || '') || k.lacak || '' } : null; })() };
 }
@@ -6740,7 +6759,7 @@ function penerimaInfo(ig, last4) {
     var a = tukarAuth_(ig, last4); if (a.err) return { ok: false, msg: a.err };
     var p = penerimaOf_(a.n), sal = kuponSaldo_(a.n, a.earned);
     return { ok: true, saldo: sal, tersimpan: p ? { nama: sensor_(p.nama, 3), hp: String(p.no_hp).slice(0, 4) + '••••' + String(p.no_hp).slice(-3), alamat: sensor_(p.alamat, 10), kota: String(p.kota || ''), kodepos: sensor_(p.kode_pos, 2) } : null,
-      hariKerja: num_('KIRIM_HARI_KERJA') || 10, bonusTag: num_('BONUS_KUPON_TAG') || 1 };
+      hariKerja: num_('KIRIM_HARI_KERJA') || 10, bonusTag: num_('BONUS_KUPON_TAG') || 1, perluVerifikasi: verWajib_() && !(verOf_(a.n) && verOf_(a.n).status === 'Terverifikasi') };
   });
 }
 function cekPenerima_(d) {
@@ -6766,13 +6785,15 @@ function tukarKupon(ig, last4, id, penerima) {
       if (penerima === 'tersimpan') { var p = penerimaOf_(n); if (!p) return { ok: false, msg: 'Data penerima tersimpan tidak ditemukan. Isi data penerima dulu.' }; pd = { nama: p.nama, hp: p.no_hp, alamat: p.alamat, kota: p.kota, kodepos: p.kode_pos }; }
       else { pd = cekPenerima_(penerima); if (pd.err) return { ok: false, msg: pd.err }; if (!penerima || penerima.simpan !== false) penerimaSave_(n, wa, pd); }
       var tid = 'T' + Date.now().toString(36).toUpperCase(), now = new Date(), batas = addWorkdays_(now, num_('KIRIM_HARI_KERJA') || 10);
-      var o = { waktu: now, id_penukaran: tid, instagram: '@' + n, nomor_wa: "'" + wa, hadiah_id: it.id, hadiah: it.nama, kupon: it.kupon, status: 'Menunggu', catatan: '', diproses_oleh: '', diperbarui: now,
+      var ver = verPastikan_(n);
+      var o = { waktu: now, id_penukaran: tid, instagram: '@' + n, nomor_wa: "'" + wa, hadiah_id: it.id, hadiah: it.nama, kupon: it.kupon, status: ver.ok ? 'Menunggu' : VER_WAIT, catatan: '', diproses_oleh: '', diperbarui: now,
         nama_penerima: safeLen_(pd.nama, 120), hp_penerima: "'" + String(pd.hp).replace(/^'/, ''), alamat: safeLen_(pd.alamat, 500), kota: safeLen_(pd.kota, 120), kode_pos: "'" + pd.kodepos, batas_kirim: batas, tgl_kirim: '', no_resi: '', tag_status: '', tag_link: '', tag_dicek: '', bonus_kupon: '' };
       o.kode_pos = "'" + String(pd.kodepos).replace(/^'/, '');
       tukarSheet_().appendRow(TUKAR_COLS.map(function (k) { return o[k]; }));
       katSheet_().getRange(it.row, 5).setValue(it.stok - 1);
       if (MEMO_) delete MEMO_.tukar; cacheDel_('tukar2:' + n); cacheDel_('katalog:pub');
-      return { ok: true, id: tid, hadiah: it.nama, sisa: sal.sisa - it.kupon, batas: tglId_(batas), hariKerja: num_('KIRIM_HARI_KERJA') || 10, bonusTag: num_('BONUS_KUPON_TAG') || 1, ig: CONFIG.IG_HANDLE };
+      return { ok: true, id: tid, hadiah: it.nama, sisa: sal.sisa - it.kupon, batas: tglId_(batas), hariKerja: num_('KIRIM_HARI_KERJA') || 10, bonusTag: num_('BONUS_KUPON_TAG') || 1, ig: CONFIG.IG_HANDLE,
+        verifikasi: ver.ok ? null : { kode: ver.kode, dm: igDmLink_(), ig: CONFIG.IG_HANDLE } };
     });
   } finally { lock.releaseLock(); }
 }
@@ -6848,7 +6869,7 @@ function adminKatalogStok(id, delta) {
   return adminKatalog();
 }
 function adminTukarStatus(row, status, catatan, resi) {
-  var who = requireAdmin_(); if (['Menunggu', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak'].indexOf(status) < 0) throw new Error('Status tidak dikenal');
+  var who = requireAdmin_(); if (['Menunggu verifikasi', 'Menunggu', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak'].indexOf(status) < 0) throw new Error('Status tidak dikenal');
   var s = tukarSheet_(), r = s.getRange(row, 1, 1, TUKAR_COLS.length).getValues()[0], c = function (k) { return TUKAR_COLS.indexOf(k) + 1; };
   var old = r[c('status') - 1]; cacheDel_('tukar2:' + String(r[c('instagram') - 1]).replace(/^@/, '')); cacheDel_('katalog:pub');
   s.getRange(row, c('status')).setValue(status); s.getRange(row, c('catatan')).setValue(catatan || r[c('catatan') - 1] || ''); s.getRange(row, c('diproses_oleh')).setValue(who); s.getRange(row, c('diperbarui')).setValue(new Date());
@@ -6876,6 +6897,29 @@ function adminTukarTag(row, ok, link) {
   s.getRange(row, c('tag_dicek')).setValue(new Date()); s.getRange(row, c('diproses_oleh')).setValue(who); s.getRange(row, c('diperbarui')).setValue(new Date());
   cacheDel_('tukar2:' + String(s.getRange(row, c('instagram')).getValue()).replace(/^@/, '')); MEMO_ = MEMO_ ? {} : MEMO_;
   return adminKatalog();
+}
+/** Daftar verifikasi DM yang menunggu dicek admin. */
+function adminVerList() {
+  requireAdmin_();
+  return cached_(function () {
+    var tk = {}; tukarRows_().forEach(function (r) { if (r.status === VER_WAIT) { var n = String(r.instagram).replace(/^@/, ''); (tk[n] = tk[n] || []).push(r.hadiah); } });
+    var l = verRows_().map(function (v) { var n = String(v.instagram).replace(/^@/, ''); return { row: v._row, ig: '@' + n, kode: String(v.kode), dibuat: iso_(v.dibuat), status: v.status, oleh: v.diverifikasi_oleh, pada: iso_(v.diverifikasi_pada), hadiah: (tk[n] || []).join(', ') }; }).reverse();
+    return { list: l, ig: CONFIG.IG_HANDLE, wajib: verWajib_() };
+  });
+}
+/** ok=true: akun terverifikasi -> penukaran yang tertahan lanjut ke "Menunggu" (siap dikirim). ok=false: ditolak -> penukaran tertahan ditolak (kupon & stok kembali). */
+function adminVerSet(row, ok, catatan) {
+  var who = requireAdmin_(), s = verSheet_(), c = function (k) { return VER_COLS.indexOf(k) + 1; }, ig = String(s.getRange(row, c('instagram')).getValue()), n = ig.replace(/^@/, '');
+  s.getRange(row, c('status')).setValue(ok ? 'Terverifikasi' : 'Ditolak'); s.getRange(row, c('diverifikasi_oleh')).setValue(who); s.getRange(row, c('diverifikasi_pada')).setValue(new Date());
+  if (catatan) s.getRange(row, c('catatan')).setValue(safeLen_(String(catatan), 300));
+  if (MEMO_) { delete MEMO_.ver; delete MEMO_.tukar; }
+  tukarRows_().filter(function (r) { return r.status === VER_WAIT && String(r.instagram).replace(/^@/, '') === n; }).forEach(function (r) {
+    adminTukarStatus(r._row, ok ? 'Menunggu' : 'Ditolak', ok ? '' : 'Verifikasi DM Instagram tidak berhasil' + (catatan ? ': ' + catatan : ''));
+    if (ok) tukarSheet_().getRange(r._row, TUKAR_COLS.indexOf('batas_kirim') + 1).setValue(addWorkdays_(new Date(), num_('KIRIM_HARI_KERJA') || 10));   // batas kirim dihitung sejak terverifikasi
+    if (MEMO_) delete MEMO_.tukar;
+  });
+  cacheDel_('tukar2:' + n);
+  return { ver: adminVerList(), katalog: adminKatalog() };
 }
 /** Rekap saldo kupon semua akun (didapat, bonus, ditukar, hangus, sisa, hangus terdekat) + disimpan ke tab "Saldo Kupon". */
 function adminKuponRekap() {
