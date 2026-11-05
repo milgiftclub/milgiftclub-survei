@@ -68,6 +68,7 @@ function makeEnv() {
   Object.assign(ctx.ScriptApp, { getProjectTriggers: () => trig, newTrigger: (h) => { const b = { timeBased: () => b, everyMinutes: () => b, everyHours: () => b, create: () => { trig.push({ getHandlerFunction: () => h }); } }; return b; }, deleteTrigger: () => {} });
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(__dirname + '/../survey_out/Code.gs', 'utf8'), ctx);
+  if (process.env.TRACK_DROP && ctx.knownKey_) { const o = ctx.knownKey_, dr = new Set(); ctx.knownKey_ = (k, cs) => { const r = o(k, cs); if (!r) dr.add(k); return r; }; process.on('exit', () => console.log('KUNCI DIABAIKAN:', JSON.stringify([...dr]))); }
   return { ctx, sheets };
 }
 module.exports = { makeEnv };

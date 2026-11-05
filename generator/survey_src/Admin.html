@@ -59,6 +59,7 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .kt-pv{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 12px 30px rgba(20,30,60,.22);pointer-events:none;display:none}
 .kt-pv img{display:block;width:260px;max-height:260px;object-fit:contain;border-radius:10px}
 .kt-c{display:flex;flex-direction:column;gap:6px}.kt-st{display:flex;flex-direction:column;gap:4px;min-width:200px}.kt-n{font-size:13px}.kt-n b{font-size:18px}.kt-n.tipis b{color:#B7791F}.kt-n.habis b{color:#B42323}.kt-adj{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.kt-adj input{width:56px;padding:5px 6px;text-align:center}.kt-adj .ib{font-size:16px;font-weight:800}
+.tk-flag{margin-top:6px;background:#FFF4E5;color:#8A4B00;border-radius:8px;padding:5px 8px;font-size:12px;font-weight:700;line-height:1.4;max-width:250px;white-space:normal}
 .tk-sum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.tk-sum span{background:var(--bg,#f5f6fa);border-radius:10px;padding:6px 12px;font-size:13px}.tk-sum b{font-size:15px;margin-right:4px}.tk-sum .red{background:#FDECEC;color:#9B1C1C}
 .tk-p{font-size:12.5px;line-height:1.45;max-width:250px;min-width:200px;white-space:normal}.tk-tag{white-space:normal;min-width:170px}.tk-kr{display:flex;flex-direction:column;gap:4px;margin-top:6px;min-width:150px}.tk-kr select,.tk-kr input{width:150px;padding:5px 8px;font-size:12.5px}.kr-b{display:inline-block;color:#fff;font-weight:800;font-size:11.5px;border-radius:7px;padding:3px 8px;align-self:flex-start;letter-spacing:.2px}.kr-logo{height:22px;align-self:flex-start}.tk-p small{color:var(--muted)}.tk-late{color:#B42323;font-weight:800}.tk-tag a{word-break:break-all}.tk-tag .btn{margin:4px 4px 0 0}
 .chip.chip-mini{padding:6px 11px;font-size:12px;cursor:pointer;border:0;font-family:inherit;font-weight:600;gap:5px}
@@ -565,7 +566,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="top"><div><div class="eyebrow">Operasional</div><h1>Tukar Hadiah</h1><p class="desc">Responden mengumpulkan kupon dari survei (1 pendek, 2 panjang, 3 sangat panjang) lalu menukarnya dengan hadiah lewat halaman depan survei. Kupon berlaku 6 bulan, hadiah dikirim maks. 10 hari kerja, dan penerima wajib membuat konten + tag akun IG (bonus 1 kupon). Angka-angka ini bisa diubah di Survei &amp; Pengaturan. Penukaran tidak mengurangi peluang undian.</p></div></div>
   <div class="card"><div class="pn-top"><h2 style="margin:0">Katalog hadiah</h2><span style="flex:1"></span><span class="muted" id="kt-msg"></span><button class="btn sec sm" onclick="ktAdd()">+ Tambah hadiah</button><button class="btn sm" onclick="ktSave()">Simpan katalog</button></div>
     <div class="tw" style="margin-top:10px"><table id="kt-t"></table></div></div>
-  <div class="card"><div class="pn-top"><h2 style="margin:0">Permintaan penukaran</h2><span style="flex:1"></span><input id="tk-q" placeholder="Cari IG / nama / ID…" oninput="tkDraw()" style="width:200px"><select id="tk-f" onchange="tkDraw()" style="width:auto"><option value="">Semua status</option><option value="perlu">Perlu dikirim</option><option value="telat">Terlambat kirim</option><option value="tag">Perlu cek konten</option><option>Menunggu</option><option>Diproses</option><option>Dikirim</option><option>Diterima</option><option>Ditolak</option></select><button class="btn sec sm" onclick="tkCsv()">Unduh CSV</button></div>
+  <div class="card"><div class="pn-top"><h2 style="margin:0">Permintaan penukaran</h2><span style="flex:1"></span><input id="tk-q" placeholder="Cari IG / nama / ID…" oninput="tkDraw()" style="width:200px"><select id="tk-f" onchange="tkDraw()" style="width:auto"><option value="">Semua status</option><option value="perlu">Perlu dikirim</option><option value="telat">Terlambat kirim</option><option value="tag">Perlu cek konten</option><option value="curiga">⚠ Perlu dicek (indikasi kecurangan)</option><option>Menunggu</option><option>Diproses</option><option>Dikirim</option><option>Diterima</option><option>Ditolak</option></select><button class="btn sec sm" onclick="tkCsv()">Unduh CSV</button></div>
     <div id="tk-sum" class="tk-sum"></div>
     <p class="muted" style="font-size:12.5px" id="tk-help">Data penerima diisi responden saat menukar (tersimpan untuk penukaran berikutnya). "Ditolak" otomatis mengembalikan kupon & stok. Setelah hadiah diterima, responden wajib membuat konten & tag akun IG; klik <b>✓ Sudah tag</b> untuk memberi kupon bonus.</p>
     <div class="tw" style="max-height:64vh"><table id="tk-t"></table></div></div>
@@ -1236,6 +1237,7 @@ function tkMatch(r) {
   if (!f) return true;
   if (f === 'perlu') return r.status === 'Menunggu' || r.status === 'Diproses';
   if (f === 'telat') return r.telat;
+  if (f === 'curiga') return r.cek && r.cek.length && r.status !== 'Ditolak';
   if (f === 'tag') return r.tag_status === 'Menunggu cek' || ((r.status === 'Dikirim' || r.status === 'Diterima') && !r.tag_status);
   return r.status === f;
 }
@@ -1244,6 +1246,7 @@ function tkDraw() {
   var cnt = function (fn) { return all.filter(fn).length; };
   $('tk-sum').innerHTML = '<span><b>' + cnt(function (r) { return r.status === 'Menunggu' || r.status === 'Diproses'; }) + '</b>perlu dikirim</span>' +
     '<span class="' + (cnt(function (r) { return r.telat; }) ? 'red' : '') + '"><b>' + cnt(function (r) { return r.telat; }) + '</b>lewat batas ' + (KT.hariKerja || 10) + ' hari kerja</span>' +
+    '<span class="' + (cnt(function (r) { return r.cek && r.cek.length && r.status !== 'Ditolak'; }) ? 'red' : '') + '"><b>' + cnt(function (r) { return r.cek && r.cek.length && r.status !== 'Ditolak'; }) + '</b>⚠ perlu dicek</span>' +
     '<span><b>' + cnt(function (r) { return r.tag_status === 'Menunggu cek'; }) + '</b>link konten perlu dicek</span><span><b>' + cnt(function (r) { return r.tag_status === 'Terverifikasi'; }) + '</b>konten terverifikasi</span>';
   var h = '<thead><tr><th>Waktu / ID</th><th>Penerima</th><th>Hadiah</th><th>Status</th><th>Pengiriman (jasa kirim & resi)</th><th>Konten tag ' + esc(IGH) + '</th></tr></thead><tbody>';
   h += rows.map(function (r) {
@@ -1254,6 +1257,7 @@ function tkDraw() {
     var tag = r.tag_status === 'Terverifikasi' ? '<span class="badge b-open">✓ +' + (r.bonus_kupon || KT.bonusTag) + ' kupon</span>' : r.tag_status === 'Menunggu cek' ? '<span class="badge b-y">Perlu dicek</span>' : r.tag_status === 'Tidak sesuai' ? '<span class="badge b-closed">Tidak sesuai</span>' : '';
     if (r.tag_link) tag += '<br><a href="' + esc(r.tag_link) + '" target="_blank" rel="noopener">Buka konten ↗</a>';
     if (r.status !== 'Ditolak' && r.tag_status !== 'Terverifikasi' && (r.status === 'Dikirim' || r.status === 'Diterima' || r.tag_status === 'Menunggu cek')) tag += '<br><button class="btn sm" data-tag="' + r._row + '">✓ Sudah tag (+' + KT.bonusTag + ')</button>' + (r.tag_status === 'Menunggu cek' ? '<button class="btn sec sm" data-untag="' + r._row + '">✕ Tidak sesuai</button>' : '');
+    if (r.cek && r.cek.length && r.status !== 'Ditolak') pen += '<div class="tk-flag" title="Cek dulu sebelum mengirim hadiah">⚠ ' + r.cek.map(esc).join('<br>⚠ ') + '</div>';
     return '<tr><td>' + esc(String(r.waktu).slice(0, 16)) + '<br><small class="muted">' + esc(r.id_penukaran) + '</small></td><td>' + pen + '</td><td>' + esc(r.hadiah) + '<br><small class="muted">' + esc(r.kupon) + ' kupon</small></td>' +
       '<td><select data-row="' + r._row + '" style="width:auto">' + ['Menunggu', 'Diproses', 'Dikirim', 'Diterima', 'Ditolak'].map(function (s) { return '<option' + (s === r.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>' + (r.catatan ? '<br><small class="muted">' + esc(r.catatan) + '</small>' : '') + '</td>' +
       '<td style="white-space:nowrap">' + (r.batas ? '<small class="muted">batas</small> <span class="' + (r.telat ? 'tk-late' : '') + '">' + esc(r.batas) + (r.telat ? '<br>Terlambat' : '') + '</span>' : '—') + (r.tgl_kirim ? '<br><small class="muted">dikirim ' + esc(String(r.tgl_kirim).slice(0, 10)) + '</small>' : '') +

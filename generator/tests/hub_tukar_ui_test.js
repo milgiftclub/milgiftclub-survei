@@ -33,7 +33,7 @@ const root = path.join(__dirname, '../../site'); const SP = process.env.SHOTS ||
   await p.check('#rd-ok'); await p.click('#rd-go'); await p.waitForFunction(() => /tercatat/.test(document.getElementById('app').textContent), null, { timeout: 15000 });
   // admin: kirim -> responden kirim link -> admin verifikasi
   const A = ctx.adminKatalog(); const row = A.tukar[1]; ctx.adminTukarStatus(row._row, 'Dikirim', '', null); ctx.adminTukarResi(row._row, 'JX1234567890', 'jnt', null);
-  await open(); console.log('riwayat:', (await p.textContent('.ck')).replace(/\s+/g, ' ')); console.log('lacak:', await p.getAttribute('a.kr-btn.go', 'href')); await (await p.$('.ck')).screenshot({ path: SP + 'rd6_resi.png' });
+  await open(); console.log('riwayat (terkunci):', (await p.textContent('.ck')).replace(/\s+/g, ' ')); p.once('dialog', d => d.accept('0001')); await p.click('[data-resi]'); await p.waitForSelector('a.kr-btn.go'); console.log('riwayat:', (await p.textContent('.ck')).replace(/\s+/g, ' ')); console.log('lacak:', await p.getAttribute('a.kr-btn.go', 'href')); await (await p.$('.ck')).screenshot({ path: SP + 'rd6_resi.png' });
   await p.locator('.tk-tag').first().click(); await p.fill('#tg-l', 'https://www.instagram.com/p/XYZ987/'); await p.fill('#tg-4', '0001'); await p.click('#rd-go'); await p.waitForTimeout(1500); console.log('DBG app:', (await p.textContent('#app')).replace(/\s+/g, ' ').slice(0, 300)); await p.waitForSelector('.verdict.ok'); console.log('kirim link:', await p.textContent('.verdict'));
   await p.screenshot({ path: SP + 'rd5_riwayat.png', fullPage: true });
   ctx.adminTukarTag(ctx.adminKatalog().tukar.find(x => x.tag_status === 'Menunggu cek')._row, true, '');

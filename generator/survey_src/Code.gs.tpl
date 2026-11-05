@@ -259,6 +259,7 @@ function doPost(e) {
     else if (req.fn === 'hubSurveys') data = hubList('');
     else if (req.fn === 'tukarKupon') data = tukarKupon(a[0], a[1], a[2], a[3]);
     else if (req.fn === 'penerimaInfo') data = penerimaInfo(a[0], a[1]);
+    else if (req.fn === 'tukarSaya') data = tukarSaya(a[0], a[1]);
     else if (req.fn === 'kirimTagLink') data = kirimTagLink(a[0], a[1], a[2], a[3]);
     else throw new Error('Fungsi tidak dikenal: ' + req.fn);
     out = { ok: true, data: data };
@@ -432,7 +433,7 @@ function logScreenout(p) {
   lock.waitLock(20000);
   try {
     var a = p.answers || {};
-    sheet_(SH.SCR).appendRow([new Date(), p.sid || '', p.reason || '', j_(a.S1), j_(a.S2), j_(a.S3), j_(a.S4), p.src || '', varianLabel_(p.variant)]);
+    sheet_(SH.SCR).appendRow([new Date(), p.sid || '', p.reason || '', j_(a.S1), j_(a.S2), j_(a.S3), j_(a.S4), p.src || '', varianLabel_(p.variant)].map(function (v) { return safeLen_(v, 300); }));
     return { ok: true };
   } finally {
     lock.releaseLock();
@@ -495,7 +496,8 @@ function submitResponse(p) {
       attention_check: attention ? 'Lulus' : 'Gagal', wa_normal: wa, ig_normal: ig, profil_dari_survei_sebelumnya: p.prefilled ? 'Ya' : '', periode_giveaway: activePeriode_(cs), profil_diperbarui: (!p.prefilled || p.profOk) && a.S1 ? new Date() : '',
       sumber: p.src || '', device_fp: p.fp || '', user_agent: (p.ua || '').slice(0, 300)
     };
-    Object.keys(flat).forEach(function (k) { row[k] = flat[k]; });
+    ['versi_kuesioner', 'session_id', 'durasi_detik', 'sumber', 'device_fp', 'user_agent', 'kategori_1', 'kategori_2'].forEach(function (k) { row[k] = safeLen_(row[k], 300); });
+    Object.keys(flat).forEach(function (k) { if (k in col || knownKey_(k, cs)) row[k] = safeLen_(flat[k], 3000); });   // kunci asing (bukan pertanyaan survei) diabaikan
 
     var add = Object.keys(row).filter(function (k) { return !(k in col); });
     if (add.length) {
@@ -799,8 +801,9 @@ function profileRow_(rows, ig) {
 function verifyProfile(ig, last4) {
   var n = normIg_(ig), d = String(last4 || '').replace(/\D/g, '');
   if (!n || d.length !== 4) return { ok: false };
+  if (guardCek_(n)) return { ok: false, locked: true, msg: guardCek_(n) };
   var list = profileRows_(igRows_(n), n), r = list[list.length - 1];
-  if (!r || String(r.wa_normal).slice(-4) !== d) return { ok: false };
+  if (!r || String(r.wa_normal).slice(-4) !== d) { guardGagal_(n); return { ok: false }; }
   // gabungkan: tiap kolom profil diambil dari jawaban terbaru yang terisi
   var prof = {}, upd = 0;
   list.forEach(function (x) {
@@ -1098,6 +1101,24 @@ function bumpDone_(cats, d) {
     }
   });
 }
+// ====== KEAMANAN INPUT PUBLIK ======
+/** Teks dari responden yang diawali = + - @ bisa dibaca Google Sheets sebagai rumus -> disimpan sebagai teks biasa. */
+function safe_(v) { return typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? "'" + v : v; }
+function safeLen_(v, n) { v = safe_(v); return typeof v === 'string' && v.length > (n || 2000) ? v.slice(0, n || 2000) : v; }
+/** Kunci jawaban yang boleh membuat kolom baru: id pertanyaan yang dikenal (kuesioner utama / survei buatan Dashboard) + turunannya. */
+var KEY_DERIVED = ['kategori_ditugaskan', 'A4', 'pengeluaran_per_kapita', 'kelas_ekonomi', 'ses', 'segmen_hp', 'generasi', 'provinsi', 'tipe_wilayah', 'jabodetabek', 'modul_dilewati', 'pembelian_berbeda', 'kategori_1', 'kategori_2'];
+function knownKey_(k, cs) {
+  if (!/^[A-Za-z0-9_]{1,40}(: .{1,120})?$/.test(k)) return false;
+  var b = k.split(': ')[0].replace(/_lainnya$/, '').replace(/^L\d_/, '');
+  if (KEY_DERIVED.indexOf(b) >= 0 || QTYPES[b] || QOPTS[b]) return true;
+  if (!KEY_SET_) { KEY_SET_ = {}; DICTIONARY.forEach(function (d) { KEY_SET_[d[0]] = 1; }); }
+  if (KEY_SET_[b]) return true;
+  return !!(cs && (cs.schema.questions || []).some(function (q) { return q.id === b; }));
+}
+var KEY_SET_ = null;
+/** Batasi tebakan 4 digit WA: maks. 6 salah per akun per jam (penukaran, profil lama, kirim link). */
+function guardCek_(n) { var c = Number(cacheGet_('gagal4:' + n) || 0); return c >= 6 ? 'Terlalu banyak percobaan yang salah. Coba lagi 1 jam lagi.' : ''; }
+function guardGagal_(n) { var k = 'gagal4:' + n, c = Number(cacheGet_(k) || 0) + 1; cachePut_(k, c, 3600); }
 function j_(v) { return Array.isArray(v) ? v.join(' | ') : (v == null ? '' : v); }
 function flatten_(a) {
   var o = {};
@@ -2880,7 +2901,8 @@ function hubList(ig) {
     });
     return { ok: true, ig: n ? '@' + n : '', blocked: acc.state !== 'ok' ? { state: acc.state, until: acc.until ? fmt_(acc.until) : '', email: set_('EMAIL_BUKA_AKSES') } : null,
       list: list, kupon: acc.state === 'ok' ? Object.keys(kp).reduce(function (t, v) { return t + kuponOf_(v); }, 0) : 0, periode: per,
-      saldo: n && acc.state === 'ok' ? kuponSaldoFast_(n, earned) : null, katalog: katalogFast_(), tukar: n ? tukarMine_(n).slice().reverse() : [] };
+      saldo: n && acc.state === 'ok' ? kuponSaldoFast_(n, earned) : null, katalog: katalogFast_(),
+      tukar: n ? tukarMine_(n).slice().reverse().map(function (t) { var o = JSON.parse(JSON.stringify(t)); o.resi = ''; if (o.kurir) o.kurir.lacak = ''; return o; }) : [] };   // resi & link lacak hanya setelah verifikasi 4 digit WA
   });
 }
 
@@ -2924,7 +2946,7 @@ function penerimaOf_(n) {
 }
 function penerimaSave_(n, wa, d) {
   var s = penerimaSheet_(), cur = penerimaOf_(n), now = new Date();
-  var row = ['@' + n, "'" + wa, d.nama, "'" + d.hp, d.alamat, d.kota, "'" + d.kodepos, cur ? cur.dibuat : now, now];
+  var row = ['@' + n, "'" + wa, safeLen_(d.nama, 120), "'" + d.hp, safeLen_(d.alamat, 500), safeLen_(d.kota, 120), "'" + d.kodepos, cur ? cur.dibuat : now, now];
   if (cur) s.getRange(cur._row, 1, 1, row.length).setValues([row]); else s.appendRow(row);
 }
 /** Tambah n hari kerja (Senin–Jumat, WIB). */
@@ -2969,9 +2991,10 @@ function tukarRows_() {
   return memo_('tukar', function () { var s = tukarSheet_(); if (s.getLastRow() < 2) return [];
     return s.getRange(2, 1, s.getLastRow() - 1, TUKAR_COLS.length).getValues().map(function (r, i) { var o = { _row: i + 2 }; TUKAR_COLS.forEach(function (k, j) { o[k] = r[j]; }); return o; }); });
 }
-function tukarPub_(r) {
+function tukarPub_(r, full) {
   var ts = r.waktu instanceof Date ? r.waktu.getTime() : new Date(r.waktu).getTime() || 0;
-  return { id: r.id_penukaran, hadiah: r.hadiah, kupon: Number(r.kupon) || 0, status: r.status, waktu: fmt_(r.waktu), ts: ts, batas: r.batas_kirim ? tglId_(r.batas_kirim) : '', resi: String(r.no_resi || ''),
+  var resi = String(r.no_resi || '');
+  return { id: r.id_penukaran, hadiah: r.hadiah, kupon: Number(r.kupon) || 0, status: r.status, waktu: fmt_(r.waktu), ts: ts, batas: r.batas_kirim ? tglId_(r.batas_kirim) : '', resi: resi, adaResi: !!resi,
     tagStatus: String(r.tag_status || ''), bonus: Number(r.bonus_kupon) || 0, tagTs: r.tag_dicek ? new Date(r.tag_dicek).getTime() : 0,
     kurir: (function () { var k = kurirOf_(r.kurir); return k ? { nama: k.nama, warna: k.warna, logo: k.logo || '', lacak: String(r.link_lacak || '') || k.lacak || '' } : null; })() };
 }
@@ -2987,7 +3010,8 @@ function tukarAuth_(ig, last4) {
   var n = normIg_(ig), d = String(last4 || '').replace(/\D/g, ''); if (!n) return { err: 'Username Instagram belum diisi.' };
   if (accessStatus_(n, '').state !== 'ok') return { err: 'Akun sedang dibatasi, kupon belum bisa ditukar.' };
   var rows = igRows_(n).filter(function (r) { return r.status === 'Valid'; }); if (!rows.length) return { err: 'Belum ada survei valid dari akun ini.' };
-  var wa = String(rows[rows.length - 1].wa_normal || ''); if (d.length !== 4 || wa.slice(-4) !== d) return { err: '4 digit terakhir nomor WhatsApp tidak cocok dengan yang diisi di survei.' };
+  var g = guardCek_(n); if (g) return { err: g };
+  var wa = String(rows[rows.length - 1].wa_normal || ''); if (d.length !== 4 || wa.slice(-4) !== d) { guardGagal_(n); return { err: '4 digit terakhir nomor WhatsApp tidak cocok dengan yang diisi di survei.' }; }
   var earned = {}; rows.forEach(function (r) { earnAdd_(earned, r._v, r.ronde, r.timestamp); });
   return { n: n, wa: wa, earned: earned };
 }
@@ -3025,13 +3049,19 @@ function tukarKupon(ig, last4, id, penerima) {
       else { pd = cekPenerima_(penerima); if (pd.err) return { ok: false, msg: pd.err }; if (!penerima || penerima.simpan !== false) penerimaSave_(n, wa, pd); }
       var tid = 'T' + Date.now().toString(36).toUpperCase(), now = new Date(), batas = addWorkdays_(now, num_('KIRIM_HARI_KERJA') || 10);
       var o = { waktu: now, id_penukaran: tid, instagram: '@' + n, nomor_wa: "'" + wa, hadiah_id: it.id, hadiah: it.nama, kupon: it.kupon, status: 'Menunggu', catatan: '', diproses_oleh: '', diperbarui: now,
-        nama_penerima: pd.nama, hp_penerima: "'" + pd.hp, alamat: pd.alamat, kota: pd.kota, kode_pos: "'" + pd.kodepos, batas_kirim: batas, tgl_kirim: '', no_resi: '', tag_status: '', tag_link: '', tag_dicek: '', bonus_kupon: '' };
+        nama_penerima: safeLen_(pd.nama, 120), hp_penerima: "'" + String(pd.hp).replace(/^'/, ''), alamat: safeLen_(pd.alamat, 500), kota: safeLen_(pd.kota, 120), kode_pos: "'" + pd.kodepos, batas_kirim: batas, tgl_kirim: '', no_resi: '', tag_status: '', tag_link: '', tag_dicek: '', bonus_kupon: '' };
+      o.kode_pos = "'" + String(pd.kodepos).replace(/^'/, '');
       tukarSheet_().appendRow(TUKAR_COLS.map(function (k) { return o[k]; }));
       katSheet_().getRange(it.row, 5).setValue(it.stok - 1);
       if (MEMO_) delete MEMO_.tukar; cacheDel_('tukar2:' + n); cacheDel_('katalog:pub');
       return { ok: true, id: tid, hadiah: it.nama, sisa: sal.sisa - it.kupon, batas: tglId_(batas), hariKerja: num_('KIRIM_HARI_KERJA') || 10, bonusTag: num_('BONUS_KUPON_TAG') || 1, ig: CONFIG.IG_HANDLE };
     });
   } finally { lock.releaseLock(); }
+}
+/** Riwayat penukaran lengkap (dengan no. resi & link lacak) setelah verifikasi 4 digit WA. */
+function tukarSaya(ig, last4) {
+  var a = tukarAuth_(ig, last4); if (a.err) return { ok: false, msg: a.err };
+  return { ok: true, tukar: tukarMine_(a.n).slice().reverse() };
 }
 /** Penerima mengirim link konten yang men-tag akun MIL Gift Club -> admin tinggal cek & setujui (+kupon bonus). */
 function kirimTagLink(ig, last4, tid, link) {
@@ -3047,13 +3077,34 @@ function kirimTagLink(ig, last4, tid, link) {
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
+/** Tanda yang perlu dicek sebelum hadiah dikirim (indikasi satu orang memakai banyak akun, akun baru langsung menukar). */
+function tukarFlags_(r) {
+  var F = memo_('tukarFlagIdx', function () {
+    var hp = {}, al = {}; tukarRows_().forEach(function (x) { var ig = String(x.instagram);
+      var h = String(x.hp_penerima || '').replace(/\D/g, '').replace(/^(62|0)/, ''); if (h) (hp[h] = hp[h] || {})[ig] = 1;
+      var a = String(x.alamat || '').toLowerCase().replace(/[^a-z0-9]/g, ''); if (a.length > 12) (al[a] = al[a] || {})[ig] = 1; });
+    return { hp: hp, al: al };
+  }) || { hp: {}, al: {} };
+  var out = [], ig = String(r.instagram), others = function (m) { return Object.keys(m || {}).filter(function (x) { return x !== ig; }); };
+  var h = String(r.hp_penerima || '').replace(/\D/g, '').replace(/^(62|0)/, ''), a = String(r.alamat || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  var oh = h ? others(F.hp[h]) : [], oa = a.length > 12 ? others(F.al[a]) : [];
+  if (oh.length) out.push('No. HP penerima sama dengan ' + oh.slice(0, 3).join(', '));
+  if (oa.length) out.push('Alamat sama dengan ' + oa.slice(0, 3).join(', '));
+  try {
+    var n = ig.replace(/^@/, ''), idx = igIndex_(n), first = 0;
+    if (idx) idx.forEach(function (x) { if (x[2] && x[3] && (!first || x[3] < first)) first = x[3]; });
+    var t = r.waktu instanceof Date ? r.waktu.getTime() : new Date(r.waktu).getTime();
+    if (first && t && t - first < 2 * 864e5) out.push('Akun baru: survei pertama < 2 hari sebelum menukar');
+  } catch (e) {}
+  return out;
+}
 /** Dashboard: katalog & daftar penukaran. */
 function adminKatalog() {
   requireAdmin_();
   return cached_(function () {
     var now = Date.now();
     return { katalog: katalog_(), tukar: tukarRows_().map(function (r) { var o = {}; TUKAR_COLS.forEach(function (k) { o[k] = iso_(r[k]); }); o._row = r._row; ['nomor_wa', 'hp_penerima', 'kode_pos'].forEach(function (k) { o[k] = String(o[k] == null ? '' : o[k]).replace(/^'/, ''); });
-        o.batas = r.batas_kirim ? tglId_(r.batas_kirim) : ''; o.telat = !!(r.batas_kirim && ['Menunggu', 'Diproses'].indexOf(String(r.status)) >= 0 && new Date(r.batas_kirim).getTime() < now); return o; }).reverse(),
+        o.batas = r.batas_kirim ? tglId_(r.batas_kirim) : ''; o.telat = !!(r.batas_kirim && ['Menunggu', 'Diproses'].indexOf(String(r.status)) >= 0 && new Date(r.batas_kirim).getTime() < now); o.cek = tukarFlags_(r); return o; }).reverse(),
       bonusTag: num_('BONUS_KUPON_TAG') || 1, hariKerja: num_('KIRIM_HARI_KERJA') || 10, ig: CONFIG.IG_HANDLE, kurir: kurirList_(),
       kupon: { v1: kuponOf_('v1'), v2: kuponOf_('v2') } };
   });

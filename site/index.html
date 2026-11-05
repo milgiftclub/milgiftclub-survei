@@ -214,7 +214,9 @@ var SK_HTML = "  <div class=\"sk\">\n    <h2>1. Penyelenggara</h2>\n    <p>Givea
           var x = [], sent = t.status === 'Dikirim' || t.status === 'Diterima';
           if ((t.status === 'Menunggu' || t.status === 'Diproses') && t.batas) x.push('📦 Dikirim paling lambat ' + esc(t.batas));
           var kr = t.kurir, krH = '';
-          if (kr || t.resi) krH = '<div class="tk-kr">' + (kr ? (kr.logo ? '<img src="' + esc(kr.logo) + '" alt="' + esc(kr.nama) + '" class="kr-logo">' : '<span class="kr-b" style="background:' + esc(kr.warna || '#6B7280') + '">' + esc(kr.nama) + '</span>') : '') +
+          var R = RESI[t.id]; if (R) { t.resi = R.resi; kr = R.kurir; }
+          if (t.adaResi && !R) krH = '<div class="tk-kr">' + (kr ? '<span class="kr-b" style="background:' + esc(kr.warna || '#6B7280') + '">' + esc(kr.nama) + '</span>' : '') + '<button type="button" class="kr-btn go" data-resi="1">🔒 Lihat resi & lacak</button></div>';
+          else if (kr || t.resi) krH = '<div class="tk-kr">' + (kr ? (kr.logo ? '<img src="' + esc(kr.logo) + '" alt="' + esc(kr.nama) + '" class="kr-logo">' : '<span class="kr-b" style="background:' + esc(kr.warna || '#6B7280') + '">' + esc(kr.nama) + '</span>') : '') +
             (t.resi ? '<span class="kr-r">' + esc(t.resi) + '</span><button type="button" class="kr-btn" data-copy="' + esc(t.resi) + '">Salin</button>' : '') +
             (kr && kr.lacak ? '<a class="kr-btn go" href="' + esc(kr.lacak) + '" target="_blank" rel="noopener" data-copy="' + esc(t.resi || '') + '">Lacak paket ↗</a>' : '') + '</div>';
           var tag = t.tagStatus === 'Terverifikasi' ? '<span class="tk-b ok">✓ Konten terverifikasi · +' + (t.bonus || 1) + ' kupon</span>' : t.tagStatus === 'Menunggu cek' ? '<span class="tk-b">⏳ Link konten sedang dicek</span>' : t.tagStatus === 'Tidak sesuai' ? '<span class="tk-b no">Konten belum sesuai, kirim ulang link</span>' : '';
@@ -227,6 +229,12 @@ var SK_HTML = "  <div class=\"sk\">\n    <h2>1. Penyelenggara</h2>\n    <p>Givea
       [].forEach.call(app.querySelectorAll('.kt button[data-id]'), function (b) { b.onclick = function () { tukar(d.katalog.filter(function (k) { return k.id === b.dataset.id; })[0]); }; });
       [].forEach.call(app.querySelectorAll('.tk-tag'), function (b) { b.onclick = function () { tagLink(b.dataset.tid); }; });
       [].forEach.call(app.querySelectorAll('.kr-btn[data-copy]'), function (b) { b.addEventListener('click', function (e) { var v = b.dataset.copy; if (!v) return; try { navigator.clipboard.writeText(v); } catch (er) {} if (b.tagName === 'BUTTON') { b.textContent = '✓ Disalin'; setTimeout(function () { b.textContent = 'Salin'; }, 1500); } }); });
+      [].forEach.call(app.querySelectorAll('[data-resi]'), function (b) { b.onclick = function () {
+        var v = L4 || prompt('Untuk keamanan, ketik 4 digit terakhir nomor WhatsApp yang kamu isi di survei:'); if (!v) return;
+        b.disabled = true; b.textContent = 'Memeriksa…';
+        api('tukarSaya', [ST.ig, String(v).replace(/\D/g, '')]).then(function (r) { if (!r.ok) { b.disabled = false; b.textContent = '🔒 Lihat resi & lacak'; L4 = ''; alertBox('❌ ' + esc(r.msg), 'no'); return; } L4 = String(v).replace(/\D/g, ''); r.tukar.forEach(function (t) { RESI[t.id] = { resi: t.resi, kurir: t.kurir }; }); show(d, false); },
+          function () { b.disabled = false; b.textContent = '🔒 Lihat resi & lacak'; });
+      }; });
       if (!checking && PENDING) { var pm = PENDING; PENDING = null; alertBox(pm[0], pm[1]); }
     };
     if (PRE) show(PRE, true);
@@ -239,7 +247,7 @@ var SK_HTML = "  <div class=\"sk\">\n    <h2>1. Penyelenggara</h2>\n    <p>Givea
     }, function () { app.innerHTML = '<div class="err">Koneksi bermasalah. <a href="#" onclick="location.reload();return false">Coba lagi</a></div>'; });
   }
   // ---- penukaran kupon: verifikasi -> data penerima (tersimpan untuk berikutnya) -> konfirmasi ----
-  var RD = null, L4 = '', PENDING = null;
+  var RD = null, L4 = '', PENDING = null, RESI = {};
   function rdView(inner) { $('nav').style.display = 'none'; app.innerHTML = '<div class="section">Tukar kupon</div>' + inner; window.scrollTo(0, 0); }
   function rdBack() { $('nav').style.display = ''; bb.style.visibility = 'visible'; list(); }
   function rdItem(k) { return '<div class="sv kt" style="pointer-events:none">' + (k.gambar ? '<img src="' + esc(k.gambar) + '" alt="" class="kt-img">' : '<div class="kt-img kt-ph">🎁</div>') + '<div class="t"><b>' + esc(k.nama) + '</b><small>' + esc((k.brand ? k.brand + ' · ' : '') + (k.deskripsi || '')) + '</small></div><span class="go">🎟️ ' + k.kupon + '</span></div>'; }
