@@ -54,6 +54,10 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .chip{display:inline-flex;align-items:center;gap:8px;border-radius:30px;padding:10px 18px;font-weight:600;font-size:14px;margin-right:10px}
 .chip.glass{background:rgba(255,255,255,.14);color:#fff}
 .chip.white{background:#fff;color:var(--navy)}
+.kt-img{position:relative;width:64px;height:64px;border-radius:12px;background:#f3f4f8;border:1px solid var(--line);display:grid;place-items:center;font-size:26px}
+.kt-img>img{width:100%;height:100%;object-fit:cover;border-radius:11px;cursor:zoom-in}.kt-img.err>img{display:none}.kt-img.err::after{content:'⚠';font-size:20px;color:#B42323}
+.kt-pv{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 12px 30px rgba(20,30,60,.22);pointer-events:none;display:none}
+.kt-pv img{display:block;width:260px;max-height:260px;object-fit:contain;border-radius:10px}
 .kt-c{display:flex;flex-direction:column;gap:6px}.kt-st{display:flex;flex-direction:column;gap:4px;min-width:200px}.kt-n{font-size:13px}.kt-n b{font-size:18px}.kt-n.tipis b{color:#B7791F}.kt-n.habis b{color:#B42323}.kt-adj{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.kt-adj input{width:56px;padding:5px 6px;text-align:center}.kt-adj .ib{font-size:16px;font-weight:800}
 .tk-sum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.tk-sum span{background:var(--bg,#f5f6fa);border-radius:10px;padding:6px 12px;font-size:13px}.tk-sum b{font-size:15px;margin-right:4px}.tk-sum .red{background:#FDECEC;color:#9B1C1C}
 .tk-p{font-size:12.5px;line-height:1.45;max-width:250px;min-width:200px;white-space:normal}.tk-tag{white-space:normal;min-width:170px}.tk-kr{display:flex;flex-direction:column;gap:4px;margin-top:6px;min-width:150px}.tk-kr select,.tk-kr input{width:150px;padding:5px 8px;font-size:12.5px}.kr-b{display:inline-block;color:#fff;font-weight:800;font-size:11.5px;border-radius:7px;padding:3px 8px;align-self:flex-start;letter-spacing:.2px}.kr-logo{height:22px;align-self:flex-start}.tk-p small{color:var(--muted)}.tk-late{color:#B42323;font-weight:800}.tk-tag a{word-break:break-all}.tk-tag .btn{margin:4px 4px 0 0}
@@ -1182,21 +1186,29 @@ var KT = null;
 function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); krLoad(); }
 function ktDraw() {
   var used = {}; (KT.tukar || []).forEach(function (r) { if (r.status !== 'Ditolak') used[r.hadiah_id] = (used[r.hadiah_id] || 0) + 1; });
-  var h = '<thead><tr><th>Aktif</th><th>Hadiah & brand</th><th>Kupon</th><th>Stok</th><th>Gambar (URL) & deskripsi</th><th></th></tr></thead><tbody>';
+  var h = '<thead><tr><th>Gambar</th><th>Aktif</th><th>Hadiah & brand</th><th>Kupon</th><th>Stok</th><th>Gambar (URL) & deskripsi</th><th></th></tr></thead><tbody>';
   KT.katalog.forEach(function (x, i) {
     var inp = function (f, w, ph, t) { return '<input data-i="' + i + '" data-f="' + f + '"' + (t ? ' type="' + t + '"' : '') + ' value="' + esc(x[f] == null ? '' : x[f]) + '" placeholder="' + (ph || '') + '" style="width:' + w + 'px">'; };
     var st = Number(x.stok) || 0, baru = !x.id;
-    h += '<tr><td><input type="checkbox" data-i="' + i + '" data-f="aktif"' + (x.aktif ? ' checked' : '') + '></td>' +
-      '<td><div class="kt-c">' + inp('nama', 210, 'Nama hadiah') + inp('brand', 210, 'Brand (opsional)') + '</div></td><td>' + inp('kupon', 70, '', 'number') + '</td>' +
+    var g = String(x.gambar || '').trim();
+    h += '<tr><td><div class="kt-img" data-thumb="' + i + '">' + (g ? '<img src="' + esc(g) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'err\')">' : '<span>🎁</span>') + '</div></td>' +
+      '<td><input type="checkbox" data-i="' + i + '" data-f="aktif"' + (x.aktif ? ' checked' : '') + '></td>' +
+      '<td><div class="kt-c">' + inp('nama', 180, 'Nama hadiah') + inp('brand', 180, 'Brand (opsional)') + '</div></td><td>' + inp('kupon', 70, '', 'number') + '</td>' +
       '<td><div class="kt-st"><div class="kt-n' + (st <= 0 ? ' habis' : st <= 5 ? ' tipis' : '') + '"><b>' + fmt(st) + '</b> sisa' + (st <= 0 ? ' · habis' : st <= 5 ? ' · menipis' : '') + '</div>' +
         '<div class="muted" style="font-size:12px">' + fmt(used[x.id] || 0) + ' sudah ditukar</div>' +
         (baru ? '<div class="muted" style="font-size:12px">Stok awal: ' + inp('stok', 70, '', 'number') + '</div>' :
         '<div class="kt-adj"><button class="ib" data-adj="' + i + '" data-d="-1" title="Kurangi 1">−</button><input type="number" min="1" value="1" data-qty="' + i + '"><button class="ib" data-adj="' + i + '" data-d="1" title="Tambah">+</button><button class="btn sec sm" data-upd="' + i + '" title="Tambah stok sejumlah angka di tengah">Update stok</button></div>') + '</div></td>' +
-      '<td><div class="kt-c">' + inp('gambar', 240, 'https://… (link gambar)') + inp('deskripsi', 240, 'Deskripsi singkat') + '</div></td>' +
+      '<td><div class="kt-c">' + inp('gambar', 190, 'https://… (link gambar)') + inp('deskripsi', 190, 'Deskripsi singkat') + '</div></td>' +
       '<td><button class="trash" title="Hapus hadiah" data-del="' + i + '">' + TRASH + '</button></td></tr>';
   });
   $('kt-t').innerHTML = h + '</tbody>';
-  [].forEach.call($('kt-t').querySelectorAll('input[data-f]'), function (e) { e.onchange = function () { var x = KT.katalog[+e.dataset.i]; x[e.dataset.f] = e.type === 'checkbox' ? e.checked : e.type === 'number' ? +e.value : e.value; $('kt-msg').textContent = 'Ada perubahan belum disimpan'; }; });
+  [].forEach.call($('kt-t').querySelectorAll('input[data-f]'), function (e) { e.onchange = function () { var x = KT.katalog[+e.dataset.i]; x[e.dataset.f] = e.type === 'checkbox' ? e.checked : e.type === 'number' ? +e.value : e.value; $('kt-msg').textContent = 'Ada perubahan belum disimpan'; if (e.dataset.f === 'gambar') ktDraw(); }; });
+  var pv = $('kt-pv') || (function () { var d = document.createElement('div'); d.id = 'kt-pv'; d.className = 'kt-pv'; d.innerHTML = '<img alt="">'; document.body.appendChild(d); return d; })();
+  [].forEach.call($('kt-t').querySelectorAll('.kt-img img'), function (im) {
+    im.onmouseenter = function () { var r = im.getBoundingClientRect(); pv.firstChild.src = im.src; pv.style.display = 'block'; pv.style.left = (r.right + 12) + 'px'; pv.style.top = Math.max(8, Math.min(window.innerHeight - 290, r.top - 10)) + 'px'; };
+    im.onmouseleave = function () { pv.style.display = 'none'; };
+    im.onclick = function () { window.open(im.src, '_blank'); };
+  });
   var adj = function (i, d) {
     var x = KT.katalog[i]; if (!d) return;
     if (d < 0 && (Number(x.stok) || 0) + d < 0) return toast('Stok tidak bisa kurang dari 0');

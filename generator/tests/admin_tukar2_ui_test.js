@@ -4,7 +4,7 @@ let st = ctx.adminSimulasiMulai(); while (!st.selesai) st = ctx.adminSimulasiBat
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 ctx.adminSaveSettings({ KUPON_V1: 3, KUPON_V2: 3 }); ctx.SET_MEMO_ = null;
 ctx.submitResponse({ sid: 'n1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@nadia', Z3: '081233330001' }) }); ctx.submitResponse({ sid: 'n2', variant: 'v2', answers: Object.assign({}, base, { Z2: '@nadia', Z3: '081233330001' }) });
-const kk = ctx.adminKatalog().katalog; ctx.adminKatalogSave(kk.map((x, i) => Object.assign({}, x, i === 0 ? { kupon: 2 } : {})));
+const kk = ctx.adminKatalog().katalog; ctx.adminKatalogSave(kk.map((x, i) => Object.assign({}, x, i === 0 ? { kupon: 2, gambar: 'file://' + path.join(__dirname, '../../site/contoh/thumb-a.jpg') } : i === 1 ? { gambar: 'https://contoh.invalid/x.jpg' } : i === 2 ? { gambar: 'file://' + path.join(__dirname, '../../site/contoh/thumb-b.jpg') } : {})));
 const P = { nama: 'Nadia Putri', hp: '081233330001', alamat: 'Jl. Riau No. 21, RT 03/RW 05, Citarum, Bandung Wetan', kota: 'Kota Bandung', kodepos: '40115' };
 console.log(JSON.stringify(ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, P)).slice(0, 80));
 const r2 = ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, 'tersimpan'); const row2 = ctx.adminKatalog().tukar.find(x => x.id_penukaran === r2.id); ctx.adminTukarStatus(row2._row, 'Dikirim', '', null); ctx.kirimTagLink('@nadia', '0001', r2.id, 'https://www.instagram.com/p/NADIA1/');
@@ -21,7 +21,7 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   await p.waitForTimeout(1500);
   await p.locator('nav.side button', { hasText: 'Tukar Hadiah' }).click(); await p.waitForTimeout(2500);
   console.log('katalog:', await p.locator('#kt-t tbody tr').count(), '| penukaran:', await p.locator('#tk-t tbody tr').count());
-  await p.screenshot({ path: SP + 'kt0.png' });
+  await p.locator('.kt-img img').first().hover(); await p.waitForTimeout(400); await p.screenshot({ path: SP + 'kt0.png' }); console.log('preview tampil:', await p.$eval('#kt-pv', e => e.style.display));
   const id0 = ctx.adminKatalog().katalog[1].id, s0 = ctx.adminKatalog().katalog[1].stok;
   await p.locator('[data-qty="1"]').fill('5'); await p.locator('[data-adj="1"][data-d="1"]').click(); await p.waitForTimeout(600);
   await p.locator('[data-adj="1"][data-d="-1"]').click(); await p.waitForTimeout(600);
