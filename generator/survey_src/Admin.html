@@ -387,20 +387,14 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
-        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="paste">Tempel pertanyaan</button><button data-m="tpl">Contoh siap pakai</button><button data-m="blank">Kosong</button></div>
-        <div id="b-m-ai">
-          <textarea class="bwide" id="b-brief" rows="5" placeholder="Contoh: Saya ingin tahu kebiasaan wanita 20–35 tahun membeli skincare lewat TikTok Shop: apa yang membuat mereka percaya pada produk, peran review & live, sensitivitas harga, dan alasan pindah brand."></textarea>
-          <div class="toolbar" style="margin:10px 0 0"><label class="muted">Jumlah pertanyaan</label><select id="b-n"><option>8</option><option>12</option><option selected>15</option><option>20</option><option>25</option></select>
-            <button class="btn sm" id="b-ai-btn" onclick="bAi('brief')">✨ Susun dengan AI</button><label class="flag" title="Kalau tidak dicentang, pertanyaan yang ada akan diganti"><input type="checkbox" id="b-append"> Tambahkan ke yang sudah ada</label></div>
-          <div class="tip" id="b-ai-off" style="display:none">Fitur AI belum aktif. Isi <code>ANTHROPIC_API_KEY</code> di menu <a href="#" onclick="navTo('set');return false">Survei &amp; Pengaturan</a>. Sementara itu, kamu tetap bisa menyusun pertanyaan di Claude lalu menempelkannya lewat tab <b>Tempel pertanyaan</b>.</div>
-        </div>
+        <div class="stab" id="b-src"><button data-m="blank" class="on">Mulai dari kosong</button><button data-m="paste">Tempel pertanyaan</button><button data-m="tpl">Contoh siap pakai</button></div>
         <div id="b-m-paste" style="display:none">
           <textarea class="bwide" id="b-paste" rows="9" placeholder="1. Seberapa sering Anda belanja skincare online? (pilih satu)&#10;- Setiap minggu&#10;- 2–3 kali sebulan&#10;- Sebulan sekali&#10;- Lebih jarang&#10;&#10;2. Platform apa saja yang Anda pakai? (boleh lebih dari satu)&#10;- Shopee&#10;- TikTok Shop&#10;- Lainnya, sebutkan&#10;&#10;3. Apa alasan utama Anda memilih brand tersebut? (isian)"></textarea>
-          <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><button class="btn soft sm" id="b-ai2" onclick="bAi('parse')">✨ Rapikan dengan AI</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
+          <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
           <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Logika: tulis <code>(tampilkan jika no. 2 = TikTok Shop)</code> atau <code>(jika no. 2 bukan Shopee)</code> di belakang pertanyaan. Pilihan "Lainnya" otomatis bisa diisi; tambahkan <code>(tidak lolos)</code> di belakang pilihan yang membuat responden berhenti. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
         </div>
         <div id="b-m-tpl" style="display:none"><div id="b-tpls"></div></div>
-        <div id="b-m-blank" style="display:none"><p class="muted">Mulai dari nol dengan tombol <b>+ Tambah pertanyaan</b> di bawah.</p></div>
+        <div id="b-m-blank"><p class="muted">Klik <b>+ Tambah pertanyaan</b> di bawah, lalu isi teks pertanyaan, pilih tipe jawaban, dan isi pilihan jawabannya. Ulangi untuk pertanyaan berikutnya.</p></div>
       </div>
       <div class="card"><div class="top" style="margin:0 0 12px"><div><h2>Pertanyaan <span class="muted" id="b-count"></span></h2><div class="muted">Muncul setelah profil responden, sebelum data kontak.</div></div><button class="btn sec sm" onclick="bAdd()">+ Tambah pertanyaan</button></div>
         <div id="b-qs"></div>
@@ -1184,7 +1178,7 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
+var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB', 'ANTHROPIC_API_KEY'];
 // ---------- tukar hadiah ----------
 var KT = null;
 function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); vrLoad(); krLoad(); }
@@ -1433,8 +1427,6 @@ function editSurvey(id) { openBuilder(id); }
 function bDefaults() {
   var g = BDEF.giveaway || {};
 
-  $('b-ai-off').style.display = BDEF.ai ? 'none' : '';
-  $('b-ai-btn').disabled = !BDEF.ai; $('b-ai2').disabled = !BDEF.ai;
   if (B && !(B.hadiah || []).some(function (h) { return String(h.nama || '').trim(); })) { B.hadiah = defaultPrizes(); hdRender(); }
 }
 function bFill() {
@@ -1533,7 +1525,7 @@ function imageUpload(file, maxPx, done) {
 [].forEach.call($('b-src').children, function (b) {
   b.onclick = function () {
     [].forEach.call($('b-src').children, function (x) { x.classList.toggle('on', x === b); });
-    ['ai', 'paste', 'tpl', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
+    ['paste', 'tpl', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
   };
 });
 function bState() {
