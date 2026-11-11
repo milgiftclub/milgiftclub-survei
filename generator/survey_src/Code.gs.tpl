@@ -2819,26 +2819,11 @@ var TUGAS_SEKALI = [
     customSurveys_().forEach(function (c) { if (/^Survei Fashion: Brand Lokal vs Internasional$/i.test(c.name)) { try { builderDelete_(c.id); r.surveiContoh = (r.surveiContoh || 0) + 1; } catch (e) {} } });
     return r;
   } },
-  { id: '2026-11-03-survei-baru', run: function () {
-    var made = [];
-    [['gaya-penampilan', true], ['live-shopping', true], ['promosi', true], ['konten-hook', false]].forEach(function (x) {
-      var t = SURVEY_TEMPLATES[x[0]]; CUSTOM_MEMO_ = null;
-      if (customSurveys_().some(function (c) { return c.name.toLowerCase() === t.name.toLowerCase(); })) return;   // sudah dibuat manual -> lewati
-      var qs = templateQs_(t, 'Q');
-      var sch = { name: t.name, intro: t.intro, estimasi: t.estimasi, kupon: t.kupon, target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all', questions: qs };
-      try { sch.hadiah = (CONFIG.HADIAH_UTAMA ? [{ nama: CONFIG.HADIAH_UTAMA, nilai: '' }] : []).concat((CONFIG.HADIAH || []).map(function (t) { t = String(t || ''); var m = t.match(/Rp\s?([\d.]+)/i); return { nama: t.replace(/\s*Rp\s?[\d.]+\s*/i, ' ').replace(/\s{2,}/g, ' ').trim(), nilai: m ? Number(m[1].replace(/\./g, '')) : '' }; })); } catch (e) {}
-      var r = builderSave_(sch, x[1], 'otomatis');   // konten-hook = draf (video contoh perlu diganti materi asli)
-      made.push(t.name + ' (' + r.status + ')');
-    });
-    return made;
-  } },
-  { id: '2026-11-04-gaya-penampilan-merek', run: function () {
-    // survei Gaya Berpenampilan diperluas (merek per kebutuhan + alasannya). Jawaban lama tetap aman: kalau sudah ada jawaban, pertanyaan baru memakai id G1.. (kolom baru)
-    var t = SURVEY_TEMPLATES['gaya-penampilan']; CUSTOM_MEMO_ = null;
-    var c = customSurveys_().filter(function (x) { return x.name.toLowerCase() === t.name.toLowerCase(); })[0]; if (!c) return 'survei belum ada (akan dibuat dari template baru)';
-    var sh = c.tab ? sheet_(c.tab) : null, n = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
-    var sch = JSON.parse(JSON.stringify(c.schema)); sch.id = c.id; sch.questions = templateQs_(t, n ? 'G' : 'Q'); sch.intro = t.intro; sch.estimasi = t.estimasi; sch.kupon = t.kupon;
-    var r = builderSave_(sch, false, 'otomatis'); return { id: c.id, status: r.status, jawabanLama: n, pertanyaan: sch.questions.length };
+  { id: '2026-11-11-hapus-survei-tambahan', run: function () {
+    // hanya 2 survei utama (Semua Kategori & Fashion Wanita) yang dipertahankan; survei buatan Dashboard dihapus (yang sudah ada jawaban diarsipkan, datanya tetap di Sheet)
+    var hasil = []; CUSTOM_MEMO_ = null;
+    customSurveys_().forEach(function (c) { if (c.status === 'Diarsipkan') return; try { var r = builderDelete_(c.id); hasil.push(c.name + (r.archived ? ' (diarsipkan)' : ' (dihapus)')); } catch (e) { hasil.push(c.name + ' gagal: ' + e.message); } CUSTOM_MEMO_ = null; });
+    return hasil;
   } }
 ];
 /** Pertanyaan template -> pertanyaan survei: id berurutan (prefix + nomor), showIf & {#n} di teks memakai id tsb. */
