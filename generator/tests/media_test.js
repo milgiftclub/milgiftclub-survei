@@ -13,7 +13,7 @@ const SP = process.env.SHOTS || require('os').tmpdir() + '/', ROOT = path.join(_
   await p.route('https://fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
   await p.goto('file://' + path.join(__dirname, 'admin_page.html')); await p.waitForTimeout(1500);
   await p.click('nav.side .sv-new'); await p.waitForTimeout(400);
-  await p.click('#b-src button[data-m="tpl"]'); await p.waitForTimeout(200);
+  await p.evaluate(() => { document.getElementById('b-m-tpl').style.display = ''; }); await p.waitForTimeout(200);
   await p.screenshot({ path: SP + 'tpl_0_tab.png' });
   await p.click('#b-tpls button >> nth=' + (process.env.TPL || 0)); await p.waitForTimeout(500);
   console.log('nama:', await p.inputValue('#b-name'), '| kupon:', await p.inputValue('#b-kupon'), '| est:', await p.inputValue('#b-est'), '| jumlah:', await p.$$eval('#b-qs .bq', e => e.length));

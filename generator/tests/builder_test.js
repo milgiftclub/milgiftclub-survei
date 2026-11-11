@@ -52,7 +52,7 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   await p.screenshot({ path: SP + 'bld_0_kosong.png' });
   await p.fill('#b-name', 'Skincare di TikTok Shop');
   await p.fill('#b-target', '3');
-  await p.click('#b-src button[data-m="paste"]');
+  await p.evaluate(() => { document.getElementById('b-m-paste').style.display = ''; });
   await p.fill('#b-paste', PASTE);
   await p.click('text=Ubah jadi pertanyaan'); await p.waitForTimeout(400);
   log('parsed:', await p.$$eval('#b-qs .bq', els => els.map(e => e.querySelector('select[data-f=type]').value + ':' + e.querySelectorAll('.bo').length)).then(x => x.join(' ')));

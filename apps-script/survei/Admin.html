@@ -58,6 +58,8 @@ h2{font-weight:700;font-size:18px;margin:0 0 4px}
 .kt-img>img{width:100%;height:100%;object-fit:cover;border-radius:11px;cursor:zoom-in}.kt-img.err>img{display:none}.kt-img.err::after{content:'⚠';font-size:20px;color:#B42323}
 .kt-pv{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 12px 30px rgba(20,30,60,.22);pointer-events:none;display:none}
 .kt-pv img{display:block;width:260px;max-height:260px;object-fit:contain;border-radius:10px}
+.up-steps{margin:4px 0 0;padding-left:20px;line-height:1.7}.up-steps li{margin:6px 0}.up-steps .btn{margin-left:6px;vertical-align:middle}
+.up-ok{background:#E7F5EC;color:#22663F;border-radius:10px;padding:10px 14px;margin-top:10px;font-weight:700}.up-err{background:#FDECEC;color:#7A2323;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:13px;line-height:1.6}
 .kt-c{display:flex;flex-direction:column;gap:6px}.kt-st{display:flex;flex-direction:column;gap:4px;min-width:200px}.kt-n{font-size:13px}.kt-n b{font-size:18px}.kt-n.tipis b{color:#B7791F}.kt-n.habis b{color:#B42323}.kt-adj{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.kt-adj input{width:56px;padding:5px 6px;text-align:center}.kt-adj .ib{font-size:16px;font-weight:800}
 .tk-flag{margin-top:6px;background:#FFF4E5;color:#8A4B00;border-radius:8px;padding:5px 8px;font-size:12px;font-weight:700;line-height:1.4;max-width:250px;white-space:normal}
 .tk-sum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}.tk-sum span{background:var(--bg,#f5f6fa);border-radius:10px;padding:6px 12px;font-size:13px}.tk-sum b{font-size:15px;margin-right:4px}.tk-sum .red{background:#FDECEC;color:#9B1C1C}
@@ -387,14 +389,22 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
-        <div class="stab" id="b-src"><button data-m="blank" class="on">Mulai dari kosong</button><button data-m="paste">Tempel pertanyaan</button><button data-m="tpl">Contoh siap pakai</button></div>
+        <div class="stab" id="b-src"><button data-m="up" class="on">Upload file pertanyaan</button><button data-m="blank">Tulis manual</button></div>
+        <div id="b-m-up">
+          <ol class="up-steps">
+            <li><b>Unduh template</b>, lalu isi satu baris untuk satu pertanyaan (contoh &amp; petunjuk ada di dalam file). <button class="btn sec sm" type="button" onclick="upTemplate()">⬇ Unduh template Excel</button></li>
+            <li><b>Upload file</b> yang sudah diisi (.xlsx atau .csv). <label class="btn sm" style="cursor:pointer">📤 Pilih file<input type="file" id="b-up" accept=".xlsx,.xls,.csv" style="display:none" onchange="upRead(this)"></label></li>
+            <li><b>Cek hasilnya</b> di bagian Pertanyaan di bawah, coba lewat <b>Pratinjau</b>, lalu <b>Publish</b>.</li>
+          </ol>
+          <div id="b-up-msg"></div>
+        </div>
         <div id="b-m-paste" style="display:none">
           <textarea class="bwide" id="b-paste" rows="9" placeholder="1. Seberapa sering Anda belanja skincare online? (pilih satu)&#10;- Setiap minggu&#10;- 2–3 kali sebulan&#10;- Sebulan sekali&#10;- Lebih jarang&#10;&#10;2. Platform apa saja yang Anda pakai? (boleh lebih dari satu)&#10;- Shopee&#10;- TikTok Shop&#10;- Lainnya, sebutkan&#10;&#10;3. Apa alasan utama Anda memilih brand tersebut? (isian)"></textarea>
           <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
           <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Logika: tulis <code>(tampilkan jika no. 2 = TikTok Shop)</code> atau <code>(jika no. 2 bukan Shopee)</code> di belakang pertanyaan. Pilihan "Lainnya" otomatis bisa diisi; tambahkan <code>(tidak lolos)</code> di belakang pilihan yang membuat responden berhenti. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
         </div>
         <div id="b-m-tpl" style="display:none"><div id="b-tpls"></div></div>
-        <div id="b-m-blank"><p class="muted">Klik <b>+ Tambah pertanyaan</b> di bawah, lalu isi teks pertanyaan, pilih tipe jawaban, dan isi pilihan jawabannya. Ulangi untuk pertanyaan berikutnya.</p></div>
+        <div id="b-m-blank" style="display:none"><p class="muted">Klik <b>+ Tambah pertanyaan</b> di bawah, lalu isi teks pertanyaan, pilih tipe jawaban, dan isi pilihan jawabannya. Ulangi untuk pertanyaan berikutnya.</p></div>
       </div>
       <div class="card"><div class="top" style="margin:0 0 12px"><div><h2>Pertanyaan <span class="muted" id="b-count"></span></h2><div class="muted">Muncul setelah profil responden, sebelum data kontak.</div></div><button class="btn sec sm" onclick="bAdd()">+ Tambah pertanyaan</button></div>
         <div id="b-qs"></div>
@@ -1426,6 +1436,7 @@ function mediaInfo(u) {
 function bNew() { return { hadiah: defaultPrizes(), questions: [], target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all' }; }
 function markDirty(v) { bDirty = v !== false; $('b-dirty').textContent = bDirty ? '● Belum disimpan' : ''; }
 function openBuilder(id) {
+  if ($('b-up-msg')) $('b-up-msg').innerHTML = '';
   if ($('p-build').classList.contains('on') && bDirty && !confirm('Perubahan survei yang sedang diedit belum disimpan. Tinggalkan?')) return;
   showPage('build', id ? null : document.querySelector('nav.side .sv-new'));
   if (!BDEF) run('adminBuilderDefaults').then(function (d) { BDEF = d; bDefaults(); }); else bDefaults();
@@ -1537,7 +1548,7 @@ function imageUpload(file, maxPx, done) {
 [].forEach.call($('b-src').children, function (b) {
   b.onclick = function () {
     [].forEach.call($('b-src').children, function (x) { x.classList.toggle('on', x === b); });
-    ['paste', 'tpl', 'blank'].forEach(function (m) { $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
+    ['up', 'paste', 'tpl', 'blank'].forEach(function (m) { if (!$('b-m-' + m)) return; $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
   };
 });
 function bState() {
@@ -1574,7 +1585,7 @@ function qLabel(q, i) { return 'Pertanyaan ' + (i + 1) + ': ' + String(q.text ||
 function bRender() {
   var qs = B.questions;
   $('b-count').textContent = qs.length ? '(' + qs.length + ')' : '';
-  if (!qs.length) { $('b-qs').innerHTML = '<div class="empty">Belum ada pertanyaan. Minta AI, tempel daftar pertanyaan, atau klik <b>+ Tambah pertanyaan</b>.</div>'; return; }
+  if (!qs.length) { $('b-qs').innerHTML = '<div class="empty">Belum ada pertanyaan. Upload file pertanyaan, atau klik <b>+ Tambah pertanyaan</b>.</div>'; return; }
   $('b-qs').innerHTML = qs.map(function (q, i) {
     var h = '<div class="bq" data-i="' + i + '"><div class="bq-h"><span class="bq-n">' + (i + 1) + '</span><span class="bq-id">' + esc(q.id) + '</span>' +
       '<select data-f="type">' + BTYPES.map(function (t) { return '<option value="' + t[0] + '"' + (q.type === t[0] ? ' selected' : '') + '>' + t[1] + '</option>'; }).join('') + '</select><span class="sp"></span>' +
@@ -1708,7 +1719,7 @@ function parseText(txt) {
   });
 }
 function bTake(list, append, meta) {
-  if (!list.length) return toast('Tidak ada pertanyaan yang terbaca. Cek formatnya atau pakai Rapikan dengan AI.');
+  if (!list.length) return toast('Tidak ada pertanyaan yang terbaca. Cek formatnya.');
   if (!append && B.questions.length && !confirm('Ganti ' + B.questions.length + ' pertanyaan yang ada dengan ' + list.length + ' pertanyaan baru?')) return;
   if (!append) B.questions = [];
   var idx = [];
@@ -1735,6 +1746,103 @@ function bTake(list, append, meta) {
   });
   if (meta) { if (meta.name && !$('b-name').value) $('b-name').value = meta.name; if (meta.intro && !$('b-intro').value) $('b-intro').value = meta.intro; if (meta.estimasi && !$('b-est').value) $('b-est').value = meta.estimasi; bRead(); }
   markDirty(); bRender(); toast(list.length + ' pertanyaan ditambahkan. Cek dan rapikan sebelum publish.');
+}
+
+// ---------- upload file pertanyaan (Excel / CSV) ----------
+var UP_COLS = ['No', 'Pertanyaan', 'Tipe', 'Pilihan jawaban', 'Wajib (Ya/Tidak)', 'Acak urutan (Ya/Tidak)', 'Maks. pilihan', 'Tampilkan jika', 'Bagian / topik'];
+var UP_TYPES = [['pilih satu', 'single'], ['pilih beberapa', 'multi'], ['dropdown', 'dropdown'], ['skala', 'scale'], ['angka', 'number'], ['isian singkat', 'text'], ['isian panjang', 'longtext'], ['pilih video', 'media'], ['pilih gambar', 'media']];
+function upLib() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise(function (ok, no) { var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = function () { ok(window.XLSX); }; sc.onerror = function () { no(new Error('Gagal memuat pembaca Excel. Cek koneksi, atau simpan file sebagai .csv.')); }; document.head.appendChild(sc); });
+}
+function upTemplate() {
+  upLib().then(function (X) {
+    var rows = [UP_COLS,
+      [1, 'Seberapa sering Anda belanja skincare online dalam 3 bulan terakhir?', 'Pilih satu', 'Setiap minggu\n2–3 kali sebulan\nSebulan sekali\nLebih jarang', 'Ya', 'Tidak', '', '', 'Kebiasaan belanja'],
+      [2, 'Di platform mana saja Anda membeli skincare?', 'Pilih beberapa', 'Shopee\nTikTok Shop\nTokopedia\nWebsite brand\nLainnya, sebutkan', 'Ya', 'Ya', 3, '', 'Kebiasaan belanja'],
+      [3, 'Apa yang membuat Anda percaya membeli skincare di TikTok Shop?', 'Isian panjang', '', 'Tidak', '', '', '2 = TikTok Shop', 'Kepercayaan'],
+      [4, 'Seberapa puas Anda dengan skincare yang terakhir Anda beli?', 'Skala', '1-5\nSangat tidak puas\nSangat puas', 'Ya', '', '', '', 'Kepuasan'],
+      [5, 'Berapa kali Anda membeli skincare dalam sebulan?', 'Angka', '', 'Ya', '', '', '', 'Kebiasaan belanja'],
+      [6, 'Video mana yang lebih membuat Anda ingin membeli?', 'Pilih video', 'Video A = https://www.youtube.com/shorts/xxxxxxxxxxx\nVideo B = https://www.tiktok.com/@akun/video/1234567890', 'Ya', 'Ya', '', '', 'Uji konten']];
+    var help = [['Petunjuk mengisi template pertanyaan'], [''],
+      ['1 baris = 1 pertanyaan. Baris contoh di sheet Pertanyaan boleh dihapus atau ditimpa.'],
+      ['Pembuka, persetujuan, giveaway, profil responden (usia, gender, kota, dll.), cek Instagram, dan penutup ditambahkan otomatis. Cukup tulis pertanyaan inti.'], [''],
+      ['Kolom', 'Cara mengisi'],
+      ['Pertanyaan', 'Teks pertanyaan yang dibaca responden.'],
+      ['Tipe', 'Salah satu: Pilih satu · Pilih beberapa · Dropdown · Skala · Angka · Isian singkat · Isian panjang · Pilih video · Pilih gambar'],
+      ['Pilihan jawaban', 'Satu pilihan per baris di dalam sel (tekan Alt+Enter, di Mac Option+Enter), atau pisahkan dengan tanda |'],
+      ['', 'Pilihan yang diawali "Lainnya" otomatis bisa diisi sendiri oleh responden.'],
+      ['', 'Pilihan "Tidak ada" / "Tidak satu pun" otomatis tidak bisa digabung dengan pilihan lain.'],
+      ['', 'Skala: baris 1 = rentang (1-5 atau 0-10), baris 2 = label terendah, baris 3 = label tertinggi.'],
+      ['', 'Pilih video / gambar: tiap baris "Nama = link", mis. Video A = https://… (YouTube/Shorts, TikTok, Instagram Reels, Google Drive, .mp4, .jpg)'],
+      ['Wajib', 'Ya = harus dijawab (bawaan). Tidak = boleh dilewati.'],
+      ['Acak urutan', 'Ya = urutan pilihan diacak per responden (cocok untuk daftar merek).'],
+      ['Maks. pilihan', 'Khusus Pilih beberapa: batas jumlah pilihan, mis. 3. Kosong = bebas.'],
+      ['Tampilkan jika', 'Pertanyaan hanya muncul bila jawaban pertanyaan sebelumnya sesuai. Tulis: nomor = jawaban (mis. 2 = TikTok Shop), atau nomor bukan jawaban (mis. 2 bukan TikTok Shop). Kosong = selalu tampil.'],
+      ['Bagian / topik', 'Opsional. Dipakai untuk mengelompokkan insight di laporan.']];
+    var wb = X.utils.book_new(), ws = X.utils.aoa_to_sheet(rows), wh = X.utils.aoa_to_sheet(help);
+    ws['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 16 }, { wch: 42 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 20 }];
+    wh['!cols'] = [{ wch: 18 }, { wch: 120 }];
+    X.utils.book_append_sheet(wb, ws, 'Pertanyaan'); X.utils.book_append_sheet(wb, wh, 'Petunjuk');
+    X.writeFile(wb, 'Template_Pertanyaan_Survei.xlsx');
+  }, function (e) { toast(e.message); });
+}
+function upParse(rows) {
+  var errs = [], out = [], hdr = -1;
+  for (var i = 0; i < Math.min(rows.length, 10); i++) if (rows[i].some(function (c) { return /^pertanyaan$/i.test(String(c).trim()); })) { hdr = i; break; }
+  if (hdr < 0) return { errs: ['Kolom "Pertanyaan" tidak ditemukan. Pakai template dari tombol Unduh template Excel.'], list: [] };
+  var H = rows[hdr].map(function (c) { return String(c).toLowerCase().trim(); }), col = function (re) { for (var k = 0; k < H.length; k++) if (re.test(H[k])) return k; return -1; };
+  var cQ = col(/^pertanyaan$/), cT = col(/^tipe/), cO = col(/^pilihan/), cW = col(/^wajib/), cA = col(/^acak/), cM = col(/^maks/), cS = col(/^tampilkan/), cB = col(/^(bagian|topik)/);
+  var yes = function (v, def) { v = String(v == null ? '' : v).trim().toLowerCase(); return v ? /^(ya|y|yes|true|1|wajib)$/.test(v) : def; };
+  rows.slice(hdr + 1).forEach(function (r, j) {
+    var line = hdr + j + 2, text = String(r[cQ] == null ? '' : r[cQ]).trim(); if (!text) return;
+    var tRaw = String(r[cT] == null ? '' : r[cT]).trim().toLowerCase(), tp = (UP_TYPES.filter(function (x) { return tRaw.indexOf(x[0]) === 0 || tRaw === x[1]; })[0] || [])[1];
+    if (!tp) { errs.push('Baris ' + line + ': tipe "' + (r[cT] || '(kosong)') + '" tidak dikenal.'); return; }
+    var raw = String(r[cO] == null ? '' : r[cO]), opts = raw.split(/\r?\n|\s*\|\s*/).map(function (x) { return x.trim(); }).filter(Boolean);
+    var q = { text: text, type: tp, required: yes(r[cW], true), random: yes(r[cA], false), num: out.length + 1, line: line };
+    if (cB >= 0 && String(r[cB] || '').trim()) q.topic = String(r[cB]).trim();
+    if (tp === 'scale') {
+      var m = String(opts[0] || '1-5').match(/(\d+)\s*[-–]\s*(\d+)/), lo = m ? +m[1] : 1, hi = m ? +m[2] : 5;
+      if (!(hi > lo && hi - lo <= 10)) { errs.push('Baris ' + line + ': rentang skala "' + opts[0] + '" tidak valid (contoh 1-5 atau 0-10).'); return; }
+      q.scale = { min: lo, max: hi, minLabel: opts[1] || '', maxLabel: opts[2] || '' };
+    } else if (tp === 'media') {
+      q.options = opts.map(function (x) { var p = x.split(/\s*=\s*(?=https?:)/); return { t: p.length > 1 ? p[0].trim() : '', media: (p.length > 1 ? p[1] : p[0]).trim() }; });
+      q.options.forEach(function (o, k) { if (!o.t) o.t = (/\.(jpe?g|png|gif|webp)/i.test(o.media) ? 'Gambar ' : 'Video ') + 'ABCDEFGH'.charAt(k); if (!mediaInfo(o.media)) errs.push('Baris ' + line + ': link "' + o.media + '" belum dikenali (pakai YouTube, TikTok, Instagram Reels, Google Drive, .mp4 atau .jpg).'); });
+      if (q.options.length < 2) { errs.push('Baris ' + line + ': pertanyaan video/gambar perlu minimal 2 link.'); return; }
+    } else if (tp === 'single' || tp === 'multi' || tp === 'dropdown') {
+      q.options = opts.map(optFrom);
+      if (q.options.length < 2) { errs.push('Baris ' + line + ': perlu minimal 2 pilihan jawaban.'); return; }
+      if (tp === 'multi' && cM >= 0 && +r[cM] > 0) q.max = +r[cM];
+    }
+    var si = String(cS >= 0 && r[cS] != null ? r[cS] : '').trim();
+    if (si) {
+      var mm = si.match(/^(?:no\.?\s*)?(\d+)\s*(=|!=|≠|bukan)\s*(.+)$/i);
+      if (!mm) errs.push('Baris ' + line + ': "Tampilkan jika" ditulis "' + si + '". Contoh yang benar: 2 = TikTok Shop');
+      else {
+        var ref = out.filter(function (x) { return String(x.no) === mm[1]; })[0];
+        if (!ref) errs.push('Baris ' + line + ': "Tampilkan jika" merujuk ke pertanyaan no. ' + mm[1] + ' yang tidak ada di atasnya.');
+        else if (!ref.options) errs.push('Baris ' + line + ': pertanyaan no. ' + mm[1] + ' tidak punya pilihan jawaban, jadi tidak bisa dipakai untuk "Tampilkan jika".');
+        else { if (!ref.options.some(function (o) { return o.t.toLowerCase() === mm[3].trim().toLowerCase(); })) errs.push('Baris ' + line + ': jawaban "' + mm[3].trim() + '" tidak ada di pilihan pertanyaan no. ' + mm[1] + '.'); q.showIf = { q: ref.num, op: /bukan|!=|≠/i.test(mm[2]) ? 'isnot' : 'is', val: mm[3].trim() }; }
+      }
+    }
+    q.no = String(r[0] == null || r[0] === '' ? out.length + 1 : r[0]).trim();
+    out.push(q);
+  });
+  return { errs: errs, list: out };
+}
+function upRead(inp) {
+  var f = inp.files && inp.files[0]; if (!f) return; inp.value = '';
+  $('b-up-msg').innerHTML = '<p class="muted">Membaca ' + esc(f.name) + '…</p>';
+  var done = function (rows) {
+    var r = upParse(rows);
+    if (r.errs.length) { $('b-up-msg').innerHTML = '<div class="up-err"><b>Perbaiki dulu di file, lalu upload ulang:</b><br>' + r.errs.map(esc).join('<br>') + '</div>'; return; }
+    if (!r.list.length) { $('b-up-msg').innerHTML = '<div class="up-err">Tidak ada pertanyaan di file ini.</div>'; return; }
+    var n0 = B.questions.length; bTake(r.list, false);
+    if (B.questions.length && (n0 === 0 || B.questions[0].text === r.list[0].text)) $('b-up-msg').innerHTML = '<div class="up-ok">✓ ' + r.list.length + ' pertanyaan dari ' + esc(f.name) + ' sudah masuk. Cek di bawah, lalu Pratinjau.</div>';
+  };
+  if (/\.csv$/i.test(f.name)) { f.text().then(function (t) { upLib().then(function (X) { var wb = X.read(t, { type: 'string' }); done(X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' })); }, function () { done(t.split(/\r?\n/).map(function (l) { return l.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(function (c) { return c.replace(/^"|"$/g, '').replace(/""/g, '"'); }); })); }); }); return; }
+  upLib().then(function (X) { return f.arrayBuffer().then(function (buf) { var wb = X.read(buf, { type: 'array' }), nm = wb.SheetNames.filter(function (n) { return /pertanyaan/i.test(n); })[0] || wb.SheetNames[0]; done(X.utils.sheet_to_json(wb.Sheets[nm], { header: 1, defval: '' })); }); })
+    .catch(function (e) { $('b-up-msg').innerHTML = '<div class="up-err">' + esc(e.message || e) + '</div>'; });
 }
 var B_TPL = {
  "konten-hook": {
