@@ -1,4 +1,5 @@
 import json, re, os
+from logo_html import put as _logo
 from questions import AW6_BY_GROUP, AW7_BY_GROUP, LABELS, Q, HIGH, FASHION_CATS, RANDOMIZE, RANDOMIZE_ROWS, variant_v2
 from categories import CATS
 from products import PRODUCTS
@@ -86,7 +87,7 @@ groups={c[1]:c[0] for c in CATS}
 os.makedirs('survey_out',exist_ok=True)
 S1=build_schema(Q,'v1'); S2=build_schema(variant_v2(),'v2'); schema=S1
 html=open('survey_src/Index.html.tpl').read().replace('__SCHEMA__',json.dumps({'v1':S1,'v2':S2},ensure_ascii=False)).replace('__GROUPS__',json.dumps(groups,ensure_ascii=False)).replace('__SK_JSON__',json.dumps(open('survey_src/sk_body.html').read(),ensure_ascii=False)).replace('__FASHION__',json.dumps(FASHION_CATS,ensure_ascii=False)).replace('__CITIES__',open('cities.json').read())
-open('survey_out/Index.html','w').write(html)
+open('survey_out/Index.html','w').write(_logo(html))
 cats=[[c[0],c[1],'High' if c[1] in HIGH else 'Low'] for c in CATS]
 dic=[[q[0],num[q[0]],q[1].split('\n')[0],re.sub(r'\{(\w+)\}',lambda m:'Q%d'%num[m.group(1)],q[2])] for q in Q if q[0] not in ('X1','Z5')]
 num2={q[0]:i+1 for i,q in enumerate(variant_v2())}
@@ -118,4 +119,4 @@ print('v1',len(S1),'v2',len(S2), [x['id'] for x in S2 if x.get('pipe')])
 
 import base64, glob
 _assets = {os.path.basename(f)[:-5]: 'data:image/webp;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('assets/promo/*.webp'))}
-open('survey_out/Admin.html', 'w').write(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)).replace('__CROSSTAB_LIB__', open('survey_src/crosstab.js').read()).replace('__TEMPLATES__', open('templates/templates.json').read()).replace('__MEDIA_LIB__', open('survey_src/media.js').read()))
+open('survey_out/Admin.html', 'w').write(_logo(open('survey_src/Admin.html').read().replace('__PROMO_ASSETS__', json.dumps(_assets)).replace('__CROSSTAB_LIB__', open('survey_src/crosstab.js').read()).replace('__TEMPLATES__', open('templates/templates.json').read()).replace('__MEDIA_LIB__', open('survey_src/media.js').read())))

@@ -3,6 +3,7 @@
 #   site/semua/index.html -> survey_out/Web_v1.html (site/index.html = halaman depan daftar survei)
 #   site/fokus/index.html -> survey_out/Web_v2.html
 #   site/s/index.html     -> survey_out/Web_s.html   (survei yang dibuat dari Dashboard)
+from logo_html import put as _logo
 import os, sys
 SITE = sys.argv[1] if len(sys.argv) > 1 else '../site'
 cfg = open('hosted_config.js').read()
@@ -31,5 +32,5 @@ for src, dst in [('semua/index.html', 'Web_v1.html'), ('fokus/index.html', 'Web_
     h = h.replace(tag, SHIM % cfg.replace('</script', '<\\/script'))
     h = h.replace('fetch(API_URL,', '__gsFetch(API_URL,').replace('location.search', 'window.__SEARCH')
     h = h.replace('<head>', '<head>\n<base target="_top">', 1)
-    open(os.path.join('survey_out', dst), 'w').write(h)
+    open(os.path.join('survey_out', dst), 'w').write(_logo(h))
 print('ok Web_v1/Web_v2/Web_s')

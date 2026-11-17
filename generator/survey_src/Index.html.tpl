@@ -114,7 +114,7 @@
 <body>
 <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>
 <header>
-  <div class="logo">MIL Gift Club<span class="dot">.</span></div>
+  __LOGO__
   <div class="tag">INSIGHT · COMMUNITY · REWARDS</div>
   <div class="bar"><i id="prog"></i></div>
 </header>

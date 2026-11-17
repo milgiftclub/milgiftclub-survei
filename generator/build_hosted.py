@@ -1,5 +1,6 @@
 # Build versi hosting (Netlify/GitHub Pages) dari survey_out/Index.html.
 # Tampilan sama persis; komunikasi ke Apps Script lewat fetch POST (doPost), bukan google.script.run.
+from logo_html import put as _logo
 import os, re, sys, json, subprocess
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'hosted/survei-milgift'
@@ -100,7 +101,7 @@ def build(variant, path, cfgpath):
     html = src[:i] + BOOT % {'variant': variant, 'body': b, 'cfgpath': cfgpath, 'defaults': defaults(variant)} + src[j + len('</script>'):]
     html = html.replace('<base target="_top">\n', '')
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    open(path, 'w').write(html)
+    open(path, 'w').write(_logo(html))
 
 build('v1', os.path.join(OUT, 'semua', 'index.html'), '../config.js')
 build('v2', os.path.join(OUT, 'fokus', 'index.html'), '../config.js')
@@ -120,19 +121,19 @@ ver = re.search(r"var VERSION = '([^']*)';", src).group(1)
 tpl = open('survey_src/Custom.html.tpl').read().replace('__MEDIA_LIB__', open('survey_src/media.js').read())
 html = tpl.replace('__SK_JSON__', json.dumps(open('survey_src/sk_body.html').read(), ensure_ascii=False)).replace('__STYLE__', style).replace('__STD__', json.dumps(std, ensure_ascii=False)).replace('__CITIES__', open('cities.json').read()).replace('__VERSION__', ver + ' · survei baru')
 os.makedirs(os.path.join(OUT, 's'), exist_ok=True)
-open(os.path.join(OUT, 's', 'index.html'), 'w').write(html)
+open(os.path.join(OUT, 's', 'index.html'), 'w').write(_logo(html))
 print('ok s/')
 # ---- halaman cek status giveaway: /cek/?ig=... ----
 ck = open('survey_src/Cek.html.tpl').read().replace('__STYLE__', style)
 os.makedirs(os.path.join(OUT, 'cek'), exist_ok=True)
-open(os.path.join(OUT, 'cek', 'index.html'), 'w').write(ck)
+open(os.path.join(OUT, 'cek', 'index.html'), 'w').write(_logo(ck))
 print('ok cek/')
 # ---- halaman Syarat & Ketentuan giveaway: /sk/ ----
 sk = open('survey_src/SK.html.tpl').read().replace('__STYLE__', style).replace('__SK_BODY__', open('survey_src/sk_body.html').read())
 os.makedirs(os.path.join(OUT, 'sk'), exist_ok=True)
-open(os.path.join(OUT, 'sk', 'index.html'), 'w').write(sk)
+open(os.path.join(OUT, 'sk', 'index.html'), 'w').write(_logo(sk))
 print('ok sk/')
 # ---- halaman depan: satu link untuk semua survei (persetujuan -> username IG -> daftar survei) ----
 hub = open('survey_src/Hub.html.tpl').read().replace('__STYLE__', style).replace('__SK_JSON__', json.dumps(open('survey_src/sk_body.html').read(), ensure_ascii=False))
-open(os.path.join(OUT, 'index.html'), 'w').write(hub)
+open(os.path.join(OUT, 'index.html'), 'w').write(_logo(hub))
 print('ok index (halaman depan)')
