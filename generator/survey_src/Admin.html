@@ -384,13 +384,19 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 
 <!-- BUAT SURVEI -->
 <section class="page" id="p-build">
-  <div class="svhead"><div><div class="eyebrow">Buat survei</div><h1 id="b-title">Survei baru</h1><p class="desc">Tambahkan pertanyaan satu per satu, atau tempel daftar pertanyaanmu sendiri. Coba lewat pratinjau, lalu publish. Pembuka, giveaway, cek Instagram, profil, dan penutup ditambahkan otomatis.</p></div>
+  <div class="svhead"><div><div class="eyebrow">Buat survei</div><h1 id="b-title">Survei baru</h1><p class="desc">Minta AI menyusun pertanyaan dari brief, upload file Excel, atau tempel daftar pertanyaanmu sendiri. Rapikan, coba lewat pratinjau, lalu publish. Pembuka, giveaway, cek Instagram, profil, dan penutup ditambahkan otomatis.</p></div>
     <div class="acts"><span class="dirty" id="b-dirty"></span><button class="btn sec sm" onclick="bSave(false)">Simpan draf</button></div></div>
   <div class="bgrid">
     <div>
       <div class="card" style="margin-bottom:20px"><h2>Mulai dari</h2>
-        <div class="stab" id="b-src"><button data-m="up" class="on">Upload file pertanyaan</button><button data-m="blank">Tulis manual</button></div>
-        <div id="b-m-up">
+        <div class="stab" id="b-src"><button data-m="ai" class="on">Minta AI</button><button data-m="up">Upload file</button><button data-m="paste">Tempel pertanyaan</button><button data-m="tpl">Contoh siap pakai</button><button data-m="blank">Kosong</button></div>
+        <div id="b-m-ai">
+          <textarea class="bwide" id="b-brief" rows="5" placeholder="Contoh: Saya ingin tahu kebiasaan wanita 20–35 tahun membeli skincare lewat TikTok Shop: apa yang membuat mereka percaya pada produk, peran review & live, sensitivitas harga, dan alasan pindah brand."></textarea>
+          <div class="toolbar" style="margin:10px 0 0"><label class="muted">Jumlah pertanyaan</label><select id="b-n"><option>8</option><option>12</option><option selected>15</option><option>20</option><option>25</option></select>
+            <button class="btn sm" id="b-ai-btn" onclick="bAi('brief')">✨ Susun dengan AI</button><label class="flag" title="Kalau tidak dicentang, pertanyaan yang ada akan diganti"><input type="checkbox" id="b-append"> Tambahkan ke yang sudah ada</label></div>
+          <div class="tip" id="b-ai-off" style="display:none">Fitur AI belum aktif. Isi <code>ANTHROPIC_API_KEY</code> di menu <a href="#" onclick="navTo('set');return false">Survei &amp; Pengaturan</a>. Sementara itu, kamu tetap bisa menyusun pertanyaan di Claude lalu menempelkannya lewat tab <b>Tempel pertanyaan</b>.</div>
+        </div>
+        <div id="b-m-up" style="display:none">
           <ol class="up-steps">
             <li><b>Unduh template</b>, lalu isi satu baris untuk satu pertanyaan (contoh &amp; petunjuk ada di dalam file). <button class="btn sec sm" type="button" onclick="upTemplate()">⬇ Unduh template Excel</button></li>
             <li><b>Upload file</b> yang sudah diisi (.xlsx atau .csv). <label class="btn sm" style="cursor:pointer">📤 Pilih file<input type="file" id="b-up" accept=".xlsx,.xls,.csv" style="display:none" onchange="upRead(this)"></label></li>
@@ -400,7 +406,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
         </div>
         <div id="b-m-paste" style="display:none">
           <textarea class="bwide" id="b-paste" rows="9" placeholder="1. Seberapa sering Anda belanja skincare online? (pilih satu)&#10;- Setiap minggu&#10;- 2–3 kali sebulan&#10;- Sebulan sekali&#10;- Lebih jarang&#10;&#10;2. Platform apa saja yang Anda pakai? (boleh lebih dari satu)&#10;- Shopee&#10;- TikTok Shop&#10;- Lainnya, sebutkan&#10;&#10;3. Apa alasan utama Anda memilih brand tersebut? (isian)"></textarea>
-          <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
+          <div class="toolbar" style="margin:10px 0 0"><button class="btn sm" onclick="bParse()">Ubah jadi pertanyaan</button><button class="btn soft sm" id="b-ai2" onclick="bAi('parse')">✨ Rapikan dengan AI</button><label class="flag"><input type="checkbox" id="b-append2"> Tambahkan ke yang sudah ada</label></div>
           <div class="tip">Satu pertanyaan diawali nomor (<code>1.</code> atau <code>1)</code>), pilihan jawaban diawali <code>-</code> atau <code>a.</code>. Tipe dibaca dari keterangan: <code>(pilih satu)</code>, <code>(boleh lebih dari satu)</code>, <code>(isian)</code>, <code>(angka)</code>, <code>(skala 1-5)</code>. Logika: tulis <code>(tampilkan jika no. 2 = TikTok Shop)</code> atau <code>(jika no. 2 bukan Shopee)</code> di belakang pertanyaan. Pilihan "Lainnya" otomatis bisa diisi; tambahkan <code>(tidak lolos)</code> di belakang pilihan yang membuat responden berhenti. Formatnya berantakan (dari Claude, Docs, atau Excel)? Pakai <b>Rapikan dengan AI</b>.</div>
         </div>
         <div id="b-m-tpl" style="display:none"><div id="b-tpls"></div></div>
@@ -1188,7 +1194,7 @@ function addBlok() { var ig = $('bk-ig').value, wa = $('bk-wa').value; if (!ig &
 
 // ---------- pengaturan ----------
 var SET;
-var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB', 'ANTHROPIC_API_KEY'];
+var HIDE_SET = ['KUPON_V1', 'KUPON_V2', 'SURVEY_OPEN_V1', 'SURVEY_OPEN_V2', 'TARGET_V1', 'TARGET_V2', 'LINK_V1', 'LINK_V2', 'API_KEY', 'TUTUP_V1', 'TUTUP_V2', 'PERIODE_KE', 'PERIODE_TAHUN', 'PERIODE_LIST', 'RONDE_SURVEI', 'IG_POST_GIVEAWAY', 'IG_MIN_TAG', 'SYARAT_KOMENTAR_WAJIB'];
 // ---------- tukar hadiah ----------
 var KT = null;
 function loadTukar() { $('kt-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminKatalog').then(function (d) { KT = d; ktDraw(); tkDraw(); }); vrLoad(); krLoad(); }
@@ -1438,6 +1444,9 @@ function editSurvey(id) { openBuilder(id); }
 function bDefaults() {
   var g = BDEF.giveaway || {};
 
+  $('b-ai-off').style.display = BDEF.ai ? 'none' : '';
+  $('b-ai-btn').disabled = !BDEF.ai; $('b-ai2').disabled = !BDEF.ai;
+
   if (B && !(B.hadiah || []).some(function (h) { return String(h.nama || '').trim(); })) { B.hadiah = defaultPrizes(); hdRender(); }
 }
 function bFill() {
@@ -1536,7 +1545,7 @@ function imageUpload(file, maxPx, done) {
 [].forEach.call($('b-src').children, function (b) {
   b.onclick = function () {
     [].forEach.call($('b-src').children, function (x) { x.classList.toggle('on', x === b); });
-    ['up', 'paste', 'tpl', 'blank'].forEach(function (m) { if (!$('b-m-' + m)) return; $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
+    ['ai', 'up', 'paste', 'tpl', 'blank'].forEach(function (m) { if (!$('b-m-' + m)) return; $('b-m-' + m).style.display = m === b.dataset.m ? '' : 'none'; });
   };
 });
 function bState() {
@@ -1573,7 +1582,7 @@ function qLabel(q, i) { return 'Pertanyaan ' + (i + 1) + ': ' + String(q.text ||
 function bRender() {
   var qs = B.questions;
   $('b-count').textContent = qs.length ? '(' + qs.length + ')' : '';
-  if (!qs.length) { $('b-qs').innerHTML = '<div class="empty">Belum ada pertanyaan. Upload file pertanyaan, atau klik <b>+ Tambah pertanyaan</b>.</div>'; return; }
+  if (!qs.length) { $('b-qs').innerHTML = '<div class="empty">Belum ada pertanyaan. Minta AI, upload file, tempel daftar pertanyaan, atau klik <b>+ Tambah pertanyaan</b>.</div>'; return; }
   $('b-qs').innerHTML = qs.map(function (q, i) {
     var h = '<div class="bq" data-i="' + i + '"><div class="bq-h"><span class="bq-n">' + (i + 1) + '</span><span class="bq-id">' + esc(q.id) + '</span>' +
       '<select data-f="type">' + BTYPES.map(function (t) { return '<option value="' + t[0] + '"' + (q.type === t[0] ? ' selected' : '') + '>' + t[1] + '</option>'; }).join('') + '</select><span class="sp"></span>' +
@@ -1707,7 +1716,7 @@ function parseText(txt) {
   });
 }
 function bTake(list, append, meta) {
-  if (!list.length) return toast('Tidak ada pertanyaan yang terbaca. Cek formatnya.');
+  if (!list.length) return toast('Tidak ada pertanyaan yang terbaca. Cek formatnya atau pakai Rapikan dengan AI.');
   if (!append && B.questions.length && !confirm('Ganti ' + B.questions.length + ' pertanyaan yang ada dengan ' + list.length + ' pertanyaan baru?')) return;
   if (!append) B.questions = [];
   var idx = [];

@@ -7,10 +7,16 @@ ctx.submitResponse({ sid: 's1', variant: a.id, durasi: 300, answers: { O1: 'Ya, 
 const names = () => { ctx.CUSTOM_MEMO_ = null; ctx.MEMO_ = null; return ctx.surveyList_().map(x => x.name + '[' + x.status + ']').join(' | '); };
 console.log('sebelum:', names());
 global.__viewer = ''; ctx.autoSnapshot(); global.__viewer = 'robert@mildigital.id';
-console.log('sesudah:', names());
+
 const t = ctx.adminTugasStatus()['2026-11-11-hapus-survei-tambahan']; console.log('hasil tugas:', JSON.stringify(t.hasil));
-assert(t.ok); assert.strictEqual(ctx.surveyList_().length, 2);
+assert(t.ok);
 const tab = Object.values(sheets).find(s => /Gaya Berpenampilan/.test(s.name)); console.log('jawaban survei Gaya tetap ada di Sheet:', tab ? tab.d.length - 1 : 0); assert(tab && tab.d.length === 2);
-const hub = ctx.hubList('@baru'); console.log('halaman depan:', (hub.surveys || hub.list || []).map(x => x.name).join(' | '));
-ctx.autoSnapshot(); assert.strictEqual(ctx.surveyList_().length, 2);
+// tugas 2026-11-17 (dijalankan pada trigger yang sama karena berurutan): survei dikembalikan
+const st = ctx.adminTugasStatus(); console.log('kembalikan:', JSON.stringify(st['2026-11-17-kembalikan-survei'] && st['2026-11-17-kembalikan-survei'].hasil));
+console.log('akhir:', names());
+const L = ctx.surveyList_(); assert.strictEqual(L.length, 6);
+const g = L.find(x => /Gaya/.test(x.name)); assert.strictEqual(g.status, 'Dibuka');
+assert.strictEqual(L.find(x => /Konten/.test(x.name)).status, 'Draf');
+assert.strictEqual(tab.d.length, 2);
+ctx.autoSnapshot(); assert.strictEqual(ctx.surveyList_().length, 6);
 console.log('OK tugas_test');

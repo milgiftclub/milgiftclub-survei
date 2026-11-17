@@ -2824,6 +2824,21 @@ var TUGAS_SEKALI = [
     var hasil = []; CUSTOM_MEMO_ = null;
     customSurveys_().forEach(function (c) { if (c.status === 'Diarsipkan') return; try { var r = builderDelete_(c.id); hasil.push(c.name + (r.archived ? ' (diarsipkan)' : ' (dihapus)')); } catch (e) { hasil.push(c.name + ' gagal: ' + e.message); } CUSTOM_MEMO_ = null; });
     return hasil;
+  } },
+  { id: '2026-11-17-kembalikan-survei', run: function () {
+    // batal handover: survei Gaya Berpenampilan, Live Shopping, Promosi (dibuka) & Konten & Hook (draf) dikembalikan. Yang diarsipkan dibuka lagi (jawaban lama tetap tersambung), yang terhapus dibuat ulang dari template.
+    var hasil = [];
+    [['gaya-penampilan', true], ['live-shopping', true], ['promosi', true], ['konten-hook', false]].forEach(function (x) {
+      var t = SURVEY_TEMPLATES[x[0]]; CUSTOM_MEMO_ = null;
+      var ada = customSurveys_().filter(function (c) { return c.name.toLowerCase() === t.name.toLowerCase(); })[0];
+      try {
+        if (ada) { if (ada.status === 'Diarsipkan') { setCustomStatus_(ada.id, x[1] ? 'Dibuka' : 'Draf'); hasil.push(t.name + ' (dibuka lagi dari arsip)'); } else hasil.push(t.name + ' (sudah ada)'); return; }
+        var sch = { name: t.name, intro: t.intro, estimasi: t.estimasi, kupon: t.kupon, target: 300, autoClose: true, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all', questions: templateQs_(t, 'Q') };
+        try { sch.hadiah = (CONFIG.HADIAH_UTAMA ? [{ nama: CONFIG.HADIAH_UTAMA, nilai: '' }] : []).concat((CONFIG.HADIAH || []).map(function (h) { h = String(h || ''); var m = h.match(/Rp\s?([\d.]+)/i); return { nama: h.replace(/\s*Rp\s?[\d.]+\s*/i, ' ').replace(/\s{2,}/g, ' ').trim(), nilai: m ? Number(m[1].replace(/\./g, '')) : '' }; })); } catch (e) {}
+        var r = builderSave_(sch, x[1], 'otomatis'); hasil.push(t.name + ' (' + r.status + ')');
+      } catch (e) { hasil.push(t.name + ' gagal: ' + e.message); }
+    });
+    CUSTOM_MEMO_ = null; return hasil;
   } }
 ];
 /** Pertanyaan template -> pertanyaan survei: id berurutan (prefix + nomor), showIf & {#n} di teks memakai id tsb. */

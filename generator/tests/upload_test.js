@@ -14,6 +14,7 @@ const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= us
   await p.click('nav.side .sv-new'); await p.waitForTimeout(500);
   console.log('tab:', await p.$$eval('#b-src button', e => e.map(x => x.textContent + (x.classList.contains('on') ? '*' : '')).join(' | ')));
   // 1. unduh template
+  await p.click('#b-src button[data-m="up"]'); await p.waitForTimeout(200);
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('text=Unduh template Excel')]);
   const tpl = SP + 'tpl_up.xlsx'; await dl.saveAs(tpl); console.log('template:', dl.suggestedFilename());
   const X = require('xlsx'); const wb = X.readFile(tpl); console.log('sheets:', wb.SheetNames.join(','), '| baris contoh:', X.utils.sheet_to_json(wb.Sheets.Pertanyaan, { header: 1 }).length - 1);

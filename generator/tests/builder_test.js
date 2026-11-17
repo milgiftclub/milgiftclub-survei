@@ -52,13 +52,18 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   await p.screenshot({ path: SP + 'bld_0_kosong.png' });
   await p.fill('#b-name', 'Skincare di TikTok Shop');
   await p.fill('#b-target', '3');
-  await p.evaluate(() => { document.getElementById('b-m-paste').style.display = ''; });
+  await p.click('#b-src button[data-m="paste"]');
   await p.fill('#b-paste', PASTE);
   await p.click('text=Ubah jadi pertanyaan'); await p.waitForTimeout(400);
   log('parsed:', await p.$$eval('#b-qs .bq', els => els.map(e => e.querySelector('select[data-f=type]').value + ':' + e.querySelectorAll('.bo').length)).then(x => x.join(' ')));
   // logika: Q3 hanya muncul jika Q2 memilih TikTok Shop
   await p.selectOption('#b-qs .bq[data-i="2"] select[data-l="q"]', 'Q2'); await p.waitForTimeout(200);
   await p.selectOption('#b-qs .bq[data-i="2"] select[data-l="val"]', 'TikTok Shop'); await p.waitForTimeout(200);
+  // AI tambahan (append)
+  await p.click('#b-src button[data-m="ai"]');
+  await p.fill('#b-brief', 'Kepuasan pengiriman skincare');
+  await p.check('#b-append'); await p.click('#b-ai-btn'); await p.waitForTimeout(800);
+  log('after AI:', await p.$$eval('#b-qs .bq', els => els.length), 'questions | AI prompt has brief:', /Kepuasan pengiriman/.test(JSON.parse(global.__aiReq.payload).messages[0].content));
   // manual: tambah 1 pertanyaan lewat tombol
   await p.click('button:has-text("+ Tambah pertanyaan")'); await p.waitForTimeout(200);
   await p.fill('#b-qs .bq:last-child [data-f="text"]', 'Apa saran Anda untuk pengiriman?'); await p.locator('#b-qs .bq:last-child [data-f="text"]').dispatchEvent('change');
