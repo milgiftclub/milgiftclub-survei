@@ -1,6 +1,6 @@
 // Uji: isi terlalu cepat -> peringatan -> ulangi; bila tetap asal -> tidak valid
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const qs = [1, 2, 3, 4, 5, 6].map(i => ({ id: 'Q' + i, text: 'Pertanyaan ' + i + '?', type: 'single', options: [{ t: 'Satu' }, { t: 'Dua' }, { t: 'Tiga' }] }));
 const cs = ctx.adminBuilderSave({ name: 'Survei Cepat', target: 50, profile: false, questions: qs }, true); ctx.adminBuilderStatus(cs.id, 'Dibuka');
 const root = path.join(__dirname, '../../site');

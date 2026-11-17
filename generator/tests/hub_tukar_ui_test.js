@@ -1,6 +1,6 @@
 // Uji UI penukaran kupon: verifikasi -> data penerima -> konfirmasi; penukaran ke-2 pakai data tersimpan; kirim link konten; admin centang tag -> +1 kupon
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const { makeEnv } = require('./gsmock'); const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { makeEnv } = require('./gsmock'); const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 ctx.adminSaveSettings({ KUPON_V1: 3, KUPON_V2: 3 }); ctx.SET_MEMO_ = null;
 ctx.submitResponse({ sid: 'a1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@ani', Z3: '081211110001' }) });

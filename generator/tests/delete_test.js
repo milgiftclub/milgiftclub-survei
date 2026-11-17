@@ -1,6 +1,6 @@
 // Uji: hapus data uji coba dari Dashboard (dengan arsip), definisi survei tetap ada
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Ya, bersedia', S1: '25-34 tahun', S2: 'Wanita' };
 const r = ctx.adminBuilderSave({ name: 'Survei Tes Hapus', target: 50, questions: [{ id: 'Q1', text: 'A?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true);
 const sub = (sid, v, ig, wa) => ctx.submitResponse({ sid, variant: v, answers: Object.assign({}, base, { Z2: ig, Z3: wa, Q1: 'Ya' }) });

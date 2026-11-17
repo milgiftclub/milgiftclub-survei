@@ -1,6 +1,6 @@
 // Uji: isi data simulasi bertahap lewat fungsi Dashboard, lalu hapus bersih (data asli tetap utuh)
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Ya, bersedia', S1: '25-34 tahun', S2: 'Wanita' };
 ctx.submitResponse({ sid: 'asli1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@asli', Z3: '081211110001' }) });
 ctx.submitResponse({ sid: 'asli2', variant: 'v1', answers: Object.assign({}, base, { Z2: '@asal', Z3: '081211110002', QC1: 'Merah' }) });

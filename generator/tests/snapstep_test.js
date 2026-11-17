@@ -1,6 +1,6 @@
 // Uji: snapshot dibangun bertahap (beberapa eksekusi), snapshot lama tetap terbaca selama proses, hasil akhir = build penuh
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 let st = ctx.adminSimulasiMulai(), n = 0; while (!st.selesai && n++ < 60) st = ctx.adminSimulasiBatch();
 ctx.snapBuild_(); const full = {}; ['summary', 'ct:all', 'rep:all', 'ig', 'ct:v1', 'rep:v2'].forEach(k => { ctx.SNAP_MEMO_ = null; full[k] = JSON.stringify(ctx.snapGet_(k)); });
 const at0 = ctx.snapRead_().meta.at;

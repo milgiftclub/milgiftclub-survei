@@ -1,6 +1,6 @@
 // Uji: simulasi survei contoh Onycha vs Zara (10.000) di atas simulasi 20rb, cabang konsisten, lalu hapus bersih
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const cnt = () => JSON.stringify(Object.fromEntries(Object.entries(sheets).filter(([k]) => /^(Jawaban|Panel|Daftar Blokir|Daftar Survei)/.test(k)).map(([k, v]) => [k, v.d.filter(r => r.some(x => x !== '' && x != null)).length])));
 const before = cnt();
 let st, n = 0, t = Date.now();

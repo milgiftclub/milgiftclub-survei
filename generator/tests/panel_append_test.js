@@ -1,6 +1,6 @@
 // Uji: snapshot lama (tanpa data Panel) -> buka Panel sekali menambahkan data Panel ke snapshot; berikutnya dari snapshot
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 let st = ctx.adminSimulasiMulai(), n = 0; while (!st.selesai && n++ < 60) st = ctx.adminSimulasiBatch();
 ctx.snapBuild_();
 const S = sheets['_Snapshot']; S.d = S.d.filter(r => r[0] !== 'panel' && r[0] !== 'pcols'); ctx.SNAP_MEMO_ = null;

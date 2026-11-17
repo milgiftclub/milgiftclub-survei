@@ -1,5 +1,5 @@
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const { makeEnv } = require('./gsmock'); const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { makeEnv } = require('./gsmock'); const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 ctx.adminPeriodSave([{ ke: 1, tahun: 2026, mulai: '2026-10-01', selesai: '2026-12-31', umumkan: '2027-01-08' }], 'Periode 1 2026'); ctx.SET_MEMO_ = null;
 (async () => {
   const b = await chromium.launch(); const errs = [];

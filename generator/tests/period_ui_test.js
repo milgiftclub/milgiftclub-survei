@@ -19,9 +19,9 @@ for (let d = 25; d >= 0; d--) {
   }
 }
 ctx.markSpeeders(true);
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 console.log('admin?', ctx.isAdmin_(), '| outsider?', ctx.isAdmin_('orang@gmail.com'));
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });

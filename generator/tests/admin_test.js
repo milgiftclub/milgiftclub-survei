@@ -22,9 +22,9 @@ for (let i = 0; i < 25; i++) ctx.logScreenout({ sid: 'x' + i, reason: pick(['Sur
 ctx.submitResponse({ sid:'sx', variant:'v1', durasi: 20, cats: ['Skincare'], answers: { QC1:'Biru', Z2:'@kilat', Z3:'081299990001', S1:'25-34 tahun' } });
 for (let i = 0; i < 12; i++) ctx.submitResponse({ sid: 'r' + i, variant: i % 2 ? 'v2' : 'v1', durasi: 420, cats: ['Tas & aksesori'], prefilled: true, answers: { QC1: 'Biru', Z2: '@user' + (i * 3), Z3: '0812' + String(30000000 + i * 3), Z1: 'Ya, bersedia', S1: '25-34 tahun', S2: 'Wanita', S4: ['Shopee'] } });
 ctx.markSpeeders(true);
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 console.log('admin?', ctx.isAdmin_(), '| outsider?', ctx.isAdmin_('orang@gmail.com'));
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
@@ -70,7 +70,7 @@ fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   console.log('API bad key', JSON.parse(ctx.doGet({ parameter: { api: 'summary', key: 'x' } }).getContent()).error);
   global.__viewer = 'tamu@gmail.com'; try { ctx.adminSummary(); console.log('LEAK!'); } catch (e) { console.log('outsider blocked:', e.message); }
   // hapus data uji coba
-  global.__viewer = 'robert@mildigital.id';
+  global.__viewer = 'admin@mildigital.id';
   await p.locator('nav.side button', { hasText: 'Survei &' }).click(); await p.waitForTimeout(1200);
   const before = ctx.readAll_().length;
   await p.check('#del-all'); await p.check('#del-panel'); await p.fill('#del-ok', 'HAPUS');

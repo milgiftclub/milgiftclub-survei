@@ -1,10 +1,10 @@
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup();
 const SP = (process.env.SHOTS || require('os').tmpdir() + '/') ;
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 let st = ctx.adminSimulasiMulai(), n0 = 0; while (!st.selesai && n0++ < 60) st = ctx.adminSimulasiBatch(); ctx.snapBuild_();
 const calls = []; const origCall = (fn, args) => { const t = Date.now(); let r; try { r = JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { r = JSON.stringify({ err: e.message }); } calls.push(fn + ' ' + (Date.now() - t) + 'ms ' + Math.round(r.length / 1024) + 'KB'); return r; };
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id'); fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id'); fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept('Tidak bisa dihubungi'));

@@ -1,10 +1,10 @@
 // Uji: contoh siap pakai Onycha vs Zara -> publish -> isi di /s/ (cabang showIf)
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const SP = process.env.SHOTS || require('os').tmpdir() + '/', ROOT = path.join(__dirname, '..', '..', 'site');
 (async () => {
   const b = await chromium.launch(), errs = [];
-  const html = fs.readFileSync(path.join(__dirname, '..', 'survey_out', 'Admin.html'), 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'survey_out', 'Admin.html'), 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
   fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   const p = await b.newPage({ viewport: { width: 1440, height: 1000 } }); p.on('pageerror', e => errs.push('admin: ' + e.message)); p.on('dialog', d => d.accept());
   await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });

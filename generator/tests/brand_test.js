@@ -2,7 +2,7 @@
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup();
 const SP = process.env.SHOTS || require('os').tmpdir() + '/', ROOT = path.join(__dirname, '..', '..', 'site');
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 const logo = 'data:image/png;base64,' + fs.readFileSync(SP + 'logo_test.png').toString('base64');
 const lid = ctx.adminImageSave(logo);
 const r = ctx.adminBuilderSave({ name: 'Survei Camilan Pedas', target: 100, brand: { mode: 'client', name: 'Contoh Snack', logo: lid, primary: '#D62828', accent: '#FCBF49', ink: '#3C2A1E', bg: '#FDF1F1', ig: '@contohsnack' },
@@ -20,7 +20,7 @@ const r = ctx.adminBuilderSave({ name: 'Survei Camilan Pedas', target: 100, bran
   await pg.click('#body .opt >> nth=0'); await pg.click('#next'); await pg.waitForTimeout(300);
   console.log('Z2 text:', await pg.$eval('h1', e => e.innerText));
   // dashboard gambar IG
-  const html = fs.readFileSync(path.join(__dirname, '..', 'survey_out', 'Admin.html'), 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'survey_out', 'Admin.html'), 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
   fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   const p = await b.newPage({ viewport: { width: 1440, height: 1000 } }); p.on('pageerror', e => errs.push('admin: ' + e.message)); p.on('dialog', d => d.accept());
   await p.exposeFunction('gsCall', (fn, args) => { try { return JSON.stringify({ ok: ctx[fn](...JSON.parse(args)) }); } catch (e) { return JSON.stringify({ err: e.message }); } });

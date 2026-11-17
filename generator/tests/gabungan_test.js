@@ -1,5 +1,5 @@
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Ya, bersedia', S2: 'Wanita' };
 const sub = (sid, v, ig, wa, x) => ctx.submitResponse({ sid, variant: v, answers: Object.assign({}, base, { Z2: ig, Z3: wa }, x) });
 sub('a1', 'v1', '@ani', '081211110001', { S1: '18-24 tahun' }); sub('a2', 'v2', '@ani', '081211110001', { S1: '25-34 tahun' });

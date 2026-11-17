@@ -1,6 +1,6 @@
 // Uji: tanggal tutup otomatis & periode giveaway (survei utama + survei buatan Dashboard)
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const fmt = (d) => new Date(d.getTime() + 7 * 3600e3).toISOString().slice(0, 16);
 assert.strictEqual(ctx.fmtTutup_('2026-12-31T23:59'), '31 Desember 2026');
 assert.strictEqual(ctx.fmtTutup_('2026-11-05T17:00'), '5 November 2026, 17.00 WIB');

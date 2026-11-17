@@ -27,7 +27,7 @@ console.log('insights:', ins.map(f => f.row + ' x ' + f.col + ': ' + f.title + '
 assert(ins.some(f => f.row === 'B2' && f.col === 'S2'), 'temuan gender x platform');
 assert(ins.some(f => f.row === 'D1' && f.col === 'S1'), 'temuan usia x live');
 // API ATLAS
-global.__viewer = 'robert@mildigital.id'; const key = ctx.adminRegenKey(); ctx.SET_MEMO_ = null;
+global.__viewer = 'admin@mildigital.id'; const key = ctx.adminRegenKey(); ctx.SET_MEMO_ = null;
 const api = (q) => JSON.parse(ctx.doGet({ parameter: Object.assign({ key }, q) }).getContent());
 const q1 = api({ api: 'questions', survei: 'v1' }); assert(q1.ok && q1.data.questions.length > 5);
 const t1 = api({ api: 'crosstab', survei: 'v1', row: 'B2', col: 'S2' }); assert(t1.ok, JSON.stringify(t1));
@@ -35,7 +35,7 @@ const sh = t1.data.lines.find(l => l.name === 'Shopee'); console.log('API crosst
 const i1 = api({ api: 'insights', survei: 'v1' }); assert(i1.ok && i1.data.insights.length >= 2);
 assert(!api({ api: 'crosstab', survei: 'v1', row: 'XX', col: 'S2' }).ok);
 // Dashboard
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });

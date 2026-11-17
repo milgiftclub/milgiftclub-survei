@@ -1,6 +1,6 @@
 // Uji: periode giveaway berbasis tanggal (menu Periode Giveaway), berlaku untuk semua survei
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 const sub = (i, v, qc) => ctx.submitResponse({ sid: 's' + i, variant: v, answers: Object.assign({}, base, { Z2: '@u' + i, Z3: '0812' + String(60000000 + i), QC1: qc || 'Biru' }) });
 const now = new Date(), ymd = d => new Date(d.getTime() + 7 * 36e5).toISOString().slice(0, 10), add = n => ymd(new Date(now.getTime() + n * 864e5));

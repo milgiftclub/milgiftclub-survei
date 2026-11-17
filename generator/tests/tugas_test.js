@@ -1,12 +1,12 @@
 // Uji tugas sekali jalan (trigger): hapus semua survei buatan Dashboard; 2 survei utama tetap; survei yang sudah ada jawaban diarsipkan (data tetap)
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const mk = n => ctx.adminBuilderSave({ name: n, target: 300, questions: [{ text: 'x?', type: 'single', options: [{ t: 'a' }, { t: 'b' }] }] }, true);
 const a = mk('Survei Gaya Berpenampilan'), b = mk('Survei Live Shopping'); mk('Survei Promosi & Diskon'); ctx.adminBuilderSave({ name: 'Survei Konten & Hook Video', questions: [{ text: 'y?', type: 'text' }] }, false);
 ctx.submitResponse({ sid: 's1', variant: a.id, durasi: 300, answers: { O1: 'Ya, saya setuju dan bersedia mengikuti survei', Q1: 'a', Z2: '@ani', Z3: '081211110001', QC1: 'Biru' } });
 const names = () => { ctx.CUSTOM_MEMO_ = null; ctx.MEMO_ = null; return ctx.surveyList_().map(x => x.name + '[' + x.status + ']').join(' | '); };
 console.log('sebelum:', names());
-global.__viewer = ''; ctx.autoSnapshot(); global.__viewer = 'robert@mildigital.id';
+global.__viewer = ''; ctx.autoSnapshot(); global.__viewer = 'admin@mildigital.id';
 
 const t = ctx.adminTugasStatus()['2026-11-11-hapus-survei-tambahan']; console.log('hasil tugas:', JSON.stringify(t.hasil));
 assert(t.ok);

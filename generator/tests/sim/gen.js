@@ -11,7 +11,7 @@ const CITIES = JSON.parse(fs.readFileSync(path.join(__dirname, '../../cities.jso
 const opts = q => (q.options || []).map(o => o.t).filter(Boolean);
 // bobot acak per pertanyaan supaya sebaran tidak rata (lebih mirip data asli)
 const W = {}; const wOf = (id, n) => (W[id + n] = W[id + n] || Array.from({ length: n }, (_, i) => Math.pow(rnd() + 0.15, 2.2) * (1 / (1 + i * 0.25))));
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const cs = ctx.adminBuilderSave({ name: 'Survei Skincare', target: 3000, questions: [
   { id: 'Q1', text: 'Merek skincare apa yang paling sering Anda pakai?', type: 'single', options: ['Wardah', 'Skintific', 'Somethinc', 'Emina', 'Azarine', 'Scarlett', 'The Originote', 'Lainnya'].map(t => ({ t })) },
   { id: 'Q2', text: 'Di mana Anda biasanya membeli skincare?', type: 'multi', options: ['Shopee', 'TikTok Shop', 'Tokopedia', 'Watsons / Guardian', 'Minimarket', 'Official store brand'].map(t => ({ t })) },

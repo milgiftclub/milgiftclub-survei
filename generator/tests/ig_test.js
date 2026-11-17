@@ -14,7 +14,7 @@ const G = (u) => {
 ctx.UrlFetchApp = { fetch: (u) => ({ getContentText: () => JSON.stringify(G(u)), getResponseCode: () => 200 }) };
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 [['rina', 'Biru'], ['dodi', 'Biru'], ['budi', 'Merah'], ['eko', 'Biru']].forEach(([u, qc], i) => ctx.submitResponse({ sid: 's' + i, variant: 'v1', answers: Object.assign({}, base, { Z2: '@' + u, Z3: '08123000000' + i, QC1: qc }) }));
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 let st = ctx.adminIgConnect('USER_TOKEN'); assert(st.connected && st.username === 'milgiftclub');
 ctx.adminSaveSettings({ IG_POST_GIVEAWAY: 'https://www.instagram.com/p/GIVE01/?igsh=abc' });
 st = ctx.adminIgSync(); console.log('sync:', st.lastMsg, '| komentar', st.comments);

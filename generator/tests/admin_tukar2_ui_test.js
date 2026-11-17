@@ -1,5 +1,5 @@
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id'; const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/';
+const { makeEnv } = require('./gsmock'); const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id'; const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/';
 let st = ctx.adminSimulasiMulai(); while (!st.selesai) st = ctx.adminSimulasiBatch(); ctx.snapBuild_();
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 ctx.adminSaveSettings({ KUPON_V1: 3, KUPON_V2: 3 }); ctx.SET_MEMO_ = null;
@@ -8,7 +8,7 @@ const kk = ctx.adminKatalog().katalog; ctx.adminKatalogSave(kk.map((x, i) => Obj
 const P = { nama: 'Nadia Putri', hp: '081233330001', alamat: 'Jl. Riau No. 21, RT 03/RW 05, Citarum, Bandung Wetan', kota: 'Kota Bandung', kodepos: '40115' };
 console.log(JSON.stringify(ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, P)).slice(0, 80));
 const r2 = ctx.tukarKupon('@nadia', '0001', ctx.adminKatalog().katalog[0].id, 'tersimpan'); const row2 = ctx.adminKatalog().tukar.find(x => x.id_penukaran === r2.id); ctx.adminTukarStatus(row2._row, 'Dikirim', '', null); ctx.kirimTagLink('@nadia', '0001', r2.id, 'https://www.instagram.com/p/NADIA1/');
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });

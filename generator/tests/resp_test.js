@@ -7,8 +7,8 @@ for (let i = 0; i < 30; i++) {
   ctx.submitResponse({ sid: 's' + i, variant: v, cats: ['Skincare'], answers: { QC1: i % 5 === 0 ? 'Merah' : 'Biru', Z2: '@u' + i, Z3: '0812' + String(50000000 + i), Z1: 'Tidak', S1: i % 2 ? '25-34 tahun' : '18-24 tahun', S2: v === 'v2' ? 'Wanita' : 'Pria', A1: 'Kota Bandung' } });
   const T = sheets[v === 'v2' ? 'Jawaban - Fashion Tas Hijab' : 'Jawaban - Semua Kategori'].d; T[T.length - 1][0] = new Date(Date.UTC(2026, 9, 1 + (i % 10), 5));
 }
-global.__viewer = 'robert@mildigital.id';
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+global.__viewer = 'admin@mildigital.id';
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });

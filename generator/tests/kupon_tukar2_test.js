@@ -1,6 +1,6 @@
 // Uji: data penerima tersimpan, kupon hangus 6 bulan (FIFO), batas kirim 10 hari kerja, link konten tag -> bonus kupon, rekap saldo
 const { makeEnv } = require('./gsmock'); const assert = require('assert');
-const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { ctx, sheets } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 ctx.adminSaveSettings({ KUPON_V1: 3, KUPON_V2: 2 }); ctx.SET_MEMO_ = null;
 ctx.submitResponse({ sid: 'b1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@budi', Z3: '081299990011' }) });

@@ -1,7 +1,7 @@
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const load = require('./sim/load'); const { ctx, sheets } = load(); const SP = '/tmp/claude-0/-home-claude/50b0d3e0-1ee4-51c7-ac80-d59da6a08266/scratchpad/sim/'; fs.mkdirSync(SP, { recursive: true });
 ctx.adminPanelSave('Wanita 18-34', [{ col: 'jenis_kelamin', op: 'adalah', val: ['Wanita'] }, { col: 'usia', op: 'adalah', val: ['18-24 tahun', '25-34 tahun'] }]); ctx.SET_MEMO_ = null;
-const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+const html = fs.readFileSync('../survey_out/Admin.html', 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
 fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1360, height: 900 } });

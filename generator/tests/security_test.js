@@ -19,7 +19,7 @@ assert.strictEqual(r.data.ok, false); assert(/Terlalu banyak/.test(r.data.msg));
 r = api('verifyProfile', ['@ani', '0001']); console.log('profil lama juga terkunci:', JSON.stringify(r.data)); assert.strictEqual(r.data.ok, false);
 // 4. resi tersembunyi tanpa verifikasi
 ctx.CacheService.getScriptCache().remove('gagal4:ani');
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 const kat = ctx.adminKatalog().katalog; ctx.adminKatalogSave(kat.map((x, i) => Object.assign({}, x, i === 0 ? { kupon: 1 } : {})));
 const P = { nama: 'Ani Lestari', hp: '081211110001', alamat: 'Jl. Merdeka No. 10, RT 01/RW 02, Babakan', kota: 'Kota Bandung', kodepos: '40115' };
 r = ctx.tukarKupon('@ani', '0001', ctx.adminKatalog().katalog[0].id, P); assert(r.ok);
@@ -30,7 +30,7 @@ r = api('tukarSaya', ['@ani', '0001']).data; console.log('setelah verifikasi -> 
 // 5. rumus di data penerima & tanda kecurangan
 ctx.submitResponse({ sid: 'c1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@ani2', Z3: '081299990002' }) });
 r = ctx.tukarKupon('@ani2', '0002', ctx.katalog_()[0].id, Object.assign({}, P, { nama: '=HYPERLINK("http://evil")' })); assert(r.ok, r.msg);
-global.__viewer = 'robert@mildigital.id';
+global.__viewer = 'admin@mildigital.id';
 const PH = sheets['Penukaran Hadiah'].d, nm = PH[2][ctx.TUKAR_COLS.indexOf('nama_penerima')]; console.log('nama penerima tersimpan:', nm); assert(/^'=/.test(nm));
 const t2 = ctx.adminKatalog().tukar.find(x => x.instagram === '@ani2'); console.log('tanda cek:', JSON.stringify(t2.cek)); assert(t2.cek.some(x => /No\. HP/.test(x)) && t2.cek.some(x => /Alamat/.test(x)));
 console.log('OK security_test');

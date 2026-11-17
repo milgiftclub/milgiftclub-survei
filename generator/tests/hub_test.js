@@ -1,6 +1,6 @@
 // Uji halaman depan: setuju -> username IG -> daftar survei (yang sudah diisi abu-abu) -> masuk survei tanpa mengulang persetujuan
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
-const { makeEnv } = require('./gsmock'); const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'robert@mildigital.id';
+const { makeEnv } = require('./gsmock'); const { ctx } = makeEnv(); ctx.setup(); global.__viewer = 'admin@mildigital.id';
 const base = { O1: 'Ya, saya setuju dan bersedia mengikuti survei', QC1: 'Biru', Z1: 'Tidak', S1: '25-34 tahun', S2: 'Wanita' };
 ctx.submitResponse({ sid: 'a1', variant: 'v1', answers: Object.assign({}, base, { Z2: '@ani', Z3: '081211110001' }) });
 const cs = ctx.adminBuilderSave({ name: 'Survei Skincare', target: 50, questions: [{ id: 'Q1', text: 'A?', type: 'single', options: [{ t: 'Ya' }, { t: 'Tidak' }] }] }, true); ctx.adminBuilderStatus(cs.id, 'Dibuka');

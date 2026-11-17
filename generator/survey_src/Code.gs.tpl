@@ -219,7 +219,7 @@ function doGet(e) {
   // (Google kadang membuang ?page=admin saat pindah akun/login, jadi jangan bergantung pada parameter saja)
   var path = String((e && e.pathInfo) || '').toLowerCase();
   if (prm.page === 'admin' || path === 'admin') return adminPage_();
-  if (prm.page !== 'survei' && !prm.survei && !prm.id && isAdmin_()) return adminPage_();
+  if (prm.page !== 'survei' && !prm.survei && !prm.id && (isAdmin_() || inDomain_(viewer_()))) return adminPage_();
   // halaman survei = versi website (Web_*.html), disajikan langsung dari link Apps Script
   var sv = String(prm.survei || '').toLowerCase(), cid = prm.id || (sv && sv !== 'v1' && sv !== 'v2' ? prm.survei : '');
   var file = cid ? 'Web_s' : sv === 'v2' ? 'Web_v2' : 'Web_v1', q = (e && e.queryString) || '';
@@ -1142,21 +1142,75 @@ function normIg_(x) { return String(x || '').trim().toLowerCase().replace(/^@/, 
 // ====== DASHBOARD ADMIN (login akun Google @mildigital.id) ======
 // =====================================================================
 function viewer_() { try { return String(Session.getActiveUser().getEmail() || '').toLowerCase(); } catch (e) { return ''; } }
-function isAdmin_(email) {
-  email = email || viewer_(); if (!email) return false;
-  var dom = String(set_('ADMIN_DOMAIN') || '').toLowerCase().replace(/^@/, '');
-  var extra = String(set_('ADMIN_EMAIL_TAMBAHAN') || '').toLowerCase().split(/[,\s]+/).filter(String);
-  return (dom && email.slice(-(dom.length + 1)) === '@' + dom) || extra.indexOf(email) >= 0;
+// ---------- akses & peran ----------
+// Peran: admin (semua), survei (buat/edit survei + baca data), baca (lihat data saja).
+// Pemilik (akun yang men-deploy web app) selalu admin. Selama daftar "Akses Dashboard" masih kosong, semua akun @domain = admin (mode lama).
+var AKSES_TAB = 'Akses Dashboard', AKSES_COLS = ['email', 'peran', 'ditambahkan_oleh', 'tanggal'];
+var PERAN_LV = { admin: 3, survei: 2, baca: 1 };
+var PERAN_LABEL = { admin: 'Admin', survei: 'Buat survei & baca data', baca: 'Baca data saja' };
+function ownerEmail_() { try { return String(Session.getEffectiveUser().getEmail() || '').toLowerCase(); } catch (e) { return ''; } }
+function inDomain_(email) { var dom = String(set_('ADMIN_DOMAIN') || '').toLowerCase().replace(/^@/, ''); return !!(email && dom && email.slice(-(dom.length + 1)) === '@' + dom); }
+function aksesSheet_() { var s = sheet_(AKSES_TAB); if (!s) { s = ss_().insertSheet(AKSES_TAB); s.getRange(1, 1, 1, AKSES_COLS.length).setValues([AKSES_COLS]).setFontWeight('bold'); } return s; }
+function aksesList_() {
+  return memo_('akses', function () {
+    var s = sheet_(AKSES_TAB); if (!s || s.getLastRow() < 2) return [];
+    return s.getRange(2, 1, s.getLastRow() - 1, AKSES_COLS.length).getValues().map(function (r, i) {
+      return { _row: i + 2, email: String(r[0] || '').trim().toLowerCase(), peran: PERAN_LV[String(r[1] || '').trim().toLowerCase()] ? String(r[1]).trim().toLowerCase() : 'baca', oleh: String(r[2] || ''), tanggal: r[3] };
+    }).filter(function (x) { return x.email; });
+  });
 }
-function requireAdmin_() { CUSTOM_NOCACHE_ = true; if (!isAdmin_()) throw new Error('Akses ditolak. Masuk dengan akun @' + set_('ADMIN_DOMAIN') + '.'); return viewer_(); }
+function roleOf_(email) {
+  email = String(email || '').toLowerCase(); if (!email) return '';
+  if (email === ownerEmail_()) return 'admin';
+  var l = aksesList_(), m = l.filter(function (x) { return x.email === email; })[0]; if (m) return m.peran;
+  var extra = String(set_('ADMIN_EMAIL_TAMBAHAN') || '').toLowerCase().split(/[,\s]+/).filter(String);
+  if (extra.indexOf(email) >= 0) return 'admin';
+  if (!l.length && inDomain_(email)) return 'admin';   // mode lama: belum ada daftar akses
+  return '';
+}
+function isAdmin_(email) { return !!roleOf_(email || viewer_()); }   // = boleh membuka Dashboard (peran apa pun)
+function requireAdmin_(need) {
+  CUSTOM_NOCACHE_ = true; var email = viewer_(), role = roleOf_(email);
+  if (!role) throw new Error('Akses ditolak. Akun ini belum diberi akses ke Dashboard. Minta admin menambahkan akunmu di menu Akses Pengguna.');
+  if (PERAN_LV[role] < PERAN_LV[need || 'admin']) throw new Error('Akses ditolak. Akunmu hanya punya akses "' + PERAN_LABEL[role] + '".');
+  return email;
+}
+function adminMe() { var e = requireAdmin_('baca'); return { email: e, peran: roleOf_(e), label: PERAN_LABEL[roleOf_(e)] }; }
+function adminAkses() {
+  var who = requireAdmin_('admin'), own = ownerEmail_();
+  return { saya: who, pemilik: own, modeLama: !aksesList_().length, domain: String(set_('ADMIN_DOMAIN') || ''), label: PERAN_LABEL,
+    list: aksesList_().map(function (x) { return { email: x.email, peran: x.peran, label: PERAN_LABEL[x.peran], oleh: x.oleh, tanggal: x.tanggal ? Utilities.formatDate(new Date(x.tanggal), 'Asia/Jakarta', 'yyyy-MM-dd') : '' }; }) };
+}
+function adminAksesSimpan(email, peran) {
+  var who = requireAdmin_('admin'); email = String(email || '').trim().toLowerCase(); peran = String(peran || '').toLowerCase();
+  if (!/^[^\s@=+\-]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email tidak valid.');
+  if (!PERAN_LV[peran]) throw new Error('Peran tidak dikenal.');
+  if (email === ownerEmail_()) throw new Error('Pemilik Dashboard selalu Admin.');
+  if (email === who && peran !== 'admin') throw new Error('Kamu tidak bisa menurunkan akses akunmu sendiri.');
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var s = aksesSheet_(), l = aksesList_(), now = new Date();
+    // daftar pertama kali dibuat: admin yang sedang login ikut dicatat supaya tidak terkunci
+    if (!l.length && who !== ownerEmail_() && email !== who) s.appendRow([who, 'admin', who, now]);
+    var m = l.filter(function (x) { return x.email === email; })[0];
+    if (m) s.getRange(m._row, 2, 1, 3).setValues([[peran, who, now]]); else s.appendRow([email, peran, who, now]);
+  } finally { lock.releaseLock(); }
+  if (MEMO_) delete MEMO_.akses; return adminAkses();
+}
+function adminAksesHapus(email) {
+  var who = requireAdmin_('admin'); email = String(email || '').trim().toLowerCase();
+  if (email === who) throw new Error('Kamu tidak bisa menghapus akses akunmu sendiri.');
+  var m = aksesList_().filter(function (x) { return x.email === email; })[0]; if (!m) throw new Error('Akun tidak ditemukan.');
+  aksesSheet_().deleteRow(m._row); if (MEMO_) delete MEMO_.akses; return adminAkses();
+}
 
 function adminPage_() {
-  var email = viewer_();
-  if (!isAdmin_(email)) {
-    return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;max-width:480px;margin:80px auto;text-align:center"><h2>Akses ditolak</h2><p>Dashboard MIL Gift Club hanya bisa dibuka dengan akun Google <b>@' + set_('ADMIN_DOMAIN') + '</b>.</p><p style="color:#888">Akun saat ini: ' + (email || 'tidak terdeteksi') + '</p></div>').setTitle('Dashboard MIL Gift Club');
+  var email = viewer_(), role = roleOf_(email);
+  if (!role) {
+    return HtmlService.createHtmlOutput('<div style="font-family:sans-serif;max-width:480px;margin:80px auto;text-align:center"><h2>Akses ditolak</h2><p>' + (inDomain_(email) ? 'Akun ini belum diberi akses ke Dashboard MIL Gift Club. Minta admin menambahkan akunmu di menu <b>Akses Pengguna</b>.' : 'Dashboard MIL Gift Club hanya bisa dibuka dengan akun Google <b>@' + set_('ADMIN_DOMAIN') + '</b> yang sudah diberi akses.') + '</p><p style="color:#888">Akun saat ini: ' + (email || 'tidak terdeteksi') + '</p></div>').setTitle('Dashboard MIL Gift Club');
   }
   var t = HtmlService.createTemplateFromFile('Admin');
-  t.userEmail = email;
+  t.userEmail = email; t.userRole = role; t.userRoleLabel = PERAN_LABEL[role];
   return t.evaluate().setTitle('Dashboard MIL Gift Club').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 function openDashboard() {
@@ -1239,7 +1293,7 @@ function summaryData_(per) {
   return out;
 }
 function adminSummary(per) {
-  requireAdmin_(); ensureSnapTrigger_(); try { tugasJadwal_(); } catch (e) {}
+  requireAdmin_('baca'); ensureSnapTrigger_(); try { tugasJadwal_(); } catch (e) {}
   var sn = snapRead_(), act = activePeriode_(null);
   if (sn && sn.meta.active === act && (per == null || per === act)) {
     var d = snapGet_('summary'), now = surveyList_().map(function (x) { return x.v + x.status; }).join(',');
@@ -1258,12 +1312,12 @@ function adminSummary(per) {
   }
   return cached_(function () { var d = adminSummaryRaw_(per); d.snapAt = sn ? sn.meta.at : ''; return d; });
 }
-function adminSummaryRaw_(per) { requireAdmin_(); if (per == null) per = activePeriode_(null); var d = summaryData_(per); d.periode = per; d.periods = periods_().map(function (p) { return p.label; }); d.activePeriod = activePeriode_(null); return d; }
+function adminSummaryRaw_(per) { requireAdmin_('baca'); if (per == null) per = activePeriode_(null); var d = summaryData_(per); d.periode = per; d.periods = periods_().map(function (p) { return p.label; }); d.activePeriod = activePeriode_(null); return d; }
 
 var LIST_COLS = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1', 'kategori_1', 'L1_PT1', 'L1_PT2', 'durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'session_id'];
 /** Daftar jawaban satu survei (kolom ringkas). */
 function adminResponses(v) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var all = v === 'all';
   var rows = readAll_().filter(function (r) { return all || r._v === v; }), cols = LIST_COLS, labels = {};
   if (all) rows.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
@@ -1310,7 +1364,7 @@ function adminDeleteResponses(o) {
 function dictMap_() { var m = {}; DICTIONARY.forEach(function (d) { m[d[0]] = d; }); return m; }
 /** Semua jawaban satu responden, lengkap dengan teks pertanyaan. */
 function adminResponseDetail(v, sid) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var r = readAll_().filter(function (x) { return x._v === v && x.session_id === sid; })[0];
   if (!r) return null;
   var dm = dictMap_(), skip = { _tab: 1, _v: 1, _row: 1 }, out = [];
@@ -1371,11 +1425,11 @@ function panelColumns_(pd) {
     return { col: col, src: src, label: lab.charAt(0).toUpperCase() + lab.slice(1), type: type, opts: type === 'text' || type === 'num' ? [] : opts.map(function (o) { return [o, cnt[o] || 0]; }) };
   });
 }
-function adminPanelColumns() { requireAdmin_(); var sn = snapRead_(), c = sn ? snapGet_('pcols') : null; return c || panelColumns_(); }
-function adminPanelSearch(crit) { requireAdmin_(); var m = panelMatch_(crit); return { cols: m.cols, rows: m.rows }; }
+function adminPanelColumns() { requireAdmin_('baca'); var sn = snapRead_(), c = sn ? snapGet_('pcols') : null; return c || panelColumns_(); }
+function adminPanelSearch(crit) { requireAdmin_('baca'); var m = panelMatch_(crit); return { cols: m.cols, rows: m.rows }; }
 /** Halaman Panel: semua yang dibutuhkan dalam SATU panggilan (dari snapshot, terkompresi). Penyaringan dilakukan di browser. */
 function adminPanelData() {
-  requireAdmin_();
+  requireAdmin_('baca');
   var sn = snapRead_(), pk = sn ? snapPacked_('panel') : null, pc = sn ? snapGet_('pcols') : null, wa = sn ? snapPacked_('wa:all') : null;
   if (!pk || !pc) {
     var pd = panelDataLive_(); pk = snapPack_(pd); pc = panelColumns_(pd);
@@ -1391,20 +1445,20 @@ function panelMatch_(crit, live) {
 }
 // ====== PANEL TERSIMPAN ======
 function panelSavedRaw_() { try { return JSON.parse(String(set_('PANEL_TERSIMPAN') || '[]')) || []; } catch (e) { return []; } }
-function panelSavedSave_(l) { adminSaveSettings({ PANEL_TERSIMPAN: JSON.stringify(l) }); SET_MEMO_ = null; }
+function panelSavedSave_(l) { saveSettings_({ PANEL_TERSIMPAN: JSON.stringify(l) }); SET_MEMO_ = null; }
 function adminPanelSaved() {
-  requireAdmin_();
+  requireAdmin_('baca');
   return cached_(function () { return panelSavedRaw_().map(function (x) { var n = 0; try { n = panelMatch_(x.crit).rows.length; } catch (e) {} return { id: x.id, name: x.name, crit: x.crit, n: n, oleh: x.oleh, diubah: x.diubah }; }); });
 }
 function adminPanelSave(name, crit, id) {
-  var who = requireAdmin_(); name = String(name || '').trim(); if (!name) throw new Error('Beri nama panel dulu.');
+  var who = requireAdmin_('survei'); name = String(name || '').trim(); if (!name) throw new Error('Beri nama panel dulu.');
   var l = panelSavedRaw_(), cur = id ? l.filter(function (x) { return x.id === id; })[0] : null;
   if (l.some(function (x) { return x.name.toLowerCase() === name.toLowerCase() && (!cur || x.id !== cur.id); })) throw new Error('Nama panel "' + name + '" sudah dipakai.');
   if (!cur) { cur = { id: 'pn' + Date.now().toString(36) }; l.push(cur); }
   cur.name = name; cur.crit = crit || []; cur.oleh = who; cur.diubah = fmt_(new Date());
   panelSavedSave_(l); return { id: cur.id, list: adminPanelSaved() };
 }
-function adminPanelDelete(id) { requireAdmin_(); panelSavedSave_(panelSavedRaw_().filter(function (x) { return x.id !== id; })); return adminPanelSaved(); }
+function adminPanelDelete(id) { requireAdmin_('survei'); panelSavedSave_(panelSavedRaw_().filter(function (x) { return x.id !== id; })); return adminPanelSaved(); }
 function panelSet_(crit) {
   var m = panelMatch_(crit), i = m.cols.indexOf('nomor_hp'), set = {}, n = 0;
   m.rows.forEach(function (r) { var k = waKey_(r[i]); if (k && !set[k]) { set[k] = 1; n++; } });
@@ -1416,14 +1470,14 @@ function adminPanelInsight(crit, v) { return cached_(function () { return adminP
 /** Kriteria panel -> id pertanyaan yang tidak dihitung sebagai pembeda (termasuk turunannya). */
 function panelCritSrc_(crit) { var src = {}; PANEL_COLS.forEach(function (c) { if (c[1]) src[c[0]] = c[1]; }); return CT_LIB.critSrc(crit, src); }
 function adminPanelInsightRaw_(crit, v) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var snapAll = snapGet_('ct:all'), cd = snapAll ? { qs: snapAll.qs, data: snapAll.data, meta: snapAll.meta, _wa: snapGet_('wa:all') } : ctDataAll_('Valid', null, null, true);
   var ps = panelSet_(crit), seg = cd._wa.map(function (k) { return !!ps.set[k]; });
   var d = CT_LIB.panelInsight(cd, seg, panelCritSrc_(crit)); d.nPanel = ps.n; d.survei = 'Semua survei (gabungan)'; return d;
 }
 /** Versi cepat: hanya nomor baris anggota panel di snapshot; perhitungan insight dilakukan di browser. */
 function adminPanelRows(crit) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var sn = snapRead_(), wa = sn ? snapGet_('wa:all') : null; if (!wa) return { fallback: true };
   var ps = panelSet_(crit), rows = []; wa.forEach(function (k, i) { if (ps.set[k]) rows.push(i); });
   return { rows: rows, nPanel: ps.n, crit: panelCritSrc_(crit), snapAt: sn.meta.at };
@@ -1489,7 +1543,7 @@ function rowsInPeriod_(rows, per) { return per ? rows.filter(function (r) { retu
 /** Menu Periode Giveaway */
 function adminPeriods() { return cached_(function () { return adminPeriodsRaw_(); }); }
 function adminPeriodsRaw_() {
-  requireAdmin_();
+  requireAdmin_('baca');
   var cnt = {}; readAll_().forEach(function (r) { if (r.status === 'Valid') { var p = periodeOf_(r); cnt[p] = (cnt[p] || 0) + 1; } });
   var act = activePeriode_(null);
   return { active: act, list: periods_().map(function (p) { p.valid = cnt[p.label] || 0; p.aktif = p.label === act; return p; }) };
@@ -1596,8 +1650,10 @@ function adminSettings() {
   var s = settings_();
   return { surveys: surveyList_(), list: SET_DEFAULTS.map(function (d) { return { key: d[0], val: String(s[d[0]] == null ? '' : s[d[0]]), note: d[2] }; }), execUrl: ScriptApp.getService().getUrl() };
 }
-function adminSaveSettings(obj) {
-  var who = requireAdmin_(), s = sheet_(SH.SET);
+function adminSaveSettings(obj) { requireAdmin_(); saveSettings_(obj); return adminSettings(); }
+/** Menulis pengaturan tanpa cek peran (dipanggil fungsi yang sudah dicek aksesnya). */
+function saveSettings_(obj) {
+  var s = sheet_(SH.SET);
   var keys = s.getRange(2, 1, s.getLastRow() - 1, 1).getValues().map(function (r) { return r[0]; });
   Object.keys(obj || {}).forEach(function (k) {
     if (k === 'ADMIN_DOMAIN' && !String(obj[k]).trim()) return; // jangan sampai semua admin terkunci
@@ -1607,7 +1663,6 @@ function adminSaveSettings(obj) {
     if (/^TUTUP_/.test(k)) cell.setNumberFormat('@').setValue(String(v || '')); else cell.setValue(v);
   });
   SET_MEMO_ = null; cacheDel_('set:all');
-  return adminSettings();
 }
 function adminRegenKey() { requireAdmin_(); var k = Utilities.getUuid().replace(/-/g, ''); adminSaveSettings({ API_KEY: k }); return k; }
 function adminRunTask(name) {
@@ -1730,7 +1785,7 @@ function ctDataAll_(status, rg, panelId, withWa) {
     meta: { panel: pnl, n: pid.length, first: f, last: l, gabungan: true, status: (status === 'all' ? 'Semua jawaban' : 'Hanya jawaban valid') + ' · gabungan semua survei (profil: 1 orang dihitung 1×, jawaban terbaru; pertanyaan lain per survei)' } };
 }
 function adminCrosstab(v, status, rg, panelId) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var pid = panelId || (/^panel:/.test(v) ? v.slice(6) : null), key = 'ct:' + (pid ? 'all' : v), sn = status !== 'all' && !timeRange_(rg) ? snapRead_() : null;
   if (sn && snapPacked_(key)) {
     var out = { packed: snapPacked_(key), snapAt: sn.meta.at };
@@ -1740,7 +1795,7 @@ function adminCrosstab(v, status, rg, panelId) {
   return cached_(function () { return adminCrosstabRaw_(v, status, rg, panelId); });
 }
 function adminCrosstabRaw_(v, status, rg, panelId) {
-  requireAdmin_();
+  requireAdmin_('baca');
   if (/^panel:/.test(v)) { panelId = v.slice(6); v = 'all'; }   // sumber data = panel tersimpan (semua survei, anggota panel saja)
   var d = v === 'all' ? ctDataAll_(status, rg, panelId) : ctData_(v, status, rg, panelId), g = timeRange_(rg); d.meta.range = g ? g.label : 'Semua waktu'; return d; }
 function ctIdx_(d, id) { for (var i = 0; i < d.qs.length; i++) if (d.qs[i].id === id) return i; throw new Error('Pertanyaan tidak ditemukan: ' + id + '. Lihat daftar di ?api=questions'); }
@@ -1966,7 +2021,7 @@ function apiGet_(p) {
 }
 /** Semua kolom satu survei untuk diunduh (CSV) dari Dashboard. */
 function adminExport(v) {
-  requireAdmin_();
+  requireAdmin_('baca');
   if (v === 'all') {   // semua survei: gabungan kolom, ditambah kolom survei asal
     var rs = readAll_(), cols = ['survei'];
     rs.forEach(function (r) { Object.keys(r).forEach(function (k) { if (k.charAt(0) !== '_' && cols.indexOf(k) < 0) cols.push(k); }); });
@@ -2067,7 +2122,7 @@ function getSurvey(id, preview) {
 
 // ---- fungsi Dashboard (Buat survei) ----
 function adminBuilderList() {
-  requireAdmin_(); CUSTOM_MEMO_ = null;
+  requireAdmin_('baca'); CUSTOM_MEMO_ = null;
   var rows = readAll_();
   return customSurveys_().map(function (c) {
     var mine = rows.filter(function (r) { return r._v === c.id; });
@@ -2075,19 +2130,19 @@ function adminBuilderList() {
   });
 }
 function adminBuilderGet(id) {
-  requireAdmin_(); CUSTOM_MEMO_ = null;
+  requireAdmin_('survei'); CUSTOM_MEMO_ = null;
   var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
   var n = 0; try { var s = sheet_(c.tab); n = s ? Math.max(0, s.getLastRow() - 1) : 0; } catch (e) {}
   return { id: c.id, status: c.status, link: customLink_(c.id), responses: n, schema: c.schema };
 }
 function adminBuilderDefaults() {
-  requireAdmin_();
+  requireAdmin_('survei');
   var mp = mainPeriode_('v1');
   return { giveaway: { periodeLabel: mp.label, periodeKe: mp.periodeKe, tahun: mp.tahun, tutup: inputDate_(set_('TUTUP_V1')), hadiahUtama: CONFIG.HADIAH_UTAMA, hadiah: CONFIG.HADIAH || [], periode: mp.periode, announce: mp.announce, ig: CONFIG.IG_HANDLE, langkah: CONFIG.LANGKAH_PENUTUP || [] }, ai: !!String(set_('ANTHROPIC_API_KEY') || '').trim(), linkBase: String(set_('LINK_SURVEI_BARU') || '') };
 }
 /** Simpan rancangan. publish=true -> status Dibuka & tab jawaban dibuat. */
 function adminBuilderSave(sch, publish) {
-  var who = requireAdmin_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  var who = requireAdmin_('survei'), lock = LockService.getScriptLock(); lock.waitLock(20000);
   try { return builderSave_(sch, publish, who); } finally { lock.releaseLock(); }
 }
 function builderSave_(sch, publish, who) {
@@ -2121,11 +2176,11 @@ function builderSave_(sch, publish, who) {
   }
 }
 function adminBuilderStatus(id, status) {
-  requireAdmin_();
+  requireAdmin_('survei');
   if (['Dibuka', 'Ditutup', 'Draf', 'Diarsipkan'].indexOf(status) < 0) throw new Error('Status tidak dikenal');
   setCustomStatus_(id, status); return { ok: true };
 }
-function adminBuilderDelete(id) { requireAdmin_(); return builderDelete_(id); }
+function adminBuilderDelete(id) { requireAdmin_('survei'); return builderDelete_(id); }
 function builderDelete_(id) {
   CUSTOM_MEMO_ = null;
   var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
@@ -2138,7 +2193,7 @@ function builderDelete_(id) {
 
 /** Menyusun pertanyaan dengan Claude. mode 'brief' = dari tujuan riset, 'parse' = merapikan daftar pertanyaan yang ditempel. */
 function adminAi(text, mode, n) {
-  requireAdmin_();
+  requireAdmin_('survei');
   var key = String(set_('ANTHROPIC_API_KEY') || '').trim();
   if (!key) throw new Error('Fitur AI belum aktif. Isi ANTHROPIC_API_KEY di Survei & Pengaturan > Pengaturan lain.');
   var fmt = 'Balas HANYA dengan JSON valid (tanpa teks lain, tanpa ```), format:\n' +
@@ -2177,7 +2232,7 @@ function izinkanAkses() {
 // ---- Foto hadiah (untuk gambar IG). Disimpan di tab "Gambar Hadiah", dipotong per sel. ----
 var IMG_TAB = 'Gambar Hadiah';
 function adminImageSave(dataUrl) {
-  var who = requireAdmin_();
+  var who = requireAdmin_('survei');
   dataUrl = String(dataUrl || '');
   if (!/^data:image\/(png|jpeg|webp);base64,/.test(dataUrl)) throw new Error('Format gambar tidak dikenali');
   if (dataUrl.length > 1500000) throw new Error('Gambar terlalu besar. Pakai gambar yang lebih kecil.');
@@ -2188,7 +2243,7 @@ function adminImageSave(dataUrl) {
   s.appendRow([id, new Date(), who].concat(parts));
   return id;
 }
-function adminImageGet(ids) { requireAdmin_(); return imageData_(ids); }
+function adminImageGet(ids) { requireAdmin_('baca'); return imageData_(ids); }
 function imageData_(ids) {
   var s = sheet_(IMG_TAB), out = {}; ids = ids || [];
   if (!s || s.getLastRow() < 2 || !ids.length) return out;
@@ -2219,12 +2274,12 @@ function reportMeta_(v) {
 }
 /** Ringkasan semua pertanyaan satu survei, siap digambar sebagai grafik. opt: {status:'Valid'|'all', col, val} */
 function adminReport(v, opt) {
-  requireAdmin_(); opt = opt || {};
+  requireAdmin_('baca'); opt = opt || {};
   var sn = opt.status !== 'all' && !opt.col && !timeRange_(opt.range) && !/^panel:/.test(v) ? snapRead_() : null;
   if (sn && snapPacked_('rep:' + v)) return { packed: snapPacked_('rep:' + v), snapAt: sn.meta.at };
   return cached_(function () { return adminReportRaw_(v, opt); });
 }
-function adminReportRaw_(v, opt) { requireAdmin_(); if (/^panel:/.test(v)) return adminReportAll_(opt, v.slice(6)); return v === 'all' ? adminReportAll_(opt) : adminReportCore_(v, opt); }
+function adminReportRaw_(v, opt) { requireAdmin_('baca'); if (/^panel:/.test(v)) return adminReportAll_(opt, v.slice(6)); return v === 'all' ? adminReportAll_(opt) : adminReportCore_(v, opt); }
 /** Laporan gabungan semua survei: 1 orang dihitung 1x, jawaban terbaru per pertanyaan (pertanyaan pilihan saja). */
 function adminReportAll_(opt, panelId) {
   opt = opt || {};
@@ -2348,7 +2403,7 @@ function answerCols_() {   // kolom jawaban pilihan (untuk saringan "jawaban di 
 }
 /** Daftar orang unik + saringan. f: {q, minSurveys, survey, contact, gender, age, prov, aCol:{v,col}, aVal} */
 function adminPeople(f) {
-  requireAdmin_(); f = f || {};
+  requireAdmin_('baca'); f = f || {};
   var idx = peopleIndex_(), b = blokData_(), blk = {}, won = {}, w = sheet_(SH.WIN);
   b.v.forEach(function (r) { var st = r[b.c('status')]; if (/Diblokir|Suspend/.test(st)) { var ig = String(r[b.c('instagram')]).replace(/^@/, ''), wa = String(r[b.c('nomor_wa')]).replace(/^'/, ''); if (ig) blk['ig:' + ig] = st; if (wa) blk['wa:' + wa] = st; } });
   if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) { if (String(r[7]).indexOf('Gugur') !== 0) { var k = 'wa:' + String(r[4]).replace(/^'/, ''); won[k] = (won[k] || 0) + 1; } });
@@ -2380,7 +2435,7 @@ function adminPeople(f) {
 }
 /** Semua jawaban satu orang, dikelompokkan per survei. */
 function adminPerson(key) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var idx = peopleIndex_(), p = idx.people[key]; if (!p) throw new Error('Responden tidak ditemukan');
   var dm = dictMap_(), skip = { _tab: 1, _v: 1, _row: 1 }, hide = ['user_agent', 'device_fp', 'wa_normal', 'ig_normal', 'survei', 'varian', 'versi_kuesioner', 'kategori_ditugaskan', 'QC1', 'Z2', 'Z3', 'PV', 'O1'];
   return { key: key, ig: p.ig, wa: p.wa, profile: p.profile, contact: p.contact, first: p.first, last: p.last,
@@ -2398,7 +2453,7 @@ function adminPerson(key) {
 }
 /** CSV lebar: 1 orang = 1 baris; kolom jawaban diberi awalan ID survei (mis. v1:S4). */
 function adminPeopleExport(f) {
-  requireAdmin_();
+  requireAdmin_('baca');
   var keys = (adminPeople(f).list || []).map(function (x) { return x.key; }), idx = peopleIndex_(), cols = [], seen = {};
   keys.forEach(function (k) { idx.people[k].rows.forEach(function (r) { Object.keys(r).forEach(function (c) { if (c.charAt(0) === '_' || META.indexOf(c) >= 0 || PEOPLE_PROFILE.indexOf(c) >= 0 || /^(Z2|Z3|PV|QC1)$/.test(c)) return; var h = r._v + ':' + c; if (!seen[h]) { seen[h] = 1; cols.push([r._v, c, h]); } }); }); });
   var head = ['instagram', 'whatsapp', 'jumlah_survei', 'jumlah_valid', 'pertama', 'terakhir', 'bersedia_dihubungi', 'survei_diikuti'].concat(PEOPLE_PROFILE).concat(cols.map(function (c) { return c[2]; }));
@@ -2867,7 +2922,7 @@ function tugasSekali_() {
   } finally { lock.releaseLock(); }
 }
 /** Status tugas pemeliharaan (untuk dicek admin). */
-function adminTugasStatus() { requireAdmin_(); try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('TUGAS_SELESAI') || '{}'); } catch (e) { return {}; } }
+function adminTugasStatus() { requireAdmin_('baca'); try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('TUGAS_SELESAI') || '{}'); } catch (e) { return {}; } }
 function ensureSnapTrigger_() {
   var pr = PropertiesService.getScriptProperties(), last = Number(pr.getProperty('SNAP_TRIG_CEK') || 0);
   if (Date.now() - last < 3600e3) return;
@@ -2877,7 +2932,7 @@ function ensureSnapTrigger_() {
 /** Tombol "Perbarui data sekarang" di Dashboard. */
 /** Tombol "Perbarui data sekarang": satu langkah per panggilan; Dashboard memanggil berulang sampai done. */
 function adminSnapshotRebuild(lanjut) {
-  requireAdmin_(); var lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { done: false, step: 0, total: 0, sibuk: true };
+  requireAdmin_('baca'); var lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { done: false, step: 0, total: 0, sibuk: true };
   try { if (!lanjut) snapJobSave_(null); var r = snapStep_(); ensureSnapTrigger_(); return r; } finally { lock.releaseLock(); }
 }
 function snapInfo_() { var o = snapRead_(); return o ? { at: o.meta.at, ms: o.meta.ms } : null; }

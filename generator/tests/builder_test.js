@@ -6,7 +6,7 @@ const ROOT = path.join(__dirname, '..', '..', 'site');
 const log = (...a) => console.log(...a);
 // responden lama di survei v1 (untuk uji "pakai profil lama")
 ctx.submitResponse({ sid: 'old1', variant: 'v1', durasi: 500, cats: ['Skincare'], answers: { QC1: 'Biru', Z2: '@alice', Z3: '081234561234', Z1: 'Ya, bersedia', S1: '25-34 tahun', S2: 'Wanita', S3: ['Tidak satu pun dari pilihan di atas'], A1: 'Kota Bandung', provinsi: 'Jawa Barat', tipe_wilayah: 'Kota', jabodetabek: 'Tidak', A4: 'Bekerja, belum menikah', A5: 'Karyawan swasta', A6: 'Sarjana (S1 / D4)', A7: 'Rp5.000.001 - Rp7.500.000' } });
-ctx.adminSaveSettings && (global.__viewer = 'robert@mildigital.id');
+ctx.adminSaveSettings && (global.__viewer = 'admin@mildigital.id');
 ctx.adminSaveSettings({ ANTHROPIC_API_KEY: 'sk-test' });
 global.__aiRes = { content: [{ type: 'text', text: 'Berikut JSON:\n' + JSON.stringify({ name: 'AI draft', intro: 'Halo', estimasi: 6, questions: [
   { text: 'Seberapa puas Anda dengan pengiriman?', type: 'scale', scale: { min: 1, max: 5, minLabel: 'Sangat tidak puas', maxLabel: 'Sangat puas' }, options: [] },
@@ -36,7 +36,7 @@ const PASTE = `1. Seberapa sering Anda membeli skincare secara online? (pilih sa
   const b = await chromium.launch();
   const errs = [];
   // ---------- 1. Dashboard: buat survei ----------
-  const html = fs.readFileSync(path.join(__dirname, '..', 'survey_out', 'Admin.html'), 'utf8').replace('<?= userEmail ?>', 'robert@mildigital.id');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'survey_out', 'Admin.html'), 'utf8').replace('<?= userEmail ?>', 'admin@mildigital.id');
   fs.writeFileSync(path.join(__dirname, 'admin_page.html'), html);
   const p = await b.newPage({ viewport: { width: 1440, height: 1000 } });
   p.on('pageerror', e => errs.push('admin: ' + e.message)); p.on('dialog', d => d.accept());

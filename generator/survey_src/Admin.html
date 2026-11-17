@@ -300,6 +300,9 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 .lnk{display:flex;gap:8px;align-items:center;margin:10px 0}
 .lnk input{flex:1;font-size:12px;padding:8px 10px;min-width:0}
 @media(max-width:1100px){.bgrid{grid-template-columns:1fr}.bside{position:static}}
+body.r-baca .need-survei,body.r-baca .need-admin,body.r-survei .need-admin{display:none!important}
+.ak-form{display:grid;grid-template-columns:1fr 220px auto;gap:10px;align-items:center}@media(max-width:700px){.ak-form{grid-template-columns:1fr}}
+.ak-role{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;display:inline-block}.ak-admin{background:#EDE7F6;color:#4A2C8A}.ak-survei{background:#E3F0FB;color:#1D4F7A}.ak-baca{background:#EEF1F4;color:#44515E}
 </style>
 </head>
 <body>
@@ -308,29 +311,30 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="logo"><span class="w">SURVEY</span><span class="sep"></span><span class="m">mil</span></div>
   <div class="grp">DASHBOARD</div>
   <button data-p="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Ringkasan</button>
-  <button data-p="period"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h3"/></svg>Periode Giveaway</button>
+  <button data-p="period" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h3"/></svg>Periode Giveaway</button>
   <div class="grp">SURVEI <span class="cnt" id="sv-cnt"></span></div>
   <div id="sv-list"><div class="muted" style="padding:6px 14px">Memuat…</div></div>
-  <button class="sv-new" data-p="build" onclick="newSurvey()"><span>+</span>Survei baru</button>
+  <button class="sv-new need-survei" data-p="build" onclick="newSurvey()"><span>+</span>Survei baru</button>
   <div class="grp">DATA</div>
   <button data-p="resp"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Jawaban</button>
   <button data-p="report"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Laporan</button>
   <button data-p="ct"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>Cross Tab</button>
   <button data-p="people"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>Database Responden</button>
   <button data-p="panel"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .4 5.5 2.8 5.5 5.8"/></svg>Panel Responden</button>
-  <div class="grp">OPERASIONAL</div>
-  <button data-p="draw"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z"/></svg>Undian Pemenang</button>
-  <button data-p="tukar"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v3H3zM5 12v9h14v-9M12 9v12M12 9c-1.5-3-5-4-5-1.5S10 9 12 9zm0 0c1.5-3 5-4 5-1.5S14 9 12 9z"/></svg>Tukar Hadiah</button>
-  <button data-p="blok"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Daftar Blokir</button>
-  <div class="grp">PENGATURAN</div>
-  <button data-p="set"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Survei &amp; Pengaturan</button>
-  <button data-p="api"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>API untuk ATLAS</button>
+  <div class="grp need-admin">OPERASIONAL</div>
+  <button data-p="draw" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-2-4-6-4-6-1s6 1 6 1zm0 0c2-4 6-4 6-1s-6 1-6 1z"/></svg>Undian Pemenang</button>
+  <button data-p="tukar" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v3H3zM5 12v9h14v-9M12 9v12M12 9c-1.5-3-5-4-5-1.5S10 9 12 9zm0 0c1.5-3 5-4 5-1.5S14 9 12 9z"/></svg>Tukar Hadiah</button>
+  <button data-p="blok" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Daftar Blokir</button>
+  <div class="grp need-admin">PENGATURAN</div>
+  <button data-p="set" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Survei &amp; Pengaturan</button>
+  <button data-p="api" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>API untuk ATLAS</button>
+  <button data-p="akses" class="need-admin"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 11l2 2 4-4"/></svg>Akses Pengguna</button>
   <div class="datecard"><b id="today-d"></b><br><span>Asia/Jakarta (WIB)</span></div>
 </nav>
 <main>
 <div class="topbar"><button class="iconbtn" onclick="document.querySelector('.app').classList.toggle('collapsed')" title="Sembunyikan menu"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 10l-2 2 2 2"/></svg></button>
-  <button class="per-pill" id="per-pill" onclick="navTo('period')" title="Periode giveaway aktif">🎁 <span>Memuat…</span></button>
-  <div class="user"><div class="avatar" id="u-ini"></div><div><b id="u-name"></b><small>Admin Survei · <span id="u-mail"><?= userEmail ?></span></small></div></div></div>
+  <button class="per-pill" id="per-pill" onclick="if (ROLE === 'admin') navTo('period')" title="Periode giveaway aktif">🎁 <span>Memuat…</span></button>
+  <div class="user"><div class="avatar" id="u-ini"></div><div><b id="u-name"></b><small><span id="u-role" data-r="<?= userRole ?>"><?= userRoleLabel ?></span> · <span id="u-mail"><?= userEmail ?></span></small></div></div></div>
 <div class="content">
 <!-- RINGKASAN -->
 <section class="page on" id="p-home">
@@ -338,7 +342,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <span class="chip glass" id="h-chip1">Memuat…</span><span class="chip white" id="h-chip2"></span><a class="chip glass" href="https://milgiftclub.github.io/milgiftclub-survei/" target="_blank" rel="noopener" style="text-decoration:none" title="Buka halaman depan survei (satu link untuk semua survei) di tab baru">↗ Buka survei</a><button class="chip glass chip-mini" onclick="hubCopy()" title="Salin link utama survei">🔗 Salin</button></div>
     <div class="ppl" id="h-ppl" style="margin:12px 0 14px;font-size:14px"></div>
   <div class="top" style="margin-bottom:16px"><div><div class="eyebrow">Ringkasan</div><div class="muted"><span id="h-upd">Memuat…</span> · Periode <select id="h-per" onchange="homePer()" style="width:auto;padding:4px 8px;font-size:12.5px"></select></div></div>
-    <div class="toolbar" style="margin:0"><button class="btn sec sm" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="snapRebuild(this)" title="Hitung ulang Ringkasan, Laporan & Cross Tab dari data terbaru">Perbarui data sekarang</button></div></div>
+    <div class="toolbar" style="margin:0"><button class="btn sec sm need-admin" onclick="runTask('speeder')">Cek speeder sekarang</button><button class="btn sm" onclick="snapRebuild(this)" title="Hitung ulang Ringkasan, Laporan & Cross Tab dari data terbaru">Perbarui data sekarang</button></div></div>
   <div class="grid g4" id="h-kpi"><div class="loading">Memuat data…</div></div>
   <div style="margin-top:16px">
     <div class="card"><h2>Respons valid per hari (30 hari)</h2><canvas id="c-daily" height="90"></canvas></div>
@@ -354,7 +358,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
 <!-- SURVEI (per survei) -->
 <section class="page" id="p-survey">
   <div class="svhead"><div><div class="eyebrow">Survei</div><h1 id="sv-title">Survei</h1><p class="desc" id="sv-desc"></p></div>
-    <div class="acts"><button class="btn sec sm" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn sec sm" onclick="svRefresh()" title="Buka ulang survei untuk responden yang sudah pernah mengisi">🔄 Refresh survei</button><button class="btn soft sm" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
+    <div class="acts"><button class="btn sec sm need-survei" id="sv-edit" style="display:none" onclick="editSurvey(SV)">Edit survei</button><button class="btn sec sm need-admin" onclick="svRefresh()" title="Buka ulang survei untuk responden yang sudah pernah mengisi">🔄 Refresh survei</button><button class="btn soft sm need-survei" onclick="promoOpen(SV)">🖼 Gambar IG &amp; caption</button><button class="btn sec sm" onclick="repOpen(SV)">📊 Laporan</button><button class="btn sec sm" onclick="ctOpen(SV)">▦ Cross Tab</button><a class="btn sec sm" id="sv-link" target="_blank">Buka survei</a><button class="btn sm" onclick="svCopyLink()">🔗 Salin link</button><button class="btn sec sm" onclick="svToResp()">Lihat jawaban</button><button class="btn sm need-survei" id="sv-toggle" onclick="svToggle()">Tutup survei</button></div></div>
   <div class="grid g2" id="sv-kpi"></div>
   <div class="grid g2" style="margin-top:20px;align-items:start">
     <div class="card"><h2>💡 Insight survei ini</h2><p class="muted">Hubungan antara profil responden dan jawaban yang terbukti secara statistik, dirangkum per topik. Hanya jawaban valid.</p><div id="sv-ins"><p class="loading">Menghitung insight…</p></div></div>
@@ -547,7 +551,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
     <input id="r-q" placeholder="Cari IG / WA / kota / kategori" oninput="drawResp()" style="min-width:240px">
     <span class="muted" id="r-n"></span>
     <span style="flex:1"></span>
-    <button class="btn sec sm" onclick="cleanOpen()">🧹 Bersihkan</button>
+    <button class="btn sec sm need-admin" onclick="cleanOpen()">🧹 Bersihkan</button>
     <button class="btn sec sm" onclick="csvResp()">Unduh CSV (tabel ini)</button>
     <button class="btn sm" onclick="csvFull()">Unduh semua kolom</button>
   </div>
@@ -561,7 +565,7 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="card">
     <div class="pn-top"><h2 style="margin:0">Kriteria</h2><span style="flex:1"></span>
       <label class="muted" style="font-size:13px">Panel tersimpan</label><select id="pn-saved" onchange="pnLoadSaved()" style="width:auto;min-width:220px"><option value="">— Panel baru —</option></select>
-      <button class="btn sm" onclick="pnSave(true)">💾 Simpan sebagai panel baru</button><button class="btn sec sm" id="pn-upd" onclick="pnSave(false)" style="display:none">Simpan perubahan</button><button class="btn sec sm" id="pn-del" onclick="pnDelete()" style="display:none">Hapus panel</button></div>
+      <button class="btn sm need-survei" onclick="pnSave(true)">💾 Simpan sebagai panel baru</button><button class="btn sec sm need-survei" id="pn-upd" onclick="pnSave(false)" style="display:none">Simpan perubahan</button><button class="btn sec sm need-survei" id="pn-del" onclick="pnDelete()" style="display:none">Hapus panel</button></div>
     <div class="muted" id="pn-name" style="margin-top:6px;font-size:13px"></div>
     <div id="pn-crit"></div>
     <div class="toolbar" style="margin-top:10px"><button class="btn sec sm" onclick="addCrit()">+ Tambah kriteria</button><button class="btn sm" onclick="searchPanel()">Cari</button><span class="muted" id="pn-n"></span><span style="flex:1"></span><button class="btn sec sm" onclick="csvPanel()">Unduh CSV</button></div></div>
@@ -663,6 +667,20 @@ input[type=color]{width:46px;height:40px;padding:3px;border-radius:12px;cursor:p
   <div class="card" style="margin-top:16px"><h2>Endpoint</h2><div class="tw"><table id="a-t"></table></div>
     <p class="muted">Semua endpoint mengembalikan JSON <code>{ ok, data }</code>. Nomor WA, username Instagram, dan data perangkat <b>tidak</b> pernah dikirim lewat API.</p></div>
 </section>
+<!-- AKSES PENGGUNA -->
+<section class="page" id="p-akses">
+  <div class="top"><div><div class="eyebrow">Pengaturan</div><h1>Akses Pengguna</h1><p class="desc">Atur siapa saja yang boleh membuka Dashboard dan apa yang boleh mereka lakukan.</p></div></div>
+  <div class="card" style="margin-bottom:16px"><h2>Tambah akun</h2>
+    <div class="ak-form"><input id="ak-email" type="email" placeholder="nama@mildigital.id"><select id="ak-peran"><option value="baca">Baca data saja</option><option value="survei">Buat survei &amp; baca data</option><option value="admin">Admin</option></select><button class="btn sm" onclick="akSimpan()">+ Tambah / ubah</button></div>
+    <ul class="muted" style="margin:12px 0 0;padding-left:18px;line-height:1.7;font-size:13px">
+      <li><b>Admin</b>: semua menu, termasuk periode giveaway, undian, tukar hadiah, daftar blokir, pengaturan, dan akses pengguna.</li>
+      <li><b>Buat survei &amp; baca data</b>: membuat, mengedit, membuka/menutup survei buatan Dashboard, materi promosi, simpan panel, plus semua yang bisa dilakukan pembaca.</li>
+      <li><b>Baca data saja</b>: Ringkasan, halaman survei, Jawaban, Laporan, Cross Tab, Database Responden, Panel Responden, dan unduh CSV. Tidak bisa mengubah atau menghapus apa pun.</li>
+    </ul>
+    <div class="tip" id="ak-mode" style="display:none;margin-top:12px"></div>
+  </div>
+  <div class="card"><h2>Akun yang punya akses</h2><div class="tbl-wrap"><table id="ak-t"><tr><td class="loading">Memuat…</td></tr></table></div></div>
+</section>
 </div>
 </main>
 </div>
@@ -722,6 +740,11 @@ function csv(name, cols, rows) {
 }
 var LABEL = { timestamp: 'Waktu', status: 'Status', Z2: 'Instagram', Z3: 'WhatsApp', S1: 'Usia', S2: 'Gender', A1: 'Kota', kategori_1: 'Kategori', L1_PT1: 'Produk', L1_PT2: 'Harga/item', durasi_detik: 'Durasi (dtk)', sumber: 'Sumber', profil_dari_survei_sebelumnya: 'Profil lama', session_id: 'Session' };
 
+// ---------- peran ----------
+var ROLE = ($('u-role') && $('u-role').getAttribute('data-r')) || '';
+if (['admin', 'survei', 'baca'].indexOf(ROLE) < 0) ROLE = 'admin';
+document.body.classList.add('r-' + ROLE);
+if ($('u-role')) $('u-role').textContent = { admin: 'Admin', survei: 'Buat survei & baca data', baca: 'Baca data saja' }[ROLE];
 // ---------- navigasi ----------
 var loaded = {};
 var SV = null;
@@ -736,11 +759,30 @@ function bindNav(b) {
     if ($('p-build').classList.contains('on')) markDirty(false);
     showPage(b.dataset.p, b);
     if (b.dataset.p === 'survey') { SV = b.dataset.v; return SUM ? drawSurvey() : loadHome(); }
-    var f = { tukar: loadTukar, period: loadPeriod, people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
+    var f = { akses: akLoad, tukar: loadTukar, period: loadPeriod, people: function () { pplLoad(true); }, report: function () { repInit(); }, ct: function () { ctInit(); }, home: loadHome, resp: loadResp, panel: loadPanel, draw: loadDraw, blok: loadBlok, set: loadSet, api: loadApi }[b.dataset.p];
     if (!loaded[b.dataset.p]) { loaded[b.dataset.p] = 1; f(); }
   };
 }
 [].forEach.call(document.querySelectorAll('nav.side button[data-p]:not(.sv-new)'), bindNav);
+// ---------- akses pengguna ----------
+function akDraw(d) {
+  var lab = d.label || {};
+  $('ak-mode').style.display = d.modeLama ? '' : 'none';
+  $('ak-mode').innerHTML = 'Daftar akses masih kosong, jadi saat ini <b>semua akun @' + esc(d.domain) + '</b> bisa membuka Dashboard sebagai Admin. Begitu kamu menambahkan akun pertama, hanya akun di daftar ini (dan pemilik) yang bisa masuk.';
+  var rows = [{ email: d.pemilik, peran: 'admin', label: 'Admin', oleh: '', tanggal: '', own: true }].concat(d.list.filter(function (x) { return x.email !== d.pemilik; }));
+  $('ak-t').innerHTML = '<tr><th>Email</th><th>Akses</th><th>Ditambahkan oleh</th><th>Tanggal</th><th></th></tr>' + rows.map(function (x) {
+    var me = x.email === d.saya;
+    return '<tr><td>' + esc(x.email) + (me ? ' <span class="muted">(kamu)</span>' : '') + '</td><td><span class="ak-role ak-' + x.peran + '">' + esc(x.label || lab[x.peran] || x.peran) + '</span>' + (x.own ? ' <span class="muted" style="font-size:12px">pemilik</span>' : '') + '</td><td>' + esc(x.oleh || '–') + '</td><td>' + esc(x.tanggal || '–') + '</td><td style="text-align:right;white-space:nowrap">' +
+      (x.own || me ? '' : '<button class="btn sec sm" onclick="akEdit(\'' + esc(x.email) + '\',\'' + x.peran + '\')">Ubah</button> <button class="trash" title="Hapus akses" onclick="akHapus(\'' + esc(x.email) + '\')">' + TRASH + '</button>') + '</td></tr>';
+  }).join('');
+}
+function akLoad() { $('ak-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminAkses').then(akDraw); }
+function akEdit(e, p) { $('ak-email').value = e; $('ak-peran').value = p; $('ak-email').focus(); window.scrollTo(0, 0); }
+function akSimpan() {
+  var e = $('ak-email').value.trim(), p = $('ak-peran').value; if (!e) return toast('Isi email dulu');
+  run('adminAksesSimpan', e, p).then(function (d) { $('ak-email').value = ''; akDraw(d); toast('Akses disimpan'); });
+}
+function akHapus(e) { if (!confirm('Hapus akses ' + e + '? Akun ini tidak bisa membuka Dashboard lagi.')) return; run('adminAksesHapus', e).then(function (d) { akDraw(d); toast('Akses dihapus'); }); }
 function navTo(p) { var b = document.querySelector('nav.side button[data-p="' + p + '"]'); if (b) b.click(); }
 function newSurvey() { openBuilder(null); }
 
@@ -796,6 +838,7 @@ function drawSurvey() {
   $('sv-title').textContent = s.name;
   $('sv-desc').innerHTML = '<span class="badge ' + (s.open ? 'b-open">Dibuka' : s.status === 'Draf' ? 'b-y">Draf' : 'b-closed">Ditutup') + '</span> &nbsp;' + (s.tab ? 'Data tersimpan di tab <b>' + esc(s.tab) + '</b>. ' : 'Belum dipublish. ') + (s.tutupText ? (s.tutupLewat ? 'Tertutup otomatis sejak ' : 'Tutup otomatis ') + '<b>' + esc(s.tutupText) + '</b>. ' : '') + 'Diperbarui ' + esc(SUM.generatedAt) + '.' + rondeHtml(s);
   $('sv-edit').style.display = s.custom ? '' : 'none';
+  $('sv-toggle').style.display = (s.custom || ROLE === 'admin') ? '' : 'none';   // survei utama dibuka/ditutup lewat pengaturan (khusus admin)
   $('sv-link').href = s.link || '#';
   $('sv-toggle').textContent = s.open ? 'Tutup survei' : s.status === 'Draf' ? 'Publish survei' : 'Buka survei untuk responden';
   $('sv-toggle').className = s.open ? 'btn danger sm' : 'btn sm';
@@ -814,7 +857,7 @@ function rondeHtml(s) {
   var h = '<div class="ronde"><span class="badge b-y">Ronde ' + r.ronde + '</span> ' + (r.ronde > 1 ? 'Direfresh <b>' + esc(r.sejak) + '</b> oleh ' + esc(r.oleh) + (r.catatan ? ' — “' + esc(r.catatan) + '”' : '') +
     '. Responden yang mengisi sebelum tanggal ini boleh mengisi lagi.' : 'Belum pernah direfresh: setiap orang hanya bisa mengisi satu kali.');
   if (r.riwayat.length) h += ' <details class="rd"><summary>Riwayat refresh (' + r.riwayat.length + ')</summary><ul>' + r.riwayat.slice().reverse().map(function (x) { return '<li>Ronde ' + x.ke + ' · ' + esc(x.tgl) + ' · ' + esc(x.oleh) + (x.catatan ? ' — ' + esc(x.catatan) : '') + '</li>'; }).join('') +
-    '</ul><button class="btn sec sm" onclick="svRefreshUndo()">Batalkan refresh terakhir</button></details>';
+    '</ul><button class="btn sec sm need-admin" onclick="svRefreshUndo()">Batalkan refresh terakhir</button></details>';
   return h + '</div>';
 }
 function svRefresh() {
@@ -963,7 +1006,7 @@ function drawResp() {
   $('r-pg').textContent = 'Halaman ' + (page + 1) + ' dari ' + (max + 1);
   var allSv = $('r-v').value === 'all';
   table($('r-t'), RESP.cols, FILT.slice(page * per, page * per + per), { label: function (c) { return (RESP.labels || {})[c] || LABEL[c] || c; }, cell: function (c, v, r) { return c === 'status' ? badge(v) : c === 'timestamp' && allSv && r._src ? esc(v) + '<div class="svsub">' + esc(r._src[1]) + '</div>' : esc(v); },
-    action: function (r, i) { return '<button class="trash" title="Hapus jawaban ini" onclick="event.stopPropagation();delResp(' + i + ')">' + TRASH + '</button>'; }, click: function (r) { detail(r[RESP.cols.indexOf('session_id')], r._src && r._src[0]); } });
+    action: function (r, i) { return '<button class="trash need-admin" title="Hapus jawaban ini" onclick="event.stopPropagation();delResp(' + i + ')">' + TRASH + '</button>'; }, click: function (r) { detail(r[RESP.cols.indexOf('session_id')], r._src && r._src[0]); } });
 }
 function pg(d) { page = Math.max(0, page + d); drawResp(); }
 function csvResp() { csv('jawaban_' + $('r-v').value, RESP.cols.map(function (c) { return LABEL[c] || c; }), FILT); }
@@ -975,7 +1018,7 @@ function detail(sid, sv) {
     if (!d) { $('m-body').innerHTML = 'Tidak ditemukan'; return; }
     $('m-body').innerHTML = '<div class="top"><h2 style="margin:0">Detail jawaban</h2><button class="btn sec sm" onclick="closeM()">Tutup</button></div>' +
       '<p>' + badge(d.status) + ' <span class="muted">' + esc(sid) + '</span></p>' +
-      '<div class="toolbar"><button class="btn sm" onclick="setSt(\'' + v + '\',\'' + sid + '\',\'Tidak valid - manual\',true)">Tandai asal-asalan (masuk Daftar Blokir)</button><button class="btn sec sm" onclick="setSt(\'' + v + '\',\'' + sid + '\',\'Valid\',false)">Tandai Valid</button></div>' +
+      '<div class="toolbar need-admin"><button class="btn sm" onclick="setSt(\'' + v + '\',\'' + sid + '\',\'Tidak valid - manual\',true)">Tandai asal-asalan (masuk Daftar Blokir)</button><button class="btn sec sm" onclick="setSt(\'' + v + '\',\'' + sid + '\',\'Valid\',false)">Tandai Valid</button></div>' +
       '<dl class="detail">' + d.items.map(function (it) { return '<dt>' + esc(it.key) + (it.q ? ' · ' + esc(it.q) : '') + '</dt><dd>' + esc(it.val) + '</dd>'; }).join('') + '</dl>';
   });
 }
