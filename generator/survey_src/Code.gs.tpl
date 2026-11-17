@@ -1178,7 +1178,8 @@ function requireAdmin_(need) {
 function adminMe() { var e = requireAdmin_('baca'); return { email: e, peran: roleOf_(e), label: PERAN_LABEL[roleOf_(e)] }; }
 function adminAkses() {
   var who = requireAdmin_('admin'), own = ownerEmail_();
-  return { saya: who, pemilik: own, modeLama: !aksesList_().length, domain: String(set_('ADMIN_DOMAIN') || ''), label: PERAN_LABEL,
+  var url = ''; try { url = ScriptApp.getService().getUrl() || ''; } catch (e) {}
+  return { url: url, saya: who, pemilik: own, modeLama: !aksesList_().length, domain: String(set_('ADMIN_DOMAIN') || ''), label: PERAN_LABEL,
     list: aksesList_().map(function (x) { return { email: x.email, peran: x.peran, label: PERAN_LABEL[x.peran], oleh: x.oleh, tanggal: x.tanggal ? Utilities.formatDate(new Date(x.tanggal), 'Asia/Jakarta', 'yyyy-MM-dd') : '' }; }) };
 }
 function adminAksesSimpan(email, peran) {

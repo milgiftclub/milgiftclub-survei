@@ -678,6 +678,7 @@ body.r-baca .need-survei,body.r-baca .need-admin,body.r-survei .need-admin{displ
       <li><b>Baca data saja</b>: Ringkasan, halaman survei, Jawaban, Laporan, Cross Tab, Database Responden, Panel Responden, dan unduh CSV. Tidak bisa mengubah atau menghapus apa pun.</li>
     </ul>
     <div class="tip" id="ak-mode" style="display:none;margin-top:12px"></div>
+    <div class="tip" id="ak-inv" style="display:none;margin-top:12px"></div>
   </div>
   <div class="card"><h2>Akun yang punya akses</h2><div class="tbl-wrap"><table id="ak-t"><tr><td class="loading">Memuat…</td></tr></table></div></div>
 </section>
@@ -765,23 +766,39 @@ function bindNav(b) {
 }
 [].forEach.call(document.querySelectorAll('nav.side button[data-p]:not(.sv-new)'), bindNav);
 // ---------- akses pengguna ----------
+var AK = null;
 function akDraw(d) {
-  var lab = d.label || {};
+  AK = d; var lab = d.label || {};
   $('ak-mode').style.display = d.modeLama ? '' : 'none';
   $('ak-mode').innerHTML = 'Daftar akses masih kosong, jadi saat ini <b>semua akun @' + esc(d.domain) + '</b> bisa membuka Dashboard sebagai Admin. Begitu kamu menambahkan akun pertama, hanya akun di daftar ini (dan pemilik) yang bisa masuk.';
   var rows = [{ email: d.pemilik, peran: 'admin', label: 'Admin', oleh: '', tanggal: '', own: true }].concat(d.list.filter(function (x) { return x.email !== d.pemilik; }));
   $('ak-t').innerHTML = '<tr><th>Email</th><th>Akses</th><th>Ditambahkan oleh</th><th>Tanggal</th><th></th></tr>' + rows.map(function (x) {
     var me = x.email === d.saya;
     return '<tr><td>' + esc(x.email) + (me ? ' <span class="muted">(kamu)</span>' : '') + '</td><td><span class="ak-role ak-' + x.peran + '">' + esc(x.label || lab[x.peran] || x.peran) + '</span>' + (x.own ? ' <span class="muted" style="font-size:12px">pemilik</span>' : '') + '</td><td>' + esc(x.oleh || '–') + '</td><td>' + esc(x.tanggal || '–') + '</td><td style="text-align:right;white-space:nowrap">' +
-      (x.own || me ? '' : '<button class="btn sec sm" onclick="akEdit(\'' + esc(x.email) + '\',\'' + x.peran + '\')">Ubah</button> <button class="trash" title="Hapus akses" onclick="akHapus(\'' + esc(x.email) + '\')">' + TRASH + '</button>') + '</td></tr>';
+      (x.own || me ? '' : '<button class="btn soft sm" title="Kirim email undangan lewat Gmail" onclick="akUndang(\'' + esc(x.email) + '\')">✉ Undang</button> <button class="btn sec sm" onclick="akEdit(\'' + esc(x.email) + '\',\'' + x.peran + '\')">Ubah</button> <button class="trash" title="Hapus akses" onclick="akHapus(\'' + esc(x.email) + '\')">' + TRASH + '</button>') + '</td></tr>';
   }).join('');
 }
 function akLoad() { $('ak-t').innerHTML = '<tr><td class="loading">Memuat…</td></tr>'; run('adminAkses').then(akDraw); }
 function akEdit(e, p) { $('ak-email').value = e; $('ak-peran').value = p; $('ak-email').focus(); window.scrollTo(0, 0); }
 function akSimpan() {
   var e = $('ak-email').value.trim(), p = $('ak-peran').value; if (!e) return toast('Isi email dulu');
-  run('adminAksesSimpan', e, p).then(function (d) { $('ak-email').value = ''; akDraw(d); toast('Akses disimpan'); });
+  run('adminAksesSimpan', e, p).then(function (d) {
+    $('ak-email').value = ''; akDraw(d); toast('Akses disimpan');
+    var em = e.toLowerCase();
+    $('ak-inv').style.display = ''; $('ak-inv').innerHTML = 'Akses <b>' + esc(em) + '</b> sudah aktif. Kabari orangnya: <button class="btn sm" onclick="akUndang(\'' + esc(em) + '\')">✉ Kirim undangan lewat Gmail</button> <button class="btn sec sm" onclick="akSalin(\'' + esc(em) + '\')">Salin pesan</button>';
+  });
 }
+var AK_DESC = { admin: 'semua menu Dashboard, termasuk periode giveaway, undian, tukar hadiah, pengaturan, dan akses pengguna.', survei: 'membuat dan mengedit survei, membuka/menutup survei, membuat materi promosi, serta melihat semua data dan laporan.', baca: 'melihat Ringkasan, hasil tiap survei, Jawaban, Laporan, Cross Tab, Database Responden, dan Panel Responden, serta mengunduh CSV. Akses ini hanya untuk melihat, tidak bisa mengubah apa pun.' };
+function akPesan(em) {
+  var x = (AK.list || []).filter(function (y) { return y.email === em; })[0] || { peran: 'baca' };
+  var nama = String($('u-mail').textContent || AK.saya || '').split('@')[0]; nama = nama.charAt(0).toUpperCase() + nama.slice(1);
+  return { to: em, su: 'Akses Dashboard MIL Gift Club', body: 'Halo,\n\nKamu sudah diberi akses ke Dashboard MIL Gift Club dengan peran: ' + (AK.label[x.peran] || x.peran) + '.\n\nBuka Dashboard di sini (login dengan akun @' + (AK.domain || 'mildigital.id') + ' kamu):\n' + (AK.url || location.href) + '\n\nDengan akses ini kamu bisa ' + AK_DESC[x.peran] + '\n\nTips: kalau muncul pesan "file tidak dapat dibuka", buka link di jendela Incognito atau di profil Chrome yang hanya berisi akun kantor.\n\nSalam,\n' + nama };
+}
+function akUndang(em) {
+  var m = akPesan(em);
+  window.open('https://mail.google.com/mail/u/' + encodeURIComponent(AK.saya || 0) + '/?view=cm&fs=1&to=' + encodeURIComponent(m.to) + '&su=' + encodeURIComponent(m.su) + '&body=' + encodeURIComponent(m.body), '_blank', 'noopener');
+}
+function akSalin(em) { var m = akPesan(em); try { navigator.clipboard.writeText(m.body).catch(function () {}); } catch (e) {} toast('Pesan undangan disalin, tinggal tempel di email/chat'); }
 function akHapus(e) { if (!confirm('Hapus akses ' + e + '? Akun ini tidak bisa membuka Dashboard lagi.')) return; run('adminAksesHapus', e).then(function (d) { akDraw(d); toast('Akses dihapus'); }); }
 function navTo(p) { var b = document.querySelector('nav.side button[data-p="' + p + '"]'); if (b) b.click(); }
 function newSurvey() { openBuilder(null); }

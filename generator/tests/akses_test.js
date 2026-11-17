@@ -48,7 +48,15 @@ const label = { admin: 'Admin', survei: 'Buat survei & baca data', baca: 'Baca d
     await p.locator('#sv-list button').first().click(); await p.waitForTimeout(800);
     const acts = await p.$$eval('#p-survey .acts > *', x => x.filter(b => b.offsetParent).map(b => b.textContent.trim()));
     console.log('        aksi survei:', acts.join(' | '));
-    if (role === 'admin') { await p.locator('nav.side > button', { hasText: 'Akses Pengguna' }).click(); await p.waitForTimeout(800); await p.screenshot({ path: SP + 'akses_admin.png' }); }
+    if (role === 'admin') {
+      await p.locator('nav.side > button', { hasText: 'Akses Pengguna' }).click(); await p.waitForTimeout(800);
+      await p.fill('#ak-email', 'jo@mildigital.id'); await p.selectOption('#ak-peran', 'survei'); await p.click('text=+ Tambah / ubah'); await p.waitForTimeout(800);
+      let mailUrl = ''; await p.context().route('https://mail.google.com/**', rt => { mailUrl = rt.request().url(); rt.fulfill({ body: 'ok' }); });
+      const [pop] = await Promise.all([p.waitForEvent('popup'), p.click('#ak-inv button:has-text("Kirim undangan")')]); await p.waitForTimeout(800); const u = new URL(mailUrl);
+      console.log('        undangan ->', u.pathname, '| to', u.searchParams.get('to'), '| su', u.searchParams.get('su')); console.log(u.searchParams.get('body').split('\n').map(l => '          ' + l).join('\n'));
+      assert.strictEqual(u.searchParams.get('to'), 'jo@mildigital.id'); assert(/Buat survei & baca data/.test(u.searchParams.get('body'))); await pop.close();
+      await p.screenshot({ path: SP + 'akses_admin.png' });
+    }
     if (role === 'baca') await p.screenshot({ path: SP + 'akses_baca.png' });
     console.log('        ditolak server:', toasts.length ? toasts.join(' || ') : 'tidak ada');
     assert.strictEqual(toasts.length, 0, role + ' memanggil fungsi yang tidak diizinkan');
