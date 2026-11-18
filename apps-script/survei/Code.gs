@@ -557,13 +557,38 @@ var MEMO_ = null, MEMO_DEPTH_ = 0;
 function cached_(f) { MEMO_DEPTH_++; if (MEMO_DEPTH_ === 1) MEMO_ = {}; try { return f(); } finally { if (--MEMO_DEPTH_ === 0) MEMO_ = null; } }
 function memo_(k, f) { if (!MEMO_) return f(); if (!(k in MEMO_)) MEMO_[k] = f(); return MEMO_[k]; }
 function readAll_() { return memo_('readAll', readAllRaw_); }
+/** Versi ringan readAll_: hanya kolom yang dibutuhkan (jauh lebih cepat untuk Sheet besar). Kolom dasar selalu ikut. */
+var READ_BASE = ['timestamp', 'status', 'ig_normal', 'wa_normal', 'session_id', 'survei', 'Z2', 'Z3', 'kategori_1'];
+function readCols_(cols) {
+  if (MEMO_ && MEMO_.readAll) return MEMO_.readAll;
+  var need = READ_BASE.concat(cols || []).filter(function (x, i, a) { return x && a.indexOf(x) === i; });
+  return memo_('readCols:' + need.slice().sort().join(','), function () {
+    var out = [], RA = rondeAll_();
+    respTabs_().forEach(function (t) {
+      var s = sheet_(t[0]); if (!s) return; var last = s.getLastRow(); if (last < 2) return;
+      var h = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0], rl = (RA[t[1]] || []).slice().sort(function (a, b) { return a.ke - b.ke; });
+      var idx = need.map(function (k) { return h.indexOf(k); }).filter(function (j) { return j >= 0; }).sort(function (a, b) { return a - b; });
+      if (!idx.length) return;
+      var runs = []; idx.forEach(function (j) { var r = runs[runs.length - 1]; if (r && j - r[1] <= 3) r[1] = j; else runs.push([j, j]); });
+      if (runs.length > 6) runs = [[idx[0], idx[idx.length - 1]]];
+      var n = last - 1, rows = []; for (var i = 0; i < n; i++) rows.push({ _tab: t[0], _v: t[1], _row: i + 2 });
+      runs.forEach(function (rg) {
+        var vals = s.getRange(2, rg[0] + 1, n, rg[1] - rg[0] + 1).getValues();
+        for (var j = rg[0]; j <= rg[1]; j++) { var k = h[j]; if (need.indexOf(k) < 0) continue; for (var i = 0; i < n; i++) rows[i][k] = vals[i][j - rg[0]]; }
+      });
+      rows.forEach(function (o) { o.ronde = rl.length ? rondeOf_(rl, o.timestamp) : 1; out.push(o); });
+    });
+    return out;
+  });
+}
 /** Baris jawaban milik satu akun IG saja (cepat: hanya kolom ig_normal yang dibaca untuk mencari). Dipakai di halaman responden. */
 /** Ringkasan cepat jawaban satu akun IG: dari indeks snapshot + baris baru sesudah snapshot. Hasil: [[v, ronde, valid, ts, periode, profilOk], ...] atau null. */
 /** Versi tercepat: indeks snapshot dari cache + jawaban yang baru dikirim lewat proyek ini (tanpa membuka Sheet). */
 function igFast_(n) {
-  var meta = cacheGet_('snap:meta');
+  var meta = (MEMO_ && MEMO_.snapmeta) || cacheGet_('snap:meta');
   // cache belum hangat -> isi cache, lalu pakai cara biasa (membaca baris baru sesudah snapshot) untuk panggilan ini
   if (!meta) { var o = snapRead_(); if (o && o.meta.rows) cachePut_('snap:meta', { at: o.meta.at }, 120); return null; }
+  if (MEMO_) MEMO_.snapmeta = meta;   // satu proses: cukup sekali baca cache
   if (Date.now() - new Date(meta.at).getTime() > 3 * 3600e3) return null;   // snapshot terlalu lama -> cara biasa
   var idx = MEMO_ && MEMO_.igidx;
   if (!idx) {
@@ -571,7 +596,8 @@ function igFast_(n) {
     if (!packed) { if (!snapRead_()) return null; packed = snapPacked_('ig'); if (!packed) return null; cachePut_('snap:igp:' + meta.at, packed, 21600); }
     idx = snapUnpack_(packed); if (MEMO_) MEMO_.igidx = idx;
   }
-  return (idx[n] || []).concat(cacheGet_('igrec:' + n) || []);
+  var rec = MEMO_ && MEMO_.igrec ? (MEMO_.igrec[n] || null) : cacheGet_('igrec:' + n);
+  return (idx[n] || []).concat(rec || []);
 }
 function waFast_(w) {
   var meta = cacheGet_('snap:meta'); if (!meta) return null;
@@ -904,12 +930,16 @@ function addViolation_(ig, wa, reason, sid) {
 }
 /** Memperbarui keterangan & membuka otomatis suspend yang sudah selesai (juga jalan tiap jam). */
 function refreshBlok(silent) {
-  var b = blokData_(), c = b.c, now = new Date(), opened = 0;
+  var b = blokData_(), c = b.c, now = new Date(), opened = 0, cs = c('status'), ck = c('keterangan'), chS = false, chK = false;
+  // ditulis sekaligus per kolom (dulu satu sel per baris -> sangat lambat untuk daftar panjang)
+  var stv = b.v.map(function (r) { return [r[cs]]; }), ktv = b.v.map(function (r) { return [r[ck]]; });
   b.v.forEach(function (r, i) {
-    var st = r[c('status')], until = r[c('suspend_sampai')];
-    if (st === 'Suspend' && until && new Date(until) <= now) { st = 'Aktif kembali'; b.s.getRange(i + 2, c('status') + 1).setValue(st); opened++; }
-    b.s.getRange(i + 2, c('keterangan') + 1).setValue(keterangan_(st, until, r[c('jumlah_dibuka')]));
+    var st = r[cs], until = r[c('suspend_sampai')];
+    if (st === 'Suspend' && until && new Date(until) <= now) { st = 'Aktif kembali'; stv[i][0] = st; r[cs] = st; chS = true; opened++; }
+    var k = keterangan_(st, until, r[c('jumlah_dibuka')]); if (String(ktv[i][0]) !== k) { ktv[i][0] = k; r[ck] = k; chK = true; }
   });
+  if (b.v.length && chS) b.s.getRange(2, cs + 1, b.v.length, 1).setValues(stv);
+  if (b.v.length && chK) b.s.getRange(2, ck + 1, b.v.length, 1).setValues(ktv);
   if (silent !== true) try { SpreadsheetApp.getUi().alert('Daftar Blokir diperbarui. ' + opened + ' akun selesai masa suspend dan dibuka otomatis.'); } catch (e) {}
 }
 /** Centang kolom "buka_akses" di tab Daftar Blokir -> akses dibuka otomatis (bila aturan mengizinkan). */
@@ -1319,16 +1349,16 @@ var LIST_COLS = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1', 'kategori_
 /** Daftar jawaban satu survei (kolom ringkas). */
 function adminResponses(v) {
   requireAdmin_('baca');
-  var all = v === 'all';
-  var rows = readAll_().filter(function (r) { return all || r._v === v; }), cols = LIST_COLS, labels = {};
-  if (all) rows.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
-  rows.reverse();
-  var c = v !== 'v1' && v !== 'v2' ? customById_(v) : null;
+  var all = v === 'all', cols = LIST_COLS, labels = {};
+  var c = v !== 'v1' && v !== 'v2' && !all ? customById_(v) : null;
   if (c) {
     var qs = (c.schema.questions || []).slice(0, 4);
     cols = ['timestamp', 'status', 'Z2', 'Z3', 'S1', 'S2', 'A1'].concat(qs.map(function (x) { return x.id; })).concat(['durasi_detik', 'sumber', 'profil_dari_survei_sebelumnya', 'session_id']);
     qs.forEach(function (x) { labels[x.id] = x.id + ' ' + String(x.text).slice(0, 28); });
   }
+  var rows = readCols_(cols).filter(function (r) { return all || r._v === v; });
+  if (all) rows.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+  rows = rows.slice().reverse();
   var names = {}; surveyList_().forEach(function (x) { names[x.v] = x.name; });
   return { cols: cols, labels: labels, rows: rows.map(function (r) { return cols.map(function (c) { return iso_(r[c] == null ? '' : r[c]); }); }),
     src: rows.map(function (r) { return [r._v, (names[r._v] || r.survei || r._v) + (r.ronde > 1 ? ' · ronde ' + r.ronde : '')]; }) };
@@ -1545,7 +1575,7 @@ function rowsInPeriod_(rows, per) { return per ? rows.filter(function (r) { retu
 function adminPeriods() { return cached_(function () { return adminPeriodsRaw_(); }); }
 function adminPeriodsRaw_() {
   requireAdmin_('baca');
-  var cnt = {}; readAll_().forEach(function (r) { if (r.status === 'Valid') { var p = periodeOf_(r); cnt[p] = (cnt[p] || 0) + 1; } });
+  var cnt = {}; readCols_().forEach(function (r) { if (r.status === 'Valid') { var p = periodeOf_(r); cnt[p] = (cnt[p] || 0) + 1; } });
   var act = activePeriode_(null);
   return { active: act, list: periods_().map(function (p) { p.valid = cnt[p.label] || 0; p.aktif = p.label === act; return p; }) };
 }
@@ -1583,7 +1613,7 @@ function eligibleInfo_(v, per) {
   });
   var tags = bool_(set_('SYARAT_KOMENTAR_WAJIB')) ? igTags_() : null, minTag = num_('IG_MIN_TAG') || 3;
   var st = { jawaban: 0, valid: 0, orang: 0, diblokir: 0, sudahMenang: 0, kurangKomentar: 0, eligible: 0, kupon: 0 }, seen = {}, out = []; var allP = {}, valP = {};
-  readAll_().forEach(function (r) {
+  readCols_().forEach(function (r) {
     if (v !== 'all' && r._v !== v) return;
     if (per && periodeOf_(r) !== per) return;
     st.jawaban++; allP[String(r.wa_normal || r.ig_normal)] = 1; if (r.status === 'Valid') valP[String(r.wa_normal || r.ig_normal)] = 1;
@@ -2648,8 +2678,8 @@ function adminReportCore_(v, opt) {
 // =====================================================================
 var PEOPLE_PROFILE = ['S0', 'generasi', 'S1', 'S2', 'segmen_hp', 'A1', 'provinsi', 'A18', 'A19', 'kelas_ekonomi', 'ses', 'A7N', 'A4M', 'A4N', 'A4K', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15', 'A16'];
 function personKey_(r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); return w ? 'wa:' + w : g ? 'ig:' + g : ''; }
-function peopleIndex_() {
-  var rows = readAll_(), byKey = {}, igToKey = {}, names = {};
+function peopleIndex_(cols) {
+  var rows = cols ? readCols_(PEOPLE_PROFILE.concat(cols)) : readAll_(), byKey = {}, igToKey = {}, names = {};
   surveyList_().forEach(function (s) { names[s.v] = s.name; });
   rows.forEach(function (r) { var w = String(r.wa_normal || '').replace(/^'/, ''), g = String(r.ig_normal || ''); if (w && g) igToKey[g] = 'wa:' + w; });
   rows.forEach(function (r) {
@@ -2672,17 +2702,21 @@ function peopleIndex_() {
   return { people: byKey, names: names };
 }
 function answerCols_() {   // kolom jawaban pilihan (untuk saringan "jawaban di survei X")
-  var out = [], meta = {};
+  var out = [], meta = {}, sn = snapRead_();
+  // pakai laporan dari snapshot (cepat); hanya survei yang belum ada di snapshot dihitung langsung
+  var ck = sn ? 'anscols:' + sn.meta.at + ':' + surveyList_().map(function (s) { return s.v; }).join(',') : '', hit = ck ? cacheGet_(ck) : null; if (hit) return hit;
   surveyList_().forEach(function (s) {
-    var rep; try { rep = adminReportCore_(s.v, { status: 'all' }); } catch (e) { return; }
+    var rep = null; try { rep = sn ? snapGet_('rep:' + s.v) : null; } catch (e) { rep = null; }
+    if (!rep || !rep.questions) { try { rep = adminReportCore_(s.v, { status: 'all' }); } catch (e) { return; } }
     rep.questions.forEach(function (q) { if ((q.kind === 'single' || q.kind === 'multi') && q.items && q.items.length >= 2 && q.items.length <= 40) out.push({ v: s.v, survey: s.name, col: q.id, text: q.text, values: q.items.map(function (x) { return x[0]; }) }); });
   });
+  if (ck) cachePut_(ck, out, 1800);
   return out;
 }
 /** Daftar orang unik + saringan. f: {q, minSurveys, survey, contact, gender, age, prov, aCol:{v,col}, aVal} */
 function adminPeople(f) {
   requireAdmin_('baca'); f = f || {};
-  var idx = peopleIndex_(), b = blokData_(), blk = {}, won = {}, w = sheet_(SH.WIN);
+  var idx = peopleIndex_(f.aCol && f.aCol.col ? [f.aCol.col] : []), b = blokData_(), blk = {}, won = {}, w = sheet_(SH.WIN);
   b.v.forEach(function (r) { var st = r[b.c('status')]; if (/Diblokir|Suspend/.test(st)) { var ig = String(r[b.c('instagram')]).replace(/^@/, ''), wa = String(r[b.c('nomor_wa')]).replace(/^'/, ''); if (ig) blk['ig:' + ig] = st; if (wa) blk['wa:' + wa] = st; } });
   if (w && w.getLastRow() > 1) w.getRange(2, 1, w.getLastRow() - 1, WIN_COLS.length).getValues().forEach(function (r) { if (String(r[7]).indexOf('Gugur') !== 0) { var k = 'wa:' + String(r[4]).replace(/^'/, ''); won[k] = (won[k] || 0) + 1; } });
   var q = String(f.q || '').toLowerCase().trim(), has = function (val, x) { return String(val == null ? '' : val).split(' | ').indexOf(String(x)) >= 0; };
@@ -6912,6 +6946,9 @@ function adminKatalog() {
   requireAdmin_();
   return cached_(function () {
     var now = Date.now();
+    try { var names = {}; tukarRows_().forEach(function (r) { names['igrec:' + String(r.instagram).replace(/^@/, '')] = 1; });
+      var got = Object.keys(names).length ? CacheService.getScriptCache().getAll(Object.keys(names)) : {}, m = {};
+      Object.keys(names).forEach(function (k) { try { m[k.slice(6)] = got[k] ? JSON.parse(got[k]) : null; } catch (e) { m[k.slice(6)] = null; } }); MEMO_.igrec = m; } catch (e) {}
     return { katalog: katalog_(), tukar: tukarRows_().map(function (r) { var o = {}; TUKAR_COLS.forEach(function (k) { o[k] = iso_(r[k]); }); o._row = r._row; ['nomor_wa', 'hp_penerima', 'kode_pos'].forEach(function (k) { o[k] = String(o[k] == null ? '' : o[k]).replace(/^'/, ''); });
         o.batas = r.batas_kirim ? tglId_(r.batas_kirim) : ''; o.telat = !!(r.batas_kirim && ['Menunggu', 'Diproses'].indexOf(String(r.status)) >= 0 && new Date(r.batas_kirim).getTime() < now); o.cek = tukarFlags_(r); return o; }).reverse(),
       bonusTag: num_('BONUS_KUPON_TAG') || 1, hariKerja: num_('KIRIM_HARI_KERJA') || 10, ig: CONFIG.IG_HANDLE, kurir: kurirList_(),
@@ -6997,9 +7034,9 @@ function adminKuponRekap() {
   return cached_(function () {
     var by = {}, idx = snapRead_() ? snapGet_('ig') : null;
     if (idx) Object.keys(idx).forEach(function (ig) { idx[ig].forEach(function (x) { if (x[2]) earnAdd_(by[ig] = by[ig] || {}, x[0], x[1], x[3]); }); });
-    else readAll_().forEach(function (r) { if (r.status === 'Valid' && r.ig_normal) earnAdd_(by[r.ig_normal] = by[r.ig_normal] || {}, r._v, r.ronde, r.timestamp); });
+    else readCols_().forEach(function (r) { if (r.status === 'Valid' && r.ig_normal) earnAdd_(by[r.ig_normal] = by[r.ig_normal] || {}, r._v, r.ronde, r.timestamp); });
     // jawaban setelah snapshot dibuat
-    if (idx) { var at = new Date(snapRead_().meta.at).getTime(); readAll_().forEach(function (r) { if (r.status === 'Valid' && r.ig_normal && new Date(r.timestamp).getTime() > at) earnAdd_(by[r.ig_normal] = by[r.ig_normal] || {}, r._v, r.ronde, r.timestamp); }); }
+    if (idx) { var at = new Date(snapRead_().meta.at).getTime(); readCols_().forEach(function (r) { if (r.status === 'Valid' && r.ig_normal && new Date(r.timestamp).getTime() > at) earnAdd_(by[r.ig_normal] = by[r.ig_normal] || {}, r._v, r.ronde, r.timestamp); }); }
     var tk = {}; tukarRows_().forEach(function (r) { var n = String(r.instagram).replace(/^@/, ''); (tk[n] = tk[n] || []).push(tukarPub_(r)); });
     Object.keys(tk).forEach(function (n) { by[n] = by[n] || {}; });
     var rows = Object.keys(by).map(function (n) {
