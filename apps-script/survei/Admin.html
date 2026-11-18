@@ -633,6 +633,7 @@ body.r-baca .need-survei,body.r-baca .need-admin,body.r-survei .need-admin{displ
 <!-- PENGATURAN -->
 <section class="page" id="p-set">
   <div class="top"><div><div class="eyebrow">Pengaturan</div><h1>Survei & pengaturan</h1><p class="desc">Buka atau tutup survei, ubah target, dan atur aturan blokir. Perubahan berlaku langsung untuk responden.</p></div></div>
+  <div class="card" style="margin-bottom:16px"><div class="toolbar" style="margin:0;align-items:center"><label style="font-weight:700">Pilih survei</label><select id="s-pick" onchange="setPick(this.value)" style="min-width:320px;width:auto"><option>Memuat…</option></select><span class="muted" id="s-pick-n"></span></div></div>
   <div class="grid g2" id="s-surveys"></div>
   <div class="card" style="margin-top:16px"><h2>Pengaturan lain</h2><div id="s-form"></div><button class="btn" onclick="saveSet()">Simpan pengaturan</button></div>
   <div class="card danger" style="margin-top:16px"><h2>🗑 Hapus data</h2>
@@ -1415,13 +1416,15 @@ function simDel() {
   $('sim-st').textContent = 'Menghapus…';
   run('adminSimulasiHapus').then(function (r) { toast('Terhapus: ' + fmt(r.jawaban) + ' jawaban, ' + fmt(r.panel) + ' panel, ' + fmt(r.blokir) + ' blokir'); simLoad(); return snapRebuild(); });
 }
+var SET_PICK = '';
+function setPick(v) { SET_PICK = v; [].forEach.call(document.querySelectorAll('#s-surveys .card[data-sv]'), function (c) { c.style.display = c.getAttribute('data-sv') === v ? '' : 'none'; }); }
 function loadSet() {
   simLoad();
   run('adminSettings').then(function (d) {
     SET = d; delFill(d);
     $('s-surveys').innerHTML = d.surveys.filter(function (s) { return !s.custom; }).map(function (s) {
       var k = s.v.toUpperCase();
-      return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
+      return '<div class="card" data-sv="' + esc(s.v) + '"><h2>' + esc(s.name) + '</h2>' +
         '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (s.switchOn ? ' checked' : '') + '><span></span></label>' + (s.tutupLewat && s.switchOn ? '<div class="muted" style="color:var(--red);font-weight:700">Tertutup otomatis: tanggal tutup sudah lewat. Ubah tanggal di bawah untuk membuka lagi.</div>' : '') + '</div>' +
         '<div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="tut-' + k + '" value="' + esc(s.tutup || '') + '"><div class="muted">Kosongkan bila tanpa batas waktu. Tampil di survei sebagai "Hingga …"</div></div>' +
         '<div class="kv"><label>Nilai kupon</label><select id="kup-' + k + '" style="width:auto">' + [1, 2, 3].map(function (n) { return '<option value="' + n + '"' + (n === s.kupon ? ' selected' : '') + '>' + n + ' kupon' + (n === 1 ? ' (pendek)' : n === 2 ? ' (panjang)' : ' (sangat panjang)') + '</option>'; }).join('') + '</select></div>' +
@@ -1431,7 +1434,7 @@ function loadSet() {
         '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> <a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a></div>';
     }).join('') + d.surveys.filter(function (s) { return s.custom; }).map(function (s) {
       var st = s.status === 'Dibuka' ? '<span class="badge b-g">Dibuka</span>' : s.status === 'Draf' ? '<span class="badge b-n">Draf</span>' : '<span class="badge b-r">' + esc(s.status) + '</span>';
-      return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
+      return '<div class="card" data-sv="' + esc(s.v) + '"><h2>' + esc(s.name) + '</h2>' +
         '<div class="kv"><label>Status</label><span>' + st + '</span></div>' +
         '<div class="kv"><label>Nilai kupon</label><span>' + (s.kupon || 2) + ' kupon</span></div>' +
         '<div class="kv"><label>Target respons valid</label><span>' + fmt(s.target || 0) + '</span></div>' +
@@ -1440,6 +1443,10 @@ function loadSet() {
         '<p class="muted" style="margin:4px 0 12px">Survei buatan Dashboard: status, jadwal tutup, kupon, target, dan pertanyaan diatur lewat Edit survei.</p>' +
         '<button class="btn sm" onclick="editSurvey(\'' + esc(s.v) + '\')">Edit survei</button> ' + (s.link && s.status !== 'Draf' ? '<a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a>' : '') + '</div>';
     }).join('') + '<div class="card"><h2>Periode giveaway</h2><p class="muted">Periode diatur di menu <a href="#" onclick="navTo(\'period\');return false">Periode Giveaway</a> dan berlaku untuk semua survei MIL Gift Club.</p></div>';
+    $('s-pick').innerHTML = d.surveys.map(function (s) { return '<option value="' + esc(s.v) + '">' + esc(s.name) + (s.custom ? ' · ' + esc(s.status) : ' · utama') + '</option>'; }).join('');
+    $('s-pick-n').textContent = d.surveys.length + ' survei';
+    if (!SET_PICK || !d.surveys.some(function (s) { return s.v === SET_PICK; })) SET_PICK = d.surveys.length ? d.surveys[0].v : '';
+    $('s-pick').value = SET_PICK; setPick(SET_PICK);
     $('s-form').innerHTML = d.list.filter(function (x) { return HIDE_SET.indexOf(x.key) < 0; }).map(function (x) {
       return '<div class="kv"><label><b>' + esc(x.key) + '</b><div class="muted">' + esc(x.note) + '</div></label><input data-k="' + x.key + '"' + (/KEY/.test(x.key) ? ' type="password" autocomplete="off"' : '') + ' value="' + esc(x.val) + '"></div>';
     }).join('');

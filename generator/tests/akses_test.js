@@ -57,8 +57,10 @@ const label = { admin: 'Admin', survei: 'Buat survei & baca data', baca: 'Baca d
       assert.strictEqual(u.searchParams.get('to'), 'jo@mildigital.id'); assert(/Buat survei & baca data/.test(u.searchParams.get('body'))); await pop.close();
       await p.screenshot({ path: SP + 'akses_admin.png' });
       await p.locator('nav.side > button[data-p="set"]').click(); await p.waitForTimeout(1500);
-      const cards = await p.$$eval('#s-surveys .card h2', x => x.map(h => h.textContent)); console.log('        kartu pengaturan:', cards.join(' | '));
-      assert(cards.some(c => /^Uji /.test(c))); await p.locator('#s-surveys .card').nth(2).screenshot({ path: SP + 'set_custom.png' });
+      const vis = () => p.$$eval('#s-surveys .card h2', x => x.filter(h => h.offsetParent).map(h => h.textContent));
+      console.log('        pilihan:', (await p.$$eval('#s-pick option', x => x.map(o => o.textContent))).join(' | ')); console.log('        terlihat:', (await vis()).join(' | '));
+      await p.selectOption('#s-pick', { index: 2 }); await p.waitForTimeout(200); const v2 = await vis(); console.log('        setelah pilih:', v2.join(' | '));
+      assert(v2.length === 2 && v2[1] === 'Periode giveaway'); await p.screenshot({ path: SP + 'set_pick.png' });
     }
     if (role === 'baca') await p.screenshot({ path: SP + 'akses_baca.png' });
     console.log('        ditolak server:', toasts.length ? toasts.join(' || ') : 'tidak ada');
