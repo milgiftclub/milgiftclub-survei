@@ -1429,6 +1429,16 @@ function loadSet() {
         '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link) + '"></div>' +
         '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab) + '</span></div>' +
         '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> <a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a></div>';
+    }).join('') + d.surveys.filter(function (s) { return s.custom; }).map(function (s) {
+      var st = s.status === 'Dibuka' ? '<span class="badge b-g">Dibuka</span>' : s.status === 'Draf' ? '<span class="badge b-n">Draf</span>' : '<span class="badge b-r">' + esc(s.status) + '</span>';
+      return '<div class="card"><h2>' + esc(s.name) + '</h2>' +
+        '<div class="kv"><label>Status</label><span>' + st + '</span></div>' +
+        '<div class="kv"><label>Nilai kupon</label><span>' + (s.kupon || 2) + ' kupon</span></div>' +
+        '<div class="kv"><label>Target respons valid</label><span>' + fmt(s.target || 0) + '</span></div>' +
+        '<div class="kv"><label>Link survei</label><input readonly value="' + esc(s.link || '') + '"></div>' +
+        '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab || '') + '</span></div>' +
+        '<p class="muted" style="margin:4px 0 12px">Survei buatan Dashboard: status, jadwal tutup, kupon, target, dan pertanyaan diatur lewat Edit survei.</p>' +
+        '<button class="btn sm" onclick="editSurvey(\'' + esc(s.v) + '\')">Edit survei</button> ' + (s.link && s.status !== 'Draf' ? '<a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a>' : '') + '</div>';
     }).join('') + '<div class="card"><h2>Periode giveaway</h2><p class="muted">Periode diatur di menu <a href="#" onclick="navTo(\'period\');return false">Periode Giveaway</a> dan berlaku untuk semua survei MIL Gift Club.</p></div>';
     $('s-form').innerHTML = d.list.filter(function (x) { return HIDE_SET.indexOf(x.key) < 0; }).map(function (x) {
       return '<div class="kv"><label><b>' + esc(x.key) + '</b><div class="muted">' + esc(x.note) + '</div></label><input data-k="' + x.key + '"' + (/KEY/.test(x.key) ? ' type="password" autocomplete="off"' : '') + ' value="' + esc(x.val) + '"></div>';

@@ -56,6 +56,9 @@ const label = { admin: 'Admin', survei: 'Buat survei & baca data', baca: 'Baca d
       console.log('        undangan ->', u.pathname, '| to', u.searchParams.get('to'), '| su', u.searchParams.get('su')); console.log(u.searchParams.get('body').split('\n').map(l => '          ' + l).join('\n'));
       assert.strictEqual(u.searchParams.get('to'), 'jo@mildigital.id'); assert(/Buat survei & baca data/.test(u.searchParams.get('body'))); await pop.close();
       await p.screenshot({ path: SP + 'akses_admin.png' });
+      await p.locator('nav.side > button[data-p="set"]').click(); await p.waitForTimeout(1500);
+      const cards = await p.$$eval('#s-surveys .card h2', x => x.map(h => h.textContent)); console.log('        kartu pengaturan:', cards.join(' | '));
+      assert(cards.some(c => /^Uji /.test(c))); await p.locator('#s-surveys .card').nth(2).screenshot({ path: SP + 'set_custom.png' });
     }
     if (role === 'baca') await p.screenshot({ path: SP + 'akses_baca.png' });
     console.log('        ditolak server:', toasts.length ? toasts.join(' || ') : 'tidak ada');
