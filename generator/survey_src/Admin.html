@@ -1422,26 +1422,20 @@ function loadSet() {
   simLoad();
   run('adminSettings').then(function (d) {
     SET = d; delFill(d);
-    $('s-surveys').innerHTML = d.surveys.filter(function (s) { return !s.custom; }).map(function (s) {
-      var k = s.v.toUpperCase();
-      return '<div class="card" data-sv="' + esc(s.v) + '"><h2>' + esc(s.name) + '</h2>' +
-        '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (s.switchOn ? ' checked' : '') + '><span></span></label>' + (s.tutupLewat && s.switchOn ? '<div class="muted" style="color:var(--red);font-weight:700">Tertutup otomatis: tanggal tutup sudah lewat. Ubah tanggal di bawah untuk membuka lagi.</div>' : '') + '</div>' +
+    $('s-surveys').innerHTML = d.surveys.map(function (s, i) {
+      var k = s.custom ? 'C' + i : s.v.toUpperCase(), draf = s.custom && s.status === 'Draf';
+      var on = s.custom ? s.status === 'Dibuka' : s.switchOn;
+      return '<div class="card" data-sv="' + esc(s.v) + '" data-k="' + k + '"><h2>' + esc(s.name) + '</h2>' +
+        '<div class="kv"><label>Status</label><label class="switch"><input type="checkbox" id="open-' + k + '"' + (on ? ' checked' : '') + (draf ? ' disabled' : '') + '><span></span></label>' +
+          (draf ? '<div class="muted">Masih draf. Terbitkan lewat <b>Edit survei</b> supaya pertanyaannya dicek dulu.</div>' : '') +
+          (s.tutupLewat && on ? '<div class="muted" style="color:var(--red);font-weight:700">Tertutup otomatis: tanggal tutup sudah lewat. Ubah tanggal di bawah untuk membuka lagi.</div>' : '') + '</div>' +
         '<div class="kv"><label>Tutup otomatis pada (WIB)</label><input type="datetime-local" id="tut-' + k + '" value="' + esc(s.tutup || '') + '"><div class="muted">Kosongkan bila tanpa batas waktu. Tampil di survei sebagai "Hingga …"</div></div>' +
         '<div class="kv"><label>Nilai kupon</label><select id="kup-' + k + '" style="width:auto">' + [1, 2, 3].map(function (n) { return '<option value="' + n + '"' + (n === s.kupon ? ' selected' : '') + '>' + n + ' kupon' + (n === 1 ? ' (pendek)' : n === 2 ? ' (panjang)' : ' (sangat panjang)') + '</option>'; }).join('') + '</select></div>' +
-        '<div class="kv"><label>Target respons valid</label><input type="number" id="tgt-' + k + '" value="' + s.target + '"></div>' +
-        '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link) + '"></div>' +
-        '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab) + '</span></div>' +
-        '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> <a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a></div>';
-    }).join('') + d.surveys.filter(function (s) { return s.custom; }).map(function (s) {
-      var st = s.status === 'Dibuka' ? '<span class="badge b-g">Dibuka</span>' : s.status === 'Draf' ? '<span class="badge b-n">Draf</span>' : '<span class="badge b-r">' + esc(s.status) + '</span>';
-      return '<div class="card" data-sv="' + esc(s.v) + '"><h2>' + esc(s.name) + '</h2>' +
-        '<div class="kv"><label>Status</label><span>' + st + '</span></div>' +
-        '<div class="kv"><label>Nilai kupon</label><span>' + (s.kupon || 2) + ' kupon</span></div>' +
-        '<div class="kv"><label>Target respons valid</label><span>' + fmt(s.target || 0) + '</span></div>' +
-        '<div class="kv"><label>Link survei</label><input readonly value="' + esc(s.link || '') + '"></div>' +
-        '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab || '') + '</span></div>' +
-        '<p class="muted" style="margin:4px 0 12px">Survei buatan Dashboard: status, jadwal tutup, kupon, target, dan pertanyaan diatur lewat Edit survei.</p>' +
-        '<button class="btn sm" onclick="editSurvey(\'' + esc(s.v) + '\')">Edit survei</button> ' + (s.link && s.status !== 'Draf' ? '<a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a>' : '') + '</div>';
+        '<div class="kv"><label>Target respons valid</label><input type="number" id="tgt-' + k + '" value="' + (s.target || 0) + '"></div>' +
+        '<div class="kv"><label>Link survei</label><input id="lnk-' + k + '" value="' + esc(s.link || '') + '"' + (s.custom ? ' readonly title="Link survei buatan Dashboard dibuat otomatis"' : '') + '></div>' +
+        '<div class="kv"><label>Tab data</label><span class="muted">' + esc(s.tab || '–') + '</span></div>' +
+        '<button class="btn sm" onclick="saveSurvey(\'' + k + '\')">Simpan</button> ' + (s.link && !draf ? '<a class="btn sec sm" style="text-decoration:none" href="' + esc(s.link) + '" target="_blank">Buka survei</a> ' : '') +
+        (s.custom ? '<button class="btn soft sm need-survei" onclick="editSurvey(\'' + esc(s.v) + '\')">Edit pertanyaan</button>' : '') + '</div>';
     }).join('') + '<div class="card"><h2>Periode giveaway</h2><p class="muted">Periode diatur di menu <a href="#" onclick="navTo(\'period\');return false">Periode Giveaway</a> dan berlaku untuk semua survei MIL Gift Club.</p></div>';
     $('s-pick').innerHTML = d.surveys.map(function (s) { return '<option value="' + esc(s.v) + '">' + esc(s.name) + (s.custom ? ' · ' + esc(s.status) : ' · utama') + '</option>'; }).join('');
     $('s-pick-n').textContent = d.surveys.length + ' survei';
@@ -1453,6 +1447,10 @@ function loadSet() {
   });
 }
 function saveSurvey(k) {
+  if (k.charAt(0) === 'C') {
+    var card = document.querySelector('#s-surveys .card[data-k="' + k + '"]'), v = card.getAttribute('data-sv');
+    return run('adminCustomSet', v, { open: $('open-' + k).checked, tutup: $('tut-' + k).value, kupon: +$('kup-' + k).value || 2, target: +$('tgt-' + k).value || 0 }).then(function () { toast('Tersimpan. Berlaku langsung untuk responden.'); loadSet(); loadHome(); });
+  }
   var o = {}; o['SURVEY_OPEN_' + k] = $('open-' + k).checked; o['TARGET_' + k] = +$('tgt-' + k).value; o['LINK_' + k] = $('lnk-' + k).value; o['TUTUP_' + k] = $('tut-' + k).value; o['KUPON_' + k] = +$('kup-' + k).value || 2;
   run('adminSaveSettings', o).then(function () { toast('Tersimpan. Berlaku langsung untuk responden.'); loadHome(); });
 }

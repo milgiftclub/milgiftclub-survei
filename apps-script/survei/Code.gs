@@ -1230,7 +1230,7 @@ function surveyList_() {
   }).concat(customSurveys_().filter(function (c) { return c.status !== 'Diarsipkan'; }).map(function (c) {
     var lewat = closed_(c.schema.tutup);
     return { v: c.id, name: c.name, kupon: kuponOf_(c.id), ronde: rondeNow_(c.id), rondeInfo: rondeInfo_(c.id), open: c.status === 'Dibuka' && !lewat, status: c.status === 'Dibuka' && lewat ? 'Ditutup' : c.status, target: c.target, link: customLink_(c.id), tab: c.tab, custom: true, profile: c.schema.profile !== false,
-      tutupText: fmtTutup_(c.schema.tutup), tutupLewat: lewat };
+      tutup: inputDate_(c.schema.tutup || ''), tutupText: fmtTutup_(c.schema.tutup), tutupLewat: lewat };
   }));
 }
 
@@ -2443,6 +2443,20 @@ function adminBuilderStatus(id, status) {
   requireAdmin_('survei');
   if (['Dibuka', 'Ditutup', 'Draf', 'Diarsipkan'].indexOf(status) < 0) throw new Error('Status tidak dikenal');
   setCustomStatus_(id, status); return { ok: true };
+}
+/** Pengaturan cepat survei buatan Dashboard dari halaman Survei & Pengaturan (sama seperti survei utama). */
+function adminCustomSet(id, o) {
+  var who = requireAdmin_('survei'); o = o || {}; CUSTOM_MEMO_ = null;
+  var c = customById_(id); if (!c) throw new Error('Survei tidak ditemukan');
+  var sch = c.schema || {}, status = c.status;
+  sch.tutup = String(o.tutup || '').slice(0, 16);
+  sch.kupon = Math.max(1, Math.min(3, Math.round(Number(o.kupon) || 2)));
+  var target = Math.max(0, Math.round(Number(o.target) || 0)); sch.target = target;
+  if (status === 'Dibuka' || status === 'Ditutup') status = o.open ? 'Dibuka' : 'Ditutup';
+  writeCustom_(c.row, { id: c.id, name: c.name, status: status, target: target, tab: c.tab, by: c.by, created: c.created, editedBy: who, edited: new Date(), schema: sch });
+  CUSTOM_MEMO_ = null; try { cacheDel_('custom:list'); } catch (e) {}
+  if (status === 'Dibuka') ensureCustomTab_(customById_(c.id));
+  return { ok: true, status: status };
 }
 function adminBuilderDelete(id) { requireAdmin_('survei'); return builderDelete_(id); }
 function builderDelete_(id) {

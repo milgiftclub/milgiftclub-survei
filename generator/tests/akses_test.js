@@ -60,7 +60,14 @@ const label = { admin: 'Admin', survei: 'Buat survei & baca data', baca: 'Baca d
       const vis = () => p.$$eval('#s-surveys .card h2', x => x.filter(h => h.offsetParent).map(h => h.textContent));
       console.log('        pilihan:', (await p.$$eval('#s-pick option', x => x.map(o => o.textContent))).join(' | ')); console.log('        terlihat:', (await vis()).join(' | '));
       await p.selectOption('#s-pick', { index: 2 }); await p.waitForTimeout(200); const v2 = await vis(); console.log('        setelah pilih:', v2.join(' | '));
-      assert(v2.length === 2 && v2[1] === 'Periode giveaway'); await p.screenshot({ path: SP + 'set_pick.png' });
+      assert(v2.length === 2 && v2[1] === 'Periode giveaway');
+      const card = p.locator('#s-surveys .card:visible').first(); const lbl = await card.locator('.kv > label:first-child').evaluateAll(x => x.map(l => l.textContent.trim()));
+      console.log('        isian kartu custom:', lbl.join(' | ')); assert(lbl.includes('Tutup otomatis pada (WIB)'));
+      await card.locator('input[type=datetime-local]').fill('2026-12-20T21:00'); await card.locator('input[type=number]').fill('1234'); await card.locator('select').selectOption('3');
+      await card.locator('.switch').click(); await card.locator('button:has-text("Simpan")').click(); await p.waitForTimeout(1500);
+      ctx.CUSTOM_MEMO_ = null; const cs = ctx.customById_(await card.getAttribute('data-sv')); console.log('        tersimpan:', cs.status, cs.target, cs.schema.tutup, cs.schema.kupon);
+      assert.strictEqual(cs.status, 'Ditutup'); assert.strictEqual(cs.target, 1234); assert.strictEqual(cs.schema.tutup, '2026-12-20T21:00'); assert.strictEqual(cs.schema.kupon, 3);
+      await p.locator('#s-surveys .card:visible').first().screenshot({ path: SP + 'set_custom.png' });
     }
     if (role === 'baca') await p.screenshot({ path: SP + 'akses_baca.png' });
     console.log('        ditolak server:', toasts.length ? toasts.join(' || ') : 'tidak ada');
