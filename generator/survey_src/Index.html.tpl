@@ -211,7 +211,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
     var o = function (x) { return opts(x); };
     if (k == null && ST.pre && ST.pre.indexOf(id) >= 0) return false; // profil sudah ada dari survei sebelumnya
     switch (id) {
-      case 'PV': return !!ST.known;
+      case 'PV': return !!ST.known && !ST.tokOk;
       case 'PR': return !!ST.stale;
       case 'S1': case 'A4': return false; // diturunkan otomatis (tahun lahir / status & anak)
       case 'S0B': return get('S0') === String(CY - 18);
@@ -544,7 +544,14 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
         res = res || {};
         if (res.state === 'sudah_isi') { done1 = true; waitMsg(''); busy(false); return endScreenout('Sudah pernah mengisi survei ini (Instagram sama)'); }
         if (res.state === 'diblokir' || res.state === 'suspend') { done1 = true; waitMsg(''); busy(false); return endBlocked(res); }
+        if (res.state === 'sudah_profil') { done1 = true; waitMsg(''); busy(false); return endSudahProfil(); }
+        if (res.profilDulu) { done1 = true; waitMsg(''); busy(false); return gateProfil(res.profilDulu); }
         ST.known = !!res.known; ST.pvTry = 0; ST.covered = res.covered || [];
+        if (ST.known && (CFG.tok || '')) return google.script.run.withSuccessHandler(function (r) {
+          if (done1) return;
+          if (r && r.ok) { var so = applyProfile(r); if (so) { done1 = true; waitMsg(''); busy(false); return endScreenout(so); } ST.known = false; ST.tokOk = true; }
+          go1();
+        }).withFailureHandler(go1).verifyProfileToken(ST.a.Z2, (CFG.tok || ''));
         go1();
       }).withFailureHandler(go1).lookupIg(ST.a.Z2, VARIANT);
     }
@@ -555,15 +562,7 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       waitMsg('Tunggu sesaat, kami sedang mencocokkan data kamu di database kami.');
       return google.script.run.withSuccessHandler(function (res) {
         waitMsg(''); busy(false); btnN.textContent = 'Lanjut';
-        if (res && res.ok) {
-          ST.pre = Object.keys(res.profile);
-          ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
-          ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
-          if (ST.a.S0) ageBand();
-          save();
-          for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return endScreenout(so2); }
-          return go(1);
-        }
+        if (res && res.ok) { var so2 = applyProfile(res); if (so2) return endScreenout(so2); return go(1); }
         ST.pvTry = (ST.pvTry || 0) + 1;
         if (ST.pvTry >= 3) { delete ST.a.PV; go(1); ST.known = false; save(); return; }
         document.getElementById('err').textContent = '4 digit tidak cocok. Coba lagi, atau kosongkan lalu klik Lanjut untuk mengisi data diri dari awal.';
@@ -680,6 +679,27 @@ var CITIES = __CITIES__; // [nama, provinsi, tipe, jabodetabek]
       : 'Akses akun ini ke survei MIL Gift Club ditutup karena jawaban sebelumnya tidak lolos verifikasi kualitas. Untuk membuka kembali, kirim email ke ' + em + ' dengan menyertakan username Instagram dan nomor WhatsApp kamu.';
     var ig = CFG.linkIg ? '<div class="ctas"><a class="cta cta2" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || 'Follow Instagram') + '</a></div>' : '';
     finish('Akses survei ditutup', msg, '', ig);
+  }
+  /** Pakai profil tersimpan (4 digit WA atau token Survei Profil). Mengembalikan alasan screenout bila tidak lolos. */
+  function applyProfile(res) {
+    ST.pre = Object.keys(res.profile); if (res.wa && BY.Z3) { res.profile.Z3 = res.wa.charAt(0) === '0' ? res.wa : '0' + res.wa.replace(/^62/, ''); ST.pre.push('Z3'); }
+    ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
+    ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
+    if (ST.a.S0) ageBand();
+    save();
+    for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return so2; }
+    return '';
+  }
+  function gateProfil(pf) {
+    clearSave();
+    var ig = String(ST.a.Z2 || '').replace(/^@/, ''), src = CFG.src || 'langsung', back = location.origin + location.pathname + '?src=' + encodeURIComponent(src);
+    var u = pf.link + (pf.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ig) + '&ok=1&src=' + encodeURIComponent(src) + '&lanjut=' + encodeURIComponent(back);
+    finish('Satu langkah dulu, ya!', 'Sebelum mengisi survei ini, isi dulu ' + pf.name + ' (±' + (pf.est || 4) + ' menit). Cukup sekali saja: setelah itu kamu langsung kembali ke survei ini dan tidak perlu mengisi data diri lagi di survei mana pun.', '',
+      '<div class="ctas"><a class="cta" href="' + esc(u) + '">Isi ' + esc(pf.name) + ' · +' + (pf.kupon || 1) + ' kupon →</a></div>');
+  }
+  function endSudahProfil() {
+    clearSave();
+    finish('Profil kamu sudah tersimpan', 'Kamu tidak perlu mengisi survei ini lagi. Langsung pilih survei lain, data dirimu otomatis terisi.', '', ctaButtons(false));
   }
   function done() { var z = BY.Z5; finish('Terima kasih!', fill(z.text, null).replace(/^Terima kasih!\s*/, ''), (CFG.pesanPenutup || 'Isi survei lainnya untuk memperbesar kesempatan kamu menang!'), stepsBox(), ctaButtons(true)); }
   function finish(t, m, note, extra, after) {

@@ -35,7 +35,7 @@ BOOT = r'''<script src="%(cfgpath)s"></script>
       withSuccessHandler: function (f) { return runner(f, fail); },
       withFailureHandler: function (f) { return runner(ok, f); }
     };
-    ['assignCategories', 'logScreenout', 'submitResponse', 'checkIg', 'lookupIg', 'verifyProfile'].forEach(function (n) {
+    ['assignCategories', 'logScreenout', 'submitResponse', 'checkIg', 'lookupIg', 'verifyProfile', 'verifyProfileToken'].forEach(function (n) {
       r[n] = function () {
         var args = Array.prototype.slice.call(arguments);
         apiCall(n, args).then(function (d) { if (ok) ok(d); }, function (e) { if (fail) fail(e); });
@@ -62,7 +62,7 @@ BOOT = r'''<script src="%(cfgpath)s"></script>
     var MAP = { PERIODE_LABEL: 'periodeLabel', HADIAH_UTAMA: 'hadiahUtama', HADIAH: 'hadiah', PERIODE_GIVEAWAY: 'periode',
       PENGUMUMAN_PEMENANG: 'announce', LINK_CEK_STATUS: 'linkCek', IG_HANDLE: 'ig', LANGKAH_PENUTUP: 'langkah', PESAN_PENUTUP: 'pesanPenutup', PRIVACY_URL: 'privacy', TNC_URL: 'tnc', TEKS_PEMBUKA: 'intro', PERTANYAAN_PEMBUKA: 'o1q', TEKS_TIDAK_ELIGIBLE: 'teksTidakEligible', TEKS_MENOLAK: 'teksMenolak', TEKS_SUDAH_ISI: 'teksSudahIsi', LINK_SURVEI_LAIN: 'linkLain', TOMBOL_SURVEI_LAIN: 'tombolLain', LINK_INSTAGRAM: 'linkIg', TOMBOL_INSTAGRAM: 'tombolIg' };
     for (var t in MAP) if (T[t] !== undefined) CFG[MAP[t]] = T[t];
-    CFG.src = src; CFG.variant = FIXED_VARIANT; CFG.preIg = qs('ig'); CFG.hubOk = qs('ok') === '1';
+    CFG.src = src; CFG.variant = FIXED_VARIANT; CFG.preIg = qs('ig'); CFG.hubOk = qs('ok') === '1'; CFG.tok = qs('t');
     document.getElementById('nav').style.display = '';
     app.innerHTML = '';
     window.__startSurvey(CFG);

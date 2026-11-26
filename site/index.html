@@ -135,6 +135,7 @@
   .rd-btn{display:block;width:100%;margin-top:14px;border:0;border-radius:16px;background:var(--coral);color:#fff;font:inherit;font-weight:800;font-size:16px;padding:14px;cursor:pointer} .rd-btn.sec{background:transparent;color:var(--brown);border:2px solid var(--brown)}
   .rd-btn:disabled{opacity:.6;cursor:wait} .rd-err{color:#B42323;font-weight:700;font-size:14px;margin-top:10px}
   .pr-r{display:flex;justify-content:space-between;gap:12px;border-top:1px dashed var(--line);padding:6px 0}
+.pf-b{background:#FFF6E5;border:1.5px solid #F0C36A;border-radius:14px;padding:12px 14px;margin:0 0 12px}.pf-b b{display:block;margin-bottom:4px}.pf-b p{margin:0;font-size:14px;line-height:1.5}.sv.pf{border:2px solid #E0A93A;background:#FFFBF2}
 </style>
 </head>
 <body>
@@ -201,10 +202,14 @@ var SK_HTML = "  <div class=\"sk\">\n    <h2>1. Penyelenggara</h2>\n    <p>Givea
       var h = '<div class="section">Pilih survei</div><h1>Halo ' + esc(ST.ig) + '! Survei mana yang mau kamu isi?</h1>' +
         '<div class="kup"><div class="kn">🎟️ ' + (checking ? '…' : d.saldo ? d.saldo.sisa : d.kupon) + '</div><div><b>Kupon kamu</b><p>' + (checking ? 'Memeriksa survei yang sudah kamu isi…' : 'Bisa ditukar hadiah di bawah, dan ' + d.kupon + ' kupon ikut undian ' + esc(d.periode || 'periode ini') + '. ' + (todo ? 'Isi <b>' + todo + ' survei lagi</b> untuk menambah kupon.' : 'Semua survei yang dibuka sudah kamu isi. Terima kasih!') +
           (d.saldo && d.saldo.segera ? '<br>⏳ <b>' + d.saldo.segera.n + ' kupon</b> hangus pada ' + esc(d.saldo.segera.tgl) + ' (kupon berlaku ' + d.saldo.berlaku + ' bulan).' : '') + (d.saldo && d.saldo.hangus ? '<br><span style="opacity:.8">' + d.saldo.hangus + ' kupon sudah hangus.</span>' : '')) + '</p></div></div>';
+      var NP = !checking && d.needProfil && d.profil, igq = 'ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '&ok=1&src=' + encodeURIComponent(SRC);
+      if (NP) h += '<div class="pf-b"><b>👋 Mulai dari ' + esc(d.profil.name) + '</b><p>Isi sekali saja (±' + (d.profil.est || 4) + ' menit, +' + (d.profil.kupon || 1) + ' kupon). Setelah itu semua survei lain langsung bisa kamu isi tanpa mengisi data diri lagi.</p></div>';
       h += d.list.map(function (x) {
-        var u = x.link + (x.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ST.ig.replace(/^@/, '')) + '&ok=1&src=' + encodeURIComponent(SRC);
-        return '<a class="sv' + (x.done ? ' done' : '') + '" href="' + esc(u) + '"><div class="t"><b>' + (x.done ? '✓ ' : '') + esc(x.name) + '</b><small>' + esc(x.desc) + '</small>' +
-          '<div class="m">' + (x.done ? 'Sudah diisi' + (x.valid ? '' : ' · tidak valid') : '±' + x.est + ' menit · +' + (x.nilai || 1) + ' kupon') + '</div></div><span class="go">' + (x.done ? '✓ Selesai' : 'Mulai →') + '</span></a>';
+        var u = x.link + (x.link.indexOf('?') < 0 ? '?' : '&') + igq;
+        // belum punya profil: survei lain lewat Survei Profil dulu, lalu otomatis kembali ke survei pilihan
+        if (NP && !x.profil && !x.done) u = d.profil.link + (d.profil.link.indexOf('?') < 0 ? '?' : '&') + igq + '&lanjut=' + encodeURIComponent(x.link);
+        return '<a class="sv' + (x.done ? ' done' : '') + (x.profil && NP ? ' pf' : '') + '" href="' + esc(u) + '"><div class="t"><b>' + (x.done ? '✓ ' : '') + (x.profil && NP ? '⭐ ' : '') + esc(x.name) + '</b><small>' + esc(x.desc) + '</small>' +
+          '<div class="m">' + (x.done ? 'Sudah diisi' + (x.valid ? '' : ' · tidak valid') : '±' + x.est + ' menit · +' + (x.nilai || 1) + ' kupon') + '</div></div><span class="go">' + (x.done ? '✓ Selesai' : x.profil && NP ? 'Mulai di sini →' : NP ? 'Profil dulu →' : 'Mulai →') + '</span></a>';
       }).join('') + (d.list.length ? '' : '<p class="intro">Belum ada survei yang dibuka. Pantau Instagram ' + esc(IGH()) + ' ya!</p>');
       if (!checking && d.katalog && d.katalog.length) {
         var sisa = d.saldo ? d.saldo.sisa : 0;

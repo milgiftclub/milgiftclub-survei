@@ -96,6 +96,7 @@ var SET_DEFAULTS = [
   ['LINK_V2', WEB_URL + 'fokus/', 'Link survei Fashion Wanita, Tas & Aksesori, Hijab'],
   ['API_KEY', '', 'Kunci API untuk ATLAS (buat dari Dashboard > API)'],
   ['LINK_SURVEI_BARU', WEB_URL + 's/?id=', 'Awal link survei yang dibuat dari Dashboard (diikuti ID survei)'],
+  ['SURVEI_PROFIL', '', 'ID Survei Profil. Responden baru wajib mengisinya dulu sebelum survei lain; responden yang sudah punya profil langsung ke survei pilihannya. Kosongkan untuk mematikan.'],
   ['ANTHROPIC_API_KEY', '', 'Kunci API Claude (console.anthropic.com) untuk fitur "Minta AI" di Buat Survei. Kosong = fitur AI mati'],
   ['AI_MODEL', 'claude-sonnet-5-5', 'Model Claude yang dipakai untuk menyusun survei'],
   ['TUTUP_V1', '2026-12-31T23:59', 'Survei Semua Kategori tutup otomatis pada tanggal & jam ini (WIB). Kosong = tanpa batas waktu'],
@@ -254,6 +255,7 @@ function doPost(e) {
     else if (req.fn === 'checkIg') data = checkIg(a[0], a[1]);
     else if (req.fn === 'lookupIg') data = lookupIg(a[0], a[1]);
     else if (req.fn === 'verifyProfile') data = verifyProfile(a[0], a[1]);
+    else if (req.fn === 'verifyProfileToken') data = verifyProfileToken(a[0], a[1]);
     else if (req.fn === 'getSurvey') data = getSurvey(a[0], a[1]);
     else if (req.fn === 'giveawayStatus') data = giveawayStatus(a[0]);
     else if (req.fn === 'hubList') data = hubList(a[0]);
@@ -516,6 +518,7 @@ function submitResponse(p) {
     if (row.profil_diperbarui) a.profil_diperbarui = row.profil_diperbarui;
     if (a.Z1 === 'Ya, bersedia' && status === 'Valid' && wa) upsertPanel_(a, wa, ig, status, p.src, sname, rondeNow_(cs ? cs.id : p.variant === 'v2' ? 'v2' : 'v1'));
     if (cs && status === 'Valid') autoCloseCustom_(cs, s, col);
+    if (cs && cs.id === String(set_('SURVEI_PROFIL') || '').trim() && ig && !/^Diblokir/.test(status)) return { ok: true, lanjut: profilToken_(ig) };
     return { ok: true };
   } finally {
     lock.releaseLock();
@@ -755,16 +758,44 @@ function lookupIgRaw_(ig, variant) {
   var acc = accessFast_(n, '');
   if (acc.state !== 'ok') return { state: acc.state, until: acc.until || '', email: set_('EMAIL_BUKA_AKSES') };
   var tab = respTab_(variant || 'v1'), vv = variant && variant !== 'v1' && variant !== 'v2' ? variant : String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1';
-  var fx = igIndex_(n);
+  var fx = igIndex_(n), pf = profilSurvey_();
+  var gate = function (known, rows) {   // responden baru -> Survei Profil dulu; yang sudah punya profil tidak perlu mengisi Survei Profil lagi
+    if (!pf) return null;
+    if (vv === pf.v) return known ? { state: 'sudah_profil' } : null;
+    return !known && !profilTried_(fx, rows, pf.v) ? pf : null;
+  };
   if (fx) { var rn = rondeNow_(vv); if (fx.some(function (x) { return x[0] === vv && x[1] === rn; })) return { state: 'sudah_isi' };
+    var kn = fx.some(function (x) { return x[5]; }), g1 = gate(kn, null); if (g1 && g1.state) return g1;
     // kategori yang sudah diceritakan di survei MIL lain (ronde berjalan) -> dipakai untuk mencegah data ganda
     var cov = fx.filter(function (x) { return x[0] !== vv && x[2] && x[6] && x[1] === rondeNow_(x[0]); }).map(function (x) { return { v: x[0], kategori: x[6] }; });
-    return { state: 'ok', known: fx.some(function (x) { return x[5]; }), covered: cov }; }
+    return { state: 'ok', known: kn, covered: cov, profilDulu: g1 }; }
   var rows = igRows_(n);
   var rs = rondeStart_(variant && variant !== 'v1' && variant !== 'v2' ? variant : String(variant || '').toLowerCase() === 'v2' ? 'v2' : 'v1');
   if (rows.some(function (r) { return r._tab === tab && String(r.ig_normal) === n && (!rs || new Date(r.timestamp) >= rs); })) return { state: 'sudah_isi' };
   var cov2 = rows.filter(function (r) { return r._v !== vv && r.status === 'Valid' && r.kategori_1 && r.ronde === rondeNow_(r._v); }).map(function (r) { return { v: r._v, kategori: String(r.kategori_1) }; });
-  return { state: 'ok', known: !!profileRow_(rows, n), covered: cov2 };
+  var kn2 = !!profileRow_(rows, n), g2 = gate(kn2, rows); if (g2 && g2.state) return g2;
+  return { state: 'ok', known: kn2, covered: cov2, profilDulu: g2 };
+}
+// ---------- Survei Profil (wajib lebih dulu untuk responden baru) ----------
+/** Survei Profil yang aktif (dibuka) atau null. */
+function profilSurvey_() {
+  var id = String(set_('SURVEI_PROFIL') || '').trim(); if (!id) return null;
+  var c = customById_(id); if (!c || c.status !== 'Dibuka' || closed_(c.schema.tutup)) return null;
+  return { v: c.id, name: c.name, link: customLink_(c.id), kupon: kuponOf_(c.id), est: Number(c.schema.estimasi) || 4 };
+}
+/** Sudah pernah mengirim Survei Profil (status apa pun selain diblokir) -> tidak diarahkan lagi, supaya tidak berputar. */
+function profilTried_(fx, rows, pid) {
+  if (fx) return fx.some(function (x) { return x[0] === pid; });
+  return (rows || []).some(function (r) { return r._v === pid && !/^Diblokir/.test(String(r.status)); });
+}
+/** Token sekali pakai setelah Survei Profil: survei berikutnya langsung memakai profil tanpa 4 digit WA. */
+function profilToken_(n) { var t = Utilities.getUuid().replace(/-/g, '').slice(0, 20); cachePut_('ptok:' + t, n, 3600); return t; }
+function verifyProfileToken(ig, tok) {
+  var n = normIg_(ig); tok = String(tok || '').replace(/[^a-z0-9]/gi, '').slice(0, 40);
+  if (!n || !tok || cacheGet_('ptok:' + tok) !== n) return { ok: false };
+  var list = profileRows_(igRows_(n), n), res = profileOf_(n, list);
+  if (res.ok && list.length) res.wa = String(list[list.length - 1].wa_normal || '').replace(/^'/, '');   // nomor WA dari Survei Profil barusan -> tidak perlu diketik ulang
+  return res;
 }
 function checkIg(ig, variant) { var r = lookupIg(ig, variant); return { exists: r.state === 'sudah_isi' }; }
 
@@ -831,6 +862,10 @@ function verifyProfile(ig, last4) {
   if (guardCek_(n)) return { ok: false, locked: true, msg: guardCek_(n) };
   var list = profileRows_(igRows_(n), n), r = list[list.length - 1];
   if (!r || String(r.wa_normal).slice(-4) !== d) { guardGagal_(n); return { ok: false }; }
+  return profileOf_(n, list);
+}
+function profileOf_(n, list) {
+  list = list || profileRows_(igRows_(n), n); if (!list.length) return { ok: false };
   // gabungkan: tiap kolom profil diambil dari jawaban terbaru yang terisi
   var prof = {}, upd = 0;
   list.forEach(function (x) {
@@ -2915,6 +2950,84 @@ function adminSimulasiBatch() {
 }
 // ---- simulasi survei contoh Onycha vs Zara (10.000 jawaban, pola dibuat masuk akal) ----
 var SURVEY_TEMPLATES = {
+ "profil": {
+  "judul": "Survei Profil: kenalan dulu dengan responden",
+  "ringkas": "Survei pertama untuk responden baru: data diri standar (usia, gender, domisili, pekerjaan, pengeluaran) plus platform dan kategori belanja online. Diisi sekali, lalu dipakai otomatis di semua survei lain.",
+  "name": "Survei Profil",
+  "intro": "Kenalan dulu, yuk! Isi sekali saja, setelah itu kamu bisa langsung mengisi survei lain tanpa mengisi data diri lagi.",
+  "estimasi": 4,
+  "kupon": 1,
+  "questions": [
+   {
+    "text": "Platform belanja online apa saja yang Anda gunakan dalam 3 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Shopee"
+     },
+     {
+      "t": "Tokopedia"
+     },
+     {
+      "t": "TikTok Shop"
+     },
+     {
+      "t": "Lazada"
+     },
+     {
+      "t": "Blibli"
+     },
+     {
+      "t": "Zalora"
+     },
+     {
+      "t": "Website / aplikasi resmi brand"
+     },
+     {
+      "t": "Instagram / WhatsApp penjual"
+     },
+     {
+      "t": "Lainnya",
+      "other": true
+     }
+    ]
+   },
+   {
+    "text": "Kategori produk apa saja yang Anda beli secara online dalam 3 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Fashion (pakaian, sepatu, tas, aksesori)"
+     },
+     {
+      "t": "Kecantikan & perawatan diri"
+     },
+     {
+      "t": "Makanan & minuman"
+     },
+     {
+      "t": "Kebutuhan rumah tangga"
+     },
+     {
+      "t": "Elektronik & gadget"
+     },
+     {
+      "t": "Ibu & bayi"
+     },
+     {
+      "t": "Kesehatan & suplemen"
+     },
+     {
+      "t": "Hobi & olahraga"
+     },
+     {
+      "t": "Lainnya",
+      "other": true
+     }
+    ]
+   }
+  ]
+ },
  "konten-hook": {
   "judul": "Konten & Hook: apa yang bikin berhenti scroll dan membeli",
   "ringkas": "Kebiasaan menonton, hook pembuka, alasan skip, uji A/B 2 video dan 2 sampul, isi konten, ajakan beli, dan siapa yang paling dipercaya. Video & gambar contoh bisa diganti dengan materi klien.",
@@ -6661,6 +6774,19 @@ var TUGAS_SEKALI = [
       } catch (e) { hasil.push(t.name + ' gagal: ' + e.message); }
     });
     CUSTOM_MEMO_ = null; return hasil;
+  } },
+  { id: '2026-11-26-survei-profil', run: function () {
+    // Survei Profil: wajib diisi responden baru sebelum survei lain (pengaturan SURVEI_PROFIL)
+    var t = SURVEY_TEMPLATES['profil']; CUSTOM_MEMO_ = null;
+    var ada = customSurveys_().filter(function (c) { return c.name.toLowerCase() === t.name.toLowerCase() && c.status !== 'Diarsipkan'; })[0], id;
+    if (ada) id = ada.id;
+    else {
+      var sch = { name: t.name, intro: t.intro, estimasi: t.estimasi, kupon: t.kupon, target: 50000, autoClose: false, giveaway: true, profile: true, screenIndustri: true, attention: true, gender: 'all', questions: templateQs_(t, 'Q') };
+      try { sch.hadiah = (CONFIG.HADIAH_UTAMA ? [{ nama: CONFIG.HADIAH_UTAMA, nilai: '' }] : []).concat((CONFIG.HADIAH || []).map(function (h) { h = String(h || ''); var m = h.match(/Rp\s?([\d.]+)/i); return { nama: h.replace(/\s*Rp\s?[\d.]+\s*/i, ' ').replace(/\s{2,}/g, ' ').trim(), nilai: m ? Number(m[1].replace(/\./g, '')) : '' }; })); } catch (e) {}
+      id = builderSave_(sch, true, 'otomatis').id;
+    }
+    saveSettings_({ SURVEI_PROFIL: id }); CUSTOM_MEMO_ = null;
+    return ['Survei Profil aktif (' + id + ')'];
   } }
 ];
 /** Pertanyaan template -> pertanyaan survei: id berurutan (prefix + nomor), showIf & {#n} di teks memakai id tsb. */
@@ -6713,16 +6839,20 @@ function hubList(ig) {
     var earned = {};   // saldo: tiap jawaban valid (per survei per ronde) bernilai kupon survei itu
     if (fx) fx.forEach(function (x) { if (x[1] === rondeNow_(x[0])) done[x[0]] = x[2] ? 'Valid' : 'Masuk'; if (x[2] && x[4] === per) kp[x[0]] = 1; if (x[2]) earnAdd_(earned, x[0], x[1], x[3]); });
     else igRows_(n).forEach(function (r) { if (r.ronde === rondeNow_(r._v)) done[r._v] = r.status || 'Masuk'; if (r.status === 'Valid' && periodeOf_(r) === per) kp[r._v] = 1; if (r.status === 'Valid') earnAdd_(earned, r._v, r.ronde, r.timestamp); });
+    var PF = profilSurvey_(), known = n ? (fx ? fx.some(function (x) { return x[5]; }) : !!profileRow_(igRows_(n), n)) : false;
+    var needProfil = !!(PF && n && !known && !profilTried_(fx, fx ? null : igRows_(n), PF.v));
     var list = surveyList_().filter(function (x) {
       if (!x.open || x.status === 'Draf') return false;
+      if (PF && x.v === PF.v && n && known && !done[x.v]) return false;   // sudah punya profil -> Survei Profil tidak perlu ditampilkan
       var c = x.custom ? customById_(x.v) : null;
       return !(c && c.schema && (c.schema.giveaway === false || (c.schema.brand && c.schema.brand.mode === 'client')));
     }).map(function (x) {
       var c = x.custom ? customById_(x.v) : null, est = c ? Number(c.schema.estimasi) || Math.max(3, Math.round((c.schema.questions || []).length * 0.4) + (c.schema.profile === false ? 1 : 3)) : x.v === 'v2' ? 6 : 7;
-      return { v: x.v, name: x.name, est: est, link: x.link, done: !!done[x.v], valid: done[x.v] === 'Valid', kupon: !!kp[x.v], nilai: kuponOf_(x.v), ronde: x.ronde || 1,
+      return { v: x.v, name: x.name, est: est, link: x.link, profil: !!(PF && x.v === PF.v), done: !!done[x.v], valid: done[x.v] === 'Valid', kupon: !!kp[x.v], nilai: kuponOf_(x.v), ronde: x.ronde || 1,
         desc: c ? (String(c.schema.intro || '').slice(0, 140) || 'Survei singkat dari MIL Gift Club.') : x.v === 'v2' ? 'Khusus wanita: belanja fashion, tas & aksesori, dan hijab.' : 'Kebiasaan belanja online kamu di berbagai kategori.' };
     });
-    return { ok: true, ig: n ? '@' + n : '', blocked: acc.state !== 'ok' ? { state: acc.state, until: acc.until ? fmt_(acc.until) : '', email: set_('EMAIL_BUKA_AKSES') } : null,
+    if (PF) list.sort(function (a, b) { return (b.profil ? 1 : 0) - (a.profil ? 1 : 0); });
+    return { ok: true, ig: n ? '@' + n : '', needProfil: needProfil, profil: PF, blocked: acc.state !== 'ok' ? { state: acc.state, until: acc.until ? fmt_(acc.until) : '', email: set_('EMAIL_BUKA_AKSES') } : null,
       list: list, kupon: acc.state === 'ok' ? Object.keys(kp).reduce(function (t, v) { return t + kuponOf_(v); }, 0) : 0, periode: per,
       saldo: n && acc.state === 'ok' ? kuponSaldoFast_(n, earned) : null, katalog: katalogFast_(),
       tukar: n ? tukarMine_(n).slice().reverse().map(function (t) { var o = JSON.parse(JSON.stringify(t)); o.resi = ''; if (o.kurir) o.kurir.lacak = ''; return o; }) : [] };   // resi & link lacak hanya setelah verifikasi 4 digit WA

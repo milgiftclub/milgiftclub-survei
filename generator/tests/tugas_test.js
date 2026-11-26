@@ -14,9 +14,9 @@ const tab = Object.values(sheets).find(s => /Gaya Berpenampilan/.test(s.name)); 
 // tugas 2026-11-17 (dijalankan pada trigger yang sama karena berurutan): survei dikembalikan
 const st = ctx.adminTugasStatus(); console.log('kembalikan:', JSON.stringify(st['2026-11-17-kembalikan-survei'] && st['2026-11-17-kembalikan-survei'].hasil));
 console.log('akhir:', names());
-const L = ctx.surveyList_(); assert.strictEqual(L.length, 6);
+const L = ctx.surveyList_(); assert.strictEqual(L.length, 7); assert(L.some(x => x.name === 'Survei Profil'));
 const g = L.find(x => /Gaya/.test(x.name)); assert.strictEqual(g.status, 'Dibuka');
 assert.strictEqual(L.find(x => /Konten/.test(x.name)).status, 'Draf');
 assert.strictEqual(tab.d.length, 2);
-ctx.autoSnapshot(); assert.strictEqual(ctx.surveyList_().length, 6);
+ctx.autoSnapshot(); assert.strictEqual(ctx.surveyList_().length, 7);
 console.log('OK tugas_test');

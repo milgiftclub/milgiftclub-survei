@@ -1,4 +1,82 @@
 {
+ "profil": {
+  "judul": "Survei Profil: kenalan dulu dengan responden",
+  "ringkas": "Survei pertama untuk responden baru: data diri standar (usia, gender, domisili, pekerjaan, pengeluaran) plus platform dan kategori belanja online. Diisi sekali, lalu dipakai otomatis di semua survei lain.",
+  "name": "Survei Profil",
+  "intro": "Kenalan dulu, yuk! Isi sekali saja, setelah itu kamu bisa langsung mengisi survei lain tanpa mengisi data diri lagi.",
+  "estimasi": 4,
+  "kupon": 1,
+  "questions": [
+   {
+    "text": "Platform belanja online apa saja yang Anda gunakan dalam 3 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Shopee"
+     },
+     {
+      "t": "Tokopedia"
+     },
+     {
+      "t": "TikTok Shop"
+     },
+     {
+      "t": "Lazada"
+     },
+     {
+      "t": "Blibli"
+     },
+     {
+      "t": "Zalora"
+     },
+     {
+      "t": "Website / aplikasi resmi brand"
+     },
+     {
+      "t": "Instagram / WhatsApp penjual"
+     },
+     {
+      "t": "Lainnya",
+      "other": true
+     }
+    ]
+   },
+   {
+    "text": "Kategori produk apa saja yang Anda beli secara online dalam 3 bulan terakhir?",
+    "type": "multi",
+    "options": [
+     {
+      "t": "Fashion (pakaian, sepatu, tas, aksesori)"
+     },
+     {
+      "t": "Kecantikan & perawatan diri"
+     },
+     {
+      "t": "Makanan & minuman"
+     },
+     {
+      "t": "Kebutuhan rumah tangga"
+     },
+     {
+      "t": "Elektronik & gadget"
+     },
+     {
+      "t": "Ibu & bayi"
+     },
+     {
+      "t": "Kesehatan & suplemen"
+     },
+     {
+      "t": "Hobi & olahraga"
+     },
+     {
+      "t": "Lainnya",
+      "other": true
+     }
+    ]
+   }
+  ]
+ },
  "konten-hook": {
   "judul": "Konten & Hook: apa yang bikin berhenti scroll dan membeli",
   "ringkas": "Kebiasaan menonton, hook pembuka, alasan skip, uji A/B 2 video dan 2 sampul, isi konten, ajakan beli, dan siapa yang paling dipercaya. Video & gambar contoh bisa diganti dengan materi klien.",

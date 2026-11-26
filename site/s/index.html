@@ -298,7 +298,7 @@ var CITIES = [["Kab. Aceh Selatan", "Aceh", "Kabupaten", "Tidak"], ["Kab. Aceh T
 
     function visible(id) {
       if (ST.pre && ST.pre.indexOf(id) >= 0) return false;
-      if (id === 'PV') return !!ST.known;
+      if (id === 'PV') return !!ST.known && !ST.tokOk;
       if (id === 'PR') return !!ST.stale;
       var q = BY[id], c = q && q.showIf;
       if (c && c.q && (BY[c.q] || ST.a[c.q] != null)) {
@@ -539,7 +539,14 @@ function mediaInfo(u) {
           if (done1) return; res = res || {};
           if (res.state === 'sudah_isi') { done1 = true; return endScreenout('Sudah pernah mengisi survei ini (Instagram sama)'); }
           if (res.state === 'diblokir' || res.state === 'suspend') { done1 = true; return endBlocked(res); }
-          ST.known = PROF && !!res.known; ST.pvTry = 0; go1();
+          if (res.state === 'sudah_profil') { done1 = true; waitMsg(''); busy(false); return endSudahProfil(); }
+          if (res.profilDulu) { done1 = true; waitMsg(''); busy(false); return gateProfil(res.profilDulu); }
+          ST.known = PROF && !!res.known; ST.pvTry = 0;
+          if (ST.known && qs('t')) return api('verifyProfileToken', [ST.a.Z2, qs('t')]).then(function (r) {
+            if (done1) return; if (r && r.ok) { var so = applyProfile(r); if (so) { done1 = true; waitMsg(''); busy(false); return endScreenout(so); } ST.known = false; ST.tokOk = true; }
+            go1();
+          }, go1);
+          go1();
         }, go1);
       }
       if (id === 'PV') {
@@ -548,14 +555,7 @@ function mediaInfo(u) {
         busy(true, 'Memverifikasi...'); waitMsg('Tunggu sesaat, kami sedang mencocokkan data kamu di database kami.');
         return api('verifyProfile', [ST.a.Z2, pv]).then(function (res) {
           waitMsg(''); busy(false);
-          if (res && res.ok) {
-            ST.pre = Object.keys(res.profile); ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
-            ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
-            if (ST.a.S0) ageBand(); if (ST.a.S1 === S1O[0]) return endScreenout('Usia di bawah 18 tahun');
-            save();
-            for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return endScreenout(so2); }
-            return go(1);
-          }
+          if (res && res.ok) { var so2 = applyProfile(res); if (so2) return endScreenout(so2); return go(1); }
           ST.pvTry = (ST.pvTry || 0) + 1;
           if (ST.pvTry >= 3) { delete ST.a.PV; go(1); ST.known = false; save(); return; }
           errBox('4 digit tidak cocok. Coba lagi, atau kosongkan lalu klik Lanjut untuk mengisi data diri dari awal.');
@@ -563,6 +563,15 @@ function mediaInfo(u) {
       }
       if (c.i === c.s.length - 1) return submit();
       go(1);
+    }
+    /** Pakai profil tersimpan (dari 4 digit WA atau token Survei Profil). Mengembalikan alasan screenout bila tidak lolos. */
+    function applyProfile(res) {
+      ST.pre = Object.keys(res.profile); if (res.wa && BY.Z3) { res.profile.Z3 = res.wa.charAt(0) === '0' ? res.wa : '0' + res.wa.replace(/^62/, ''); ST.pre.push('Z3'); } ST.pre.forEach(function (x) { ST.a[x] = res.profile[x]; });
+      ST.stale = !!res.stale; ST.prSum = ST.stale ? profSummary(res.profile) : ''; if (BY.PR) BY.PR.hint = ST.prSum;
+      if (ST.a.S0) ageBand(); if (ST.a.S1 === S1O[0]) return 'Usia di bawah 18 tahun';
+      save();
+      for (var i = 0; i < ST.pre.length; i++) { var so2 = BY[ST.pre[i]] ? screenout(ST.pre[i], ST.a[ST.pre[i]]) : null; if (so2) return so2; }
+      return '';
     }
     function ageBand() {
       var y = ST.a.S0; if (!y) return;
@@ -622,7 +631,8 @@ function mediaInfo(u) {
       }
       if (PREVIEW) { clearSave(); return finish('Pratinjau selesai', 'Ini tampilan akhir survei. Di mode pratinjau, jawaban tidak disimpan.', '', stepsBox()); }
       busy(true, 'Mengirim...'); waitMsg('Mohon tunggu, kami sedang mengirimkan data Anda…');
-      api('submitResponse', [payload({})]).then(function () { waitMsg(''); clearSave(); done(); }, function (e) {
+      var igSent = ST.a.Z2;
+      api('submitResponse', [payload({})]).then(function (r) { waitMsg(''); clearSave(); ST.lastIg = igSent; done(r); }, function (e) {
         waitMsg(''); busy(false); btnN.textContent = 'Coba kirim lagi';
         document.getElementById('err').innerHTML = 'Jawaban belum terkirim karena gangguan koneksi. Mohon tekan tombol kirim sekali lagi.' + (e && e.message ? '<br><small style="color:#9a8a7a;font-weight:400">Detail: ' + esc(String(e.message).slice(0, 160)) + '</small>' : '');
       });
@@ -645,7 +655,31 @@ function mediaInfo(u) {
         : 'Akses akun ini ke survei ' + ORG + ' ditutup karena jawaban sebelumnya tidak lolos verifikasi kualitas. Untuk membuka kembali, kirim email ke ' + em + ' dengan menyertakan username Instagram dan nomor WhatsApp kamu.';
       finish('Akses survei ditutup', msg, '', CFG.linkIg ? '<div class="ctas"><a class="cta cta2" href="' + esc(CFG.linkIg) + '" target="_blank" rel="noopener">' + esc(CFG.tombolIg || 'Follow Instagram') + '</a></div>' : '');
     }
-    function done() {
+    function gateProfil(pf) {
+      clearSave();
+      var ig = String(ST.a.Z2 || '').replace(/^@/, ''), back = location.origin + location.pathname + '?id=' + encodeURIComponent(ID) + (SRC ? '&src=' + encodeURIComponent(SRC) : '');
+      var u = pf.link + (pf.link.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ig) + '&ok=1&src=' + encodeURIComponent(SRC) + '&lanjut=' + encodeURIComponent(back);
+      finish('Satu langkah dulu, ya!', 'Sebelum mengisi survei ini, isi dulu ' + pf.name + ' (±' + (pf.est || 4) + ' menit). Cukup sekali saja: setelah itu kamu langsung kembali ke survei ini dan tidak perlu mengisi data diri lagi di survei mana pun.', '',
+        '<div class="ctas"><a class="cta" href="' + esc(u) + '">Isi ' + esc(pf.name) + ' · +' + (pf.kupon || 1) + ' kupon →</a></div>');
+    }
+    function endSudahProfil() {
+      clearSave();
+      finish('Profil kamu sudah tersimpan', 'Kamu tidak perlu mengisi survei ini lagi. Langsung pilih survei lain, data dirimu otomatis terisi.', '', ctaButtons(false));
+    }
+    function lanjutUrl(tok) {
+      var l = qs('lanjut'); if (!l || !tok) return '';
+      try { var u = new URL(l, location.href); if (u.origin !== location.origin) return ''; } catch (e) { return ''; }
+      var ig = String(ST.a.Z2 || ST.lastIg || '').replace(/^@/, '');
+      return l + (l.indexOf('?') < 0 ? '?' : '&') + 'ig=' + encodeURIComponent(ig) + '&ok=1&t=' + encodeURIComponent(tok);
+    }
+    function done(res) {
+      var nx = lanjutUrl(res && res.lanjut);
+      if (nx) {
+        finish('Profil kamu tersimpan!', 'Terima kasih! Sekarang kita lanjut ke survei yang tadi kamu pilih. Data dirimu sudah terisi otomatis.', '',
+          '<div class="ctas"><a class="cta" id="lanjut-go" href="' + esc(nx) + '">Lanjut ke survei →</a></div><p class="small" style="text-align:center;opacity:.75;margin-top:8px">Otomatis lanjut dalam <span id="lanjut-n">5</span> detik…</p>');
+        var n = 5, tm = setInterval(function () { n--; var e = document.getElementById('lanjut-n'); if (e) e.textContent = n; if (n <= 0) { clearInterval(tm); location.href = nx; } }, 1000);
+        return;
+      }
       finish('Terima kasih!', 'Jawaban kamu sudah kami terima.' + (G ? ' Pemenang diumumkan di Instagram ' + CFG.ig + (CFG.announce ? ' pada ' + CFG.announce : '') + '.' : ''), G ? (CFG.pesanPenutup || '') : '', stepsBox(), ctaButtons(true));
     }
     btnN.onclick = next;
